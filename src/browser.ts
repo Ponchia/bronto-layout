@@ -79,9 +79,11 @@ export function captureDOMGeometry(selectors: Record<string, string>): LayoutSna
   }
   const root = document.documentElement;
   const body = document.body;
+  const scrollportWidth = root.clientWidth || window.innerWidth;
+  const scrollportHeight = root.clientHeight || window.innerHeight;
   const docWidth = Math.max(root.scrollWidth, body?.scrollWidth ?? 0);
   const overflowCandidates: NonNullable<LayoutSnapshot['overflowCandidates']> = [];
-  if (docWidth > window.innerWidth + 1) {
+  if (docWidth > scrollportWidth + 1) {
     // A lead is not necessarily a cause. An element can visually overhang but be
     // intentionally clipped by an ancestor. Report evidence; don't accuse CSS.
     // Bound traversal and output so dense apps cannot flood an agent context.
@@ -93,7 +95,7 @@ export function captureDOMGeometry(selectors: Record<string, string>): LayoutSna
       const style = window.getComputedStyle(element);
       if (style.display === 'none' || style.visibility === 'hidden') continue;
       const bounds = element.getBoundingClientRect();
-      const rightOverflow = Math.max(0, bounds.right - window.innerWidth);
+      const rightOverflow = Math.max(0, bounds.right - scrollportWidth);
       const leftOverflow = Math.max(0, -bounds.left);
       if ((rightOverflow > 1 || leftOverflow > 1) && bounds.width > 0 && bounds.height > 0) {
         overflowCandidates.push({ path: domPath(element), rect: { x: bounds.x, y: bounds.y,
@@ -110,7 +112,7 @@ export function captureDOMGeometry(selectors: Record<string, string>): LayoutSna
   }
   const direction = window.getComputedStyle(root).direction === 'rtl' ? 'rtl' : 'ltr';
   return {
-    viewport: { width: window.innerWidth, height: window.innerHeight, direction,
+    viewport: { width: window.innerWidth, height: window.innerHeight, contentWidth: scrollportWidth, contentHeight: scrollportHeight, direction,
       deviceScaleFactor: window.devicePixelRatio, coarsePointer: window.matchMedia('(pointer: coarse)').matches,
       locale: Intl.DateTimeFormat().resolvedOptions().locale },
     document: { width: docWidth, height: Math.max(root.scrollHeight, body?.scrollHeight ?? 0) },

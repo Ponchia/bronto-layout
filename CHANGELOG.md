@@ -2,6 +2,7 @@
 
 ## 0.3.0 — 2026-10-11 (CLI alpha)
 
+- Fixed false centering deviations caused by reserved vertical scrollbar width; horizontal overflow now checks the usable scrollport.
 - Added a manual real-site smoke workflow and more meaningful contracts for Sense6 gallery, Arabic, and learn pages.
 - Added horizontal-only `contained` checks for below-the-fold layout content.
 - Added bounded element candidates for horizontal overflow and observed DOM evidence on failed rules.

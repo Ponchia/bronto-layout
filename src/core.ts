@@ -29,7 +29,7 @@ export interface OverflowCandidate {
   overflowX: string;
 }
 export interface LayoutSnapshot {
-  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string };
+  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; contentWidth?: number; contentHeight?: number; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string };
   document: { width: number; height: number };
   selectors: Record<string, ElementGeometry[]>;
   /** Exact number of visible elements, even when geometry details are bounded. */
@@ -101,7 +101,7 @@ function reference(s: LayoutSnapshot, alias: string): ElementGeometry | undefine
   return s.selectors[alias]?.[0];
 }
 function refRect(s: LayoutSnapshot, alias: string): Rect | undefined {
-  return alias === 'viewport' ? { x: 0, y: 0, width: s.viewport.width, height: s.viewport.height } : reference(s, alias)?.rect;
+  return alias === 'viewport' ? { x: 0, y: 0, width: s.viewport.contentWidth ?? s.viewport.width, height: s.viewport.contentHeight ?? s.viewport.height } : reference(s, alias)?.rect;
 }
 function compare(id: string, type: LayoutRule['type'], delta: number, tolerance: number, message: string, paths?: string[]): LayoutFinding {
   return { id, type, status: within(delta, tolerance) ? 'pass' : 'fail', code: 'constraint', message, deviation: delta, tolerance, paths };
@@ -131,7 +131,7 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
     };
     const report = (finding: LayoutFinding) => findings.push({ ...finding, description: rule.description });
     if (rule.type === 'document-overflow') {
-      const delta = Math.max(0, s.document.width - s.viewport.width);
+      const delta = Math.max(0, s.document.width - (s.viewport.contentWidth ?? s.viewport.width));
       const finding = compare(rule.id, rule.type, delta, tolerance, `Document extends ${delta.toFixed(2)}px beyond the viewport`);
       if (finding.status === 'fail' && s.overflowCandidates?.length) {
         finding.overflowCandidates = s.overflowCandidates;
