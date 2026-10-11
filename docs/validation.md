@@ -75,3 +75,19 @@ The deployed website tests are a baseline only. They do not establish the absenc
 - Numeric rem/em thresholds retain their CSS units; the tool does not
   misrepresent them as viewport pixel breakpoints or claim a condition
   applies to one selected element without container association.
+
+
+## 2026-10-12: Zero-contract before/after comparison
+
+The pure `comparePageAudits` function and CLI
+`audit --baseline URL --url URL` are tested against controlled
+healthy/broken pages. Chromium integration checks verify 2 new measured
+regressions (horizontal overflow and an identifiable broken image),
+a review-only clipping change, the inverse fix direction, and unchanged
+existing defects. A separate CSS media-query comparison exercises the
+701–799px failure interval that coarse endpoint samples miss.
+
+No-rules auto comparisons do not assert that the actual layout change was
+undesirable; they report observed browser evidence. Truncated traversal,
+missing/duplicate element paths and new unhandled detector categories are
+explicitly unverified, and therefore cannot produce a clean exit.

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add optional zero-contract before/after audit comparisons via
+  `audit --baseline URL --url URL`, with new measured regression,
+  improvement and review-only changes kept separate.
+- Combine baseline/candidate CSS media-query boundaries in automatic
+  comparisons and fail closed on incomplete or ambiguous DOM evidence.
+
 - Add separately labeled per-element audit localization evaluation for
   broken-image and possible-text-clipping findings: exact DOM-path
   TP/FP/FN, wrong-element penalties and explicitly incomplete sample handling.

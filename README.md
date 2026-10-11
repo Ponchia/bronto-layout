@@ -182,6 +182,42 @@ No application source changes, npm runtime dependencies or MCP are required.
 See [MDN CSSContainerRule](https://developer.mozilla.org/en-US/docs/Web/API/CSSContainerRule)
 and [Chrome's DevTools container-query inspector](https://developer.chrome.com/docs/devtools/css/container-queries/).
 
+## Compare automatic audit findings before and after an edit
+
+The zero-contract audit can compare a *baseline* page with the edited page
+without first writing alignment or spacing rules:
+
+~~~sh
+bronto-layout audit --baseline http://localhost:5173/ --url http://localhost:5174/ --json --compact
+bronto-layout audit --baseline examples/audit-healthy.html --url examples/audit-broken.html --widths 320,375,768 --json --compact
+bronto-layout audit --baseline examples/breakpoint-healthy.html --url examples/breakpoint.html --scan 600:900:300 --css-breakpoints --json
+~~~
+
+Both versions are inspected by the same Chromium session at **identical**
+viewport widths. When CSS-breakpoint sampling is enabled, the CLI gathers
+boundary widths from both versions to avoid missing a new responsive branch.
+
+- **Exit 1:** a newly observed or meaningfully worse measured problem,
+  including document-level horizontal overflow or a newly broken image.
+- **Exit 0:** no new measured regression, even if previously observed problems
+  remain. Review-only changes such as possible text clipping are shown but
+  do not fail the command.
+- **Exit 2:** an inspection cannot establish a reliable comparison
+  because of incomplete DOM traversal, omitted or ambiguous element
+  attribution, unsupported new detectors, or an ordinary runtime error.
+
+Compact reports keep the measured changes, their element paths and widths,
+**remaining candidate issues** and totals; unchanged passing observations
+are omitted. The full JSON report includes both underlying audits.
+
+This comparison describes **observable evidence**, not visual design intent.
+A large intentional layout can have horizontal overflow, and changing the
+DOM's identity/structure can change non-ID element paths without a visual
+defect. Use `--ready-selector` for application routes that might otherwise
+load an error page, and use explicit `check` layout contracts for approved
+alignment/spacing requirements. Do not read an exit-0 comparison as proof of
+a universally healthy website.
+
 ## Browser CSS preference states
 
 The CLI can verify appearance-dependent layout rules without requiring source

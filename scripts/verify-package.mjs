@@ -89,6 +89,15 @@ try {
     ], { cwd: consumer, timeout: 90000 }));
     assert.equal(audit.mode, 'audit');
     assert.equal(audit.summary.measuredIssues, 0);
+    const automaticComparison = JSON.parse(run(binary, [
+      'audit',
+      '--baseline', path.join(installed, 'examples', 'audit-healthy.html'),
+      '--url', path.join(installed, 'examples', 'audit-healthy.html'),
+      '--width', '375', '--json', '--compact'
+    ], { cwd: consumer, timeout: 90000 }));
+    assert.equal(automaticComparison.mode, 'audit-compare');
+    assert.equal(automaticComparison.summary.measuredRegressions, 0);
+    assert.equal(automaticComparison.summary.unverifiedViewports, 0);
   }
 
   print('Packed ' + packed.filename + ': ' + packedFiles.size + ' files, ' +
