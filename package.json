@@ -22,7 +22,8 @@
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "benchmark:audit": "node scripts/benchmark-audit.mjs --assert",
     "benchmark:audit:expanded": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert",
-    "benchmark:audit:locations": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert"
+    "benchmark:audit:locations": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert",
+    "field:validate": "node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
@@ -60,6 +61,14 @@
     "./sarif": {
       "types": "./dist/sarif.d.ts",
       "default": "./dist/sarif.js"
+    },
+    "./contract-discovery": {
+      "types": "./dist/contract-discovery.d.ts",
+      "default": "./dist/contract-discovery.js"
+    },
+    "./selector-discovery": {
+      "types": "./dist/selector-discovery.d.ts",
+      "default": "./dist/selector-discovery.js"
     }
   },
   "files": [

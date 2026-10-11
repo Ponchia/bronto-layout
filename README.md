@@ -48,6 +48,36 @@ and 24, including the installed CLI's browser checks against bundled
 trusted fixtures. **Preparing a publishable package does not imply that
 it has been published to the npm registry.**
 
+## Review-first contract suggestions (experimental)
+
+Generate a provisional contract draft from browser-observed relationships,
+then accept only the rules you actually intend to preserve:
+
+```sh
+node bin/bronto-layout.mjs suggest --url examples/healthy.html --widths 375,768,1280 --out reports/proposals.json
+node bin/bronto-layout.mjs approve --draft reports/proposals.json --accept document-horizontal-fit --out reports/accepted.json
+node bin/bronto-layout.mjs check --spec reports/accepted.json --url examples/healthy.html
+```
+
+This does **not** infer artistic/design intent automatically. It reports
+sampling coverage and requires explicit rule approval. See
+[contract discovery](docs/contract-discovery.md).
+
+## Independent field benchmark workflow
+
+A separate capture/label/score workflow prepares a 30-state first-party
+production-site cohort. It stores hashed raw Chromium audit reports and
+viewport screenshots in ignored `reports/` directories. It never invents
+human ground truth or counts unreviewed states as clean pages:
+
+```sh
+npm run field:validate
+node scripts/field-benchmark.mjs capture --manifest benchmarks/field-sites.v0.1.json --ids portfolio-375 --out reports/field-first-pass
+```
+
+Independent review and verified labels are still required before any accuracy
+claim. See the [field benchmark protocol](docs/field-benchmark.md).
+
 ## Quick start
 
 Requirements: Node.js 22+, Chrome or Chromium. In a source checkout, build once using `npm install` (which compiles the TypeScript automatically), or use a packaged copy with `dist/` included:

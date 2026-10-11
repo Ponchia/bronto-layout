@@ -36,3 +36,8 @@ export type { ContainerQueryEvidence } from './container-queries.js';
 
 export { comparePageAudits } from './audit-compare.js';
 export type { AuditComparison, AuditChange } from './audit-compare.js';
+
+export { discoverPageSelectors } from './selector-discovery.js';
+export type { SelectorDiscovery } from './selector-discovery.js';
+export { suggestLayoutContracts, acceptContractProposals } from './contract-discovery.js';
+export type { ContractDiscoveryDraft, ContractProposal } from './contract-discovery.js';

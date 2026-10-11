@@ -1,0 +1,173 @@
+#!/usr/bin/env node
+/** Collect reproducible real-website audit evidence; score separately reviewed
+ * labels only. Screenshots and page reports are local artifacts, never published.
+ */
+import { spawnSync, execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { validateFieldManifest, scoreFieldEvidence } from './field-benchmark-core.mjs';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const argv = process.argv.slice(2);
+const action = argv.shift();
+function opt(name, fallback) {
+  const pos = argv.indexOf(name);
+  if (pos < 0) return fallback;
+  if (!argv[pos + 1] || argv[pos + 1].startsWith('--')) throw new Error(name + ' requires a value');
+  return argv[pos + 1];
+}
+const has = flag => argv.includes(flag);
+const readJSON = file => JSON.parse(readFileSync(file, 'utf8'));
+const sha = data => createHash('sha256').update(data).digest('hex');
+const ensureInside = (dir, filename) => {
+  const resolved = path.resolve(dir, filename);
+  if (!resolved.startsWith(path.resolve(dir) + path.sep)) throw new Error('Evidence path escapes capture directory');
+  return resolved;
+};
+function writeJSON(file, data) {
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
+}
+function usage() {
+  return `Bronto Layout field benchmark — independent human labels only
+Usage:
+  node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json
+  node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id]
+  node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
+Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
+Captures are not ground-truth labels. Scores exclude unreviewed/unavailable states.`;
+}
+function assertKnownOptions() {
+  const values = new Set(['--manifest', '--out', '--captures', '--labels', '--ids', '--report']);
+  const flags = new Set(['--fixtures', '--json', '--assert', '--help']);
+  for (let i = 0; i < argv.length; i++) {
+    if (values.has(argv[i])) { i++; if (i >= argv.length) throw new Error('Missing argument value'); }
+    else if (!flags.has(argv[i])) throw new Error('Unknown benchmark option: ' + argv[i]);
+  }
+}
+function fixtureURL(value) {
+  if (!value.startsWith('examples/')) return value;
+  const resolved = ensureInside(path.join(root, 'examples'), value.slice('examples/'.length));
+  if (!existsSync(resolved) || !statSync(resolved).isFile()) throw new Error('Missing local fixture: ' + value);
+  return resolved;
+}
+function sourceVersion() {
+  try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', timeout: 3000 }).trim(); }
+  catch { return 'unknown'; }
+}
+function runCapture() {
+  const manifestFile = opt('--manifest');
+  const outputDir = path.resolve(opt('--out'));
+  if (!manifestFile || !opt('--out')) throw new Error('capture requires --manifest and --out');
+  if (existsSync(outputDir)) throw new Error('Capture directory already exists; choose a fresh destination');
+  const manifest = validateFieldManifest(readJSON(path.resolve(manifestFile)), has('--fixtures'));
+  const selectedIDs = opt('--ids')?.split(',') ?? manifest.cases.map(c => c.id);
+  if (!selectedIDs.length || new Set(selectedIDs).size !== selectedIDs.length ||
+      selectedIDs.some(id => !manifest.cases.some(sample => sample.id === id))) throw new Error('Invalid --ids selection');
+  const entries = [];
+  const pkg = readJSON(path.join(root, 'package.json'));
+  mkdirSync(outputDir, { recursive: true });
+  for (const sample of manifest.cases.filter(c => selectedIDs.includes(c.id))) {
+    const folder = path.join(outputDir, 'cases', sample.id);
+    const imageDir = path.join(folder, 'screens');
+    mkdirSync(imageDir, { recursive: true });
+    const args = [path.join(root, 'bin', 'bronto-layout.mjs'), 'audit', '--url', fixtureURL(sample.url),
+      '--width', String(sample.width), '--json', '--compact', '--ready-selector', 'body',
+      '--settle', '500', '--timeout', '30000', '--evidence-dir', imageDir];
+    if (sample.locale) args.push('--locale', sample.locale);
+    const run = spawnSync(process.execPath, args, {
+      cwd: root, encoding: 'utf8', timeout: 75000, maxBuffer: 12 * 1024 * 1024,
+      env: process.env
+    });
+    let report;
+    try { report = JSON.parse(run.stdout); } catch { report = undefined; }
+    const screenshotFile = path.join(imageDir, `audit-${sample.width}px.png`);
+    const screenshot = existsSync(screenshotFile) ? readFileSync(screenshotFile) : undefined;
+    const actualHost = (() => {
+      try { return new URL(report?.browser?.actualUrl).hostname; } catch { return null; }
+    })();
+    const expectedHost = sample.url.startsWith('examples/') ? null : new URL(sample.url).hostname;
+    const trustedFinalLocation = expectedHost === null || actualHost === expectedHost;
+    const complete = trustedFinalLocation && [0, 1].includes(run.status) && report?.mode === 'audit' &&
+      report?.summary?.viewports === 1 && report?.reports?.[0]?.width === sample.width &&
+      report.reports[0].summary?.verified === true && screenshot?.subarray(0, 8).equals(
+        Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) === true;
+    const auditRelative = `cases/${sample.id}/audit.json`;
+    if (report) writeJSON(path.join(outputDir, auditRelative), report);
+    const entry = {
+      id: sample.id, url: sample.url, width: sample.width,
+      ...(sample.locale ? { locale: sample.locale } : {}),
+      complete: Boolean(complete), exitCode: run.status,
+      browserUserAgent: report?.browser?.userAgent ?? null,
+      browserActualUrl: report?.browser?.actualUrl ?? null,
+      auditFile: report ? auditRelative : null,
+      auditSha256: report ? sha(readFileSync(path.join(outputDir, auditRelative))) : null,
+      screenshotFile: screenshot ? `cases/${sample.id}/screens/audit-${sample.width}px.png` : null,
+      screenshotSha256: screenshot ? sha(screenshot) : null,
+      screenshotCoverage: screenshot ? 'viewport-only' : 'unavailable',
+      ...(complete ? {} : { error: run.error?.message || report?.error?.message ||
+        (run.stderr || '').slice(-300) || 'Incomplete/failed browser capture' })
+    };
+    entries.push(entry);
+    process.stderr.write(`${sample.id}: ${entry.complete ? 'complete' : 'incomplete'} (exit ${run.status})\n`);
+  }
+  const index = { schemaVersion: 1, datasetId: manifest.id, capturedAt: new Date().toISOString(),
+    captureToolVersion: pkg.version, nodeVersion: process.version, sourceCommit: sourceVersion(),
+    allCaseIds: manifest.cases.map(c => c.id), captures: entries.length, cases: entries,
+    limitations: ['Screenshots show the initial viewport only; review rendered below-fold layout separately',
+      'External page content and assets may change; this is one observed browser session',
+      'No independent human labels are included in capture artifacts'] };
+  writeJSON(path.join(outputDir, 'index.json'), index);
+  process.stdout.write(JSON.stringify({ datasetId: index.datasetId, total: entries.length,
+    complete: entries.filter(x => x.complete).length, index: path.join(outputDir, 'index.json') }, null, 2) + '\n');
+  if (entries.some(row => !row.complete)) process.exitCode = 2;
+}
+function runScore() {
+  const captures = path.resolve(opt('--captures'));
+  const labelPath = opt('--labels');
+  if (!labelPath || !opt('--captures')) throw new Error('score requires --captures and --labels');
+  const index = readJSON(path.join(captures, 'index.json'));
+  const labels = readJSON(path.resolve(labelPath));
+  const evidence = {};
+  for (const sample of index.cases) {
+    sample.screenshotVerified = false;
+    if (!sample.auditFile || !sample.screenshotFile) continue;
+    const auditPath = ensureInside(captures, sample.auditFile);
+    const imagePath = ensureInside(captures, sample.screenshotFile);
+    if (!existsSync(auditPath) || !existsSync(imagePath)) continue;
+    if (sha(readFileSync(auditPath)) !== sample.auditSha256 ||
+        sha(readFileSync(imagePath)) !== sample.screenshotSha256) continue;
+    evidence[sample.id] = readJSON(auditPath);
+    sample.screenshotVerified = true;
+  }
+  const result = scoreFieldEvidence(index, labels, evidence);
+  const missingCaptures = (index.allCaseIds || []).filter(id => !index.cases.some(c => c.id === id));
+  result.pending.push(...missingCaptures);
+  result.totalManifestCases = index.allCaseIds?.length ?? index.cases.length;
+  if (opt('--report')) writeJSON(path.resolve(opt('--report')), result);
+  if (has('--json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  else process.stdout.write(
+    `Field benchmark ${result.datasetId}: ${result.metrics.evaluatedCases} evaluated, ` +
+    `${result.metrics.matchingCases} matches; ${result.pending.length} pending, ` +
+    `${result.metrics.incompleteCases} incomplete, ${result.unreviewable.length} unreviewable\n` +
+    `Measured precision ${result.metrics.measured.precision ?? 'N/A'}, recall ${result.metrics.measured.recall ?? 'N/A'}\n` +
+    `Review precision ${result.metrics.review.precision ?? 'N/A'}, recall ${result.metrics.review.recall ?? 'N/A'}\n`);
+  if (result.metrics.incompleteCases || (has('--assert') && result.pending.length)) process.exitCode = 2;
+  else if (has('--assert') && result.metrics.matchingCases !== result.metrics.evaluatedCases) process.exitCode = 1;
+}
+try {
+  assertKnownOptions();
+  if (has('--help')) console.log(usage());
+  else if (action === 'validate') {
+    const manifest = opt('--manifest');
+    if (!manifest) throw new Error('validate requires --manifest FILE');
+    const result = validateFieldManifest(readJSON(path.resolve(manifest)), has('--fixtures'));
+    console.log(`Valid field benchmark: ${result.id}, ${result.cases.length} cases; no labels inferred`);
+  } else if (action === 'capture') runCapture();
+  else if (action === 'score') runScore();
+  else throw new Error('Choose validate, capture, or score. Run --help.');
+} catch (error) {
+  console.error('Field benchmark: ' + (error?.message || String(error)));
+  process.exitCode = 2;
+}
