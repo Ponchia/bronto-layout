@@ -17,6 +17,10 @@ on:
         description: 'Inspect matched author CSS rules on the deployed portfolio and Sense6'
         type: boolean
         default: false
+      layout_shifts:
+        description: 'Measure lab loading layout shifts on the portfolio and Sense6'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -150,6 +154,44 @@ jobs:
                 matched.filter(x => x.sourceKind === "external-stylesheet").length +
                 " external stylesheets)");
             ' "reports/css-source-$name.json" "$name"
+            echo "::endgroup::"
+          done
+      - name: Observe loading layout shifts on first-party pages
+        if: ${{ inputs.layout_shifts }}
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          # Lab-only observations; no hard-coded Web Vitals score budget.
+          mkdir -p reports logs
+          for name in personal-site sense6-gallery sense6-ar sense6-learn; do
+            case "$name" in
+              personal-site) url="https://brontolotto.observer/" ;;
+              sense6-gallery) url="https://sense6.net/en/" ;;
+              sense6-ar) url="https://sense6.net/ar/" ;;
+              sense6-learn) url="https://sense6.net/en/learn/" ;;
+            esac
+            extra=()
+            if [ "$name" = "sense6-ar" ]; then extra+=(--locale ar); fi
+            echo "::group::Loading layout shifts: $name"
+            node bin/bronto-layout.mjs inspect --url "$url" --selector page=body \
+              --widths 375,768,1280 --ready-selector body --settle 1300 \
+              --timeout 30000 --layout-shifts --json "${extra[@]}" \
+              --report "reports/shifts-$name.json" > "logs/shifts-$name.txt" 2>&1
+            node - "$name" "reports/shifts-$name.json" <<'NODE'
+          const fs = require('node:fs');
+          const name = process.argv[2];
+          const file = process.argv[3];
+          const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const snapshots = doc.snapshots ?? [];
+          if (doc.mode !== 'inspect' || snapshots.length !== 3 ||
+              snapshots.some(x => x.layoutShifts?.supported !== true)) {
+            console.error('Lab shift measurements missing or incomplete for ' + name);
+            process.exit(1);
+          }
+          console.log(name + ': ' + snapshots.map(x =>
+            x.viewport.width + 'px=' + x.layoutShifts.maxSessionScore.toFixed(6) +
+            ' (' + x.layoutShifts.shiftCount + ' non-input shifts)').join(', '));
+          NODE
             echo "::endgroup::"
           done
       - name: Upload diagnostic reports

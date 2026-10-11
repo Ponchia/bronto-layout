@@ -207,6 +207,12 @@ This is deliberately opt-in and bounded: up to 24 aliases, 6 elements per alias,
 48 inspected elements in total and 16 layout-relevant rules per element, with
 omission counts. No extra runtime dependencies, paid services or MCP server.
 
+The manually dispatched `Live-site CLI smoke` workflow has an optional
+`layout_shifts` input to collect lab scores from the personal site
+and Sense6 English, Arabic and Learn across 375/768/1280px viewports. Reports
+are kept as CI artifacts; this diagnostic run uses no failure threshold
+for unexpectedly moving content.
+
 ## Layout stability contracts (Chromium lab)
 
 Bronto Layout can measure spontaneous layout movement during loading,

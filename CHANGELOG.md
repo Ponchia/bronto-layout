@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add an opt-in live-site laboratory layout-shift audit for the personal website and Sense6 English, Arabic and Learn routes.
+
 - Add Chromium laboratory layout-shift capture, an explicit `layout-stability` contract rule, scored comparisons, and bounded affected-element evidence.
 - Exclude recent-input shifts and report unsupported or truncated observations as unmeasurable instead of passing.
 
