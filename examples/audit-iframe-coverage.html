@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Embedded frame coverage</title>
+<style>body{margin:0;padding:16px;font:16px system-ui}iframe{display:block;width:100%;height:120px;box-sizing:border-box;border:0}</style>
+</head>
+<body>
+  <main>
+    <h1>External rendering surface</h1>
+    <iframe title="Isolated frame" srcdoc="<html><body><img src='missing-inside-frame.png' alt='Frame resource' /></body></html>"></iframe>
+    <p>Frame internals cannot be certified from the top-level DOM walker.</p>
+  </main>
+</body>
+</html>

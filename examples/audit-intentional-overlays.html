@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Intentional overlaps and internal scrolling</title>
+<style>
+body{margin:0;padding:20px;font:16px system-ui}
+.card{position:relative;box-sizing:border-box;width:min(100%,480px);height:130px;padding:20px;background:#e2ebf0}
+.badge{position:absolute;top:8px;right:8px;padding:4px;background:#344;color:white}
+.scroller{width:100%;overflow-x:auto;white-space:nowrap}
+.row{display:inline-block;width:900px;height:35px;background:#ddd}
+.caption{width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style></head>
+<body>
+  <section class="card"><p>Card with intended badge overlay.</p><b class="badge">NEW</b></section>
+  <div class="scroller"><span class="row">Scrollable row that should never widen the document</span></div>
+  <div class="caption">Long caption intentionally truncated</div>
+</body>
+</html>

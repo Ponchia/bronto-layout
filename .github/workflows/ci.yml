@@ -36,6 +36,12 @@ jobs:
           # Trusted HTML fixtures on an ephemeral CI runner only.
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: npm run benchmark:audit
+      - name: Verify expanded controlled audit benchmark
+        if: matrix.node == 24
+        env:
+          # Local, labeled and trusted HTML fixtures only.
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: npm run benchmark:audit:expanded
       - name: Verify the installed npm tarball and CLI
         env:
           BRONTO_REQUIRE_CHROME: '1'

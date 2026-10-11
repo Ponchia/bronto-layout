@@ -20,7 +20,8 @@
     "demo:inspect": "node bin/bronto-layout.mjs inspect --url examples/healthy.html --width 375 --selector heading=.heading",
     "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine",
     "test:package": "npm run build && node scripts/verify-package.mjs",
-    "benchmark:audit": "node scripts/benchmark-audit.mjs --assert"
+    "benchmark:audit": "node scripts/benchmark-audit.mjs --assert",
+    "benchmark:audit:expanded": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add opt-in browser-observed CSS container-query inventory, showing computed container sizes and declared pixel threshold candidates without treating them as viewport breakpoints.
+- Expand the controlled zero-contract audit benchmark to an immutable v0.2 with 31 labeled responsive fixtures (container queries, RTL overflow, open Shadow DOM, iframe gaps, intentional overlap and mixed image states). Keep v0.1 reproducible and run both versions in CI.
 
 - Add a manually triggered read-only four-site zero-contract audit with preserved JSON and CLI logs.
 - Add a 13-case hand-labeled zero-contract audit benchmark, per-detector confusion matrices and a Node 24 CI regression gate.

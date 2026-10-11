@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Shadow DOM resource probe</title>
+<style>body{margin:0;padding:16px;font:16px system-ui}#host{display:block;max-width:100%}</style>
+</head>
+<body>
+  <main><h1>Shadow component</h1><div id="host"></div></main>
+  <script>
+    const root = document.getElementById('host').attachShadow({mode:'open'});
+    root.innerHTML = '<style>img{display:block;width:100px;height:60px}</style><img id="shadow-broken" src="audit-shadow-resource-missing.png" alt="Missing image inside an open shadow root">';
+  </script>
+</body>
+</html>
