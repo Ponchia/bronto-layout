@@ -1,6 +1,6 @@
 # Bronto Layout — CLI-first layout contracts
 
-**A tiny, MIT-licensed foundation for semantic layout contracts.** This is a tested **v0.3 alpha**, not yet a production-ready tool. It is not yet published to npm.
+**A tiny, MIT-licensed foundation for semantic layout contracts.** This is a tested **v0.4 release candidate**, not yet a production-ready tool. It is not yet published to npm.
 
 The thesis: a layout should be testable by the *relationships between elements*, rather than only by image-diff screenshots. A coding agent and a developer should receive the same precise, deterministic diagnosis. It must work on an ordinary site without using BrontoUI, React, Playwright, or Puppeteer.
 
@@ -32,7 +32,7 @@ bronto-layout --help
 ~~~
 
 The installed CLI uses a local Chrome/Chromium executable (Node.js 22+);
-it does not ship a browser binary. The published release will be
+it does not ship a browser binary. The planned npm package name is
 `@ponchia/layout`, with the executable named
 `bronto-layout`. The normal browser sandbox stays enabled.
 
@@ -225,7 +225,7 @@ No usage analytics, account, hosted service, external API or paid features.
 4. It checks *explicit user intent*. It does not claim that all reported overlaps are bugs, that it understands art direction, or that its heuristics outperform competitors.
 5. Images rendered with `object-fit: cover/contain/scale-down` preserve content proportions inside a potentially differently shaped image box; the prototype skips naive outer-box aspect ratio diagnostics for those cases.
 6. When security policy prevents even local navigation, the CLI falls back to injecting the self-contained HTML fixture. In that restricted case, external stylesheets and assets are not faithfully loaded. For real sites, use an ordinary local HTTP server/URL.
-7. This is a v0.x alpha; it has not yet been published to npm. Production-site verification with the CLI is still in progress.
+7. This is a v0.x alpha; it has not yet been published to npm. First-party live-site CLI smoke and batch audits have passed; broader cross-browser validation is still needed.
 
 ## Real-site CLI validation
 
@@ -276,7 +276,7 @@ A good first validation would use the existing tests of Sense6, plus the relativ
 
 MIT. Copyright notice and full terms in `LICENSE`.
 
-## Additional CLI commands (v0.3)
+## Additional CLI commands (v0.4)
 
 ```sh
 node bin/bronto-layout.mjs --help
