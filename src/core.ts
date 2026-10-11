@@ -46,6 +46,7 @@ export type LayoutRule =
   | (RuleBase & { type: 'contained'; element: string; in: string | 'viewport'; axis?: 'x' | 'y' | 'both' })
   | (RuleBase & { type: 'non-overlapping'; a: string; b: string })
   | (RuleBase & { type: 'equal-gaps'; elements: string[]; axis: 'x' | 'y' })
+  | (RuleBase & { type: 'uniform-gaps'; element: string; axis: 'x' | 'y'; laneTolerance?: number })
   | (RuleBase & { type: 'image-aspect'; element: string; tolerancePercent?: number })
   | (RuleBase & { type: 'gap-range'; a: string; b: string; axis: 'x' | 'y'; min?: number; max?: number })
   | (RuleBase & { type: 'same-size'; a: string; b: string; axis: 'width' | 'height' | 'both' })
@@ -181,6 +182,46 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
       const gaps = positions.slice(1).map((item, i) => item.start - positions[i].start - positions[i].size);
       const delta = Math.max(...gaps) - Math.min(...gaps);
       report(compare(rule.id, rule.type, delta, tolerance, `${rule.axis}-axis gaps: ${gaps.map(n => n.toFixed(2)).join(', ')}px`, els.map(el => el.path)));
+    } else if (rule.type === 'uniform-gaps') {
+      const elements = s.selectors[rule.element] ?? [];
+      const count = s.selectorCounts?.[rule.element] ?? elements.length;
+      if (count === 0) { missingOrAmbiguous(rule.element); continue; }
+      if (count > elements.length) {
+        report({ id: rule.id, type: rule.type, status: 'skip', code: 'measurement-unavailable',
+          message: rule.element + ' matched ' + count + ' visible elements but only ' + elements.length + ' were measured' });
+        continue;
+      }
+      const perpendicular = rule.axis === 'x' ? 'y' : 'x';
+      const laneTolerance = rule.laneTolerance ?? 4;
+      const lanes: { origin: number; elements: ElementGeometry[] }[] = [];
+      for (const el of elements) {
+        const origin = el.rect[perpendicular];
+        let lane = lanes.find(item => Math.abs(item.origin - origin) <= laneTolerance);
+        if (!lane) { lane = { origin, elements: [] }; lanes.push(lane); }
+        lane.elements.push(el);
+      }
+      const gaps: number[] = [];
+      const implicated = new Set<string>();
+      for (const lane of lanes) {
+        const ordered = lane.elements.sort((a, b) => a.rect[rule.axis] - b.rect[rule.axis]);
+        for (let i = 1; i < ordered.length; i++) {
+          const before = ordered[i - 1], after = ordered[i];
+          const gap = after.rect[rule.axis] - (before.rect[rule.axis] + (rule.axis === 'x' ? before.rect.width : before.rect.height));
+          gaps.push(gap);
+          implicated.add(before.path); implicated.add(after.path);
+        }
+      }
+      if (gaps.length < 2) {
+        report({ id: rule.id, type: rule.type, status: 'skip', code: 'measurement-unavailable',
+          message: rule.element + ' has fewer than two gaps in comparable visual lanes' });
+        continue;
+      }
+      const delta = Math.max(...gaps) - Math.min(...gaps);
+      const result = compare(rule.id, rule.type, delta, tolerance,
+        rule.element + ' ' + rule.axis + '-axis gaps: ' + gaps.map(n => n.toFixed(2)).join(', ') + 'px across ' + lanes.length + ' lanes',
+        [...implicated]);
+      result.measured = delta;
+      report(result);
     } else if (rule.type === 'gap-range') {
       if (missingOrAmbiguous(rule.a, rule.b)) continue;
       const a = reference(s, rule.a)!; const b = reference(s, rule.b)!;

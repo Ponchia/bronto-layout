@@ -7,7 +7,7 @@ const cli = path.join(cwd, 'bin/bronto-layout.mjs');
 const spec = path.join(cwd, 'examples/layout.json');
 function run(extra = []) {
   return spawnSync(process.execPath, [cli, '--spec', spec, '--json', ...extra], {
-    cwd, encoding: 'utf8', env: {...process.env, BRONTO_TEST_INLINE_FIXTURE: '1'}, timeout: 15000, maxBuffer: 1024 * 1024
+    cwd, encoding: 'utf8', env: {...process.env, BRONTO_TEST_INLINE_FIXTURE: '1', BRONTO_CHROME_NO_SANDBOX: '1'}, timeout: 15000, maxBuffer: 1024 * 1024
   });
 }
 test('Chromium integration: well-formed layout passes across viewports', t => {

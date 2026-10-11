@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 const cwd=path.resolve(import.meta.dirname,'..');
 const cli=path.join(cwd,'bin/bronto-layout.mjs');
-const run=(args)=>spawnSync(process.execPath,[cli,...args],{cwd,encoding:'utf8',timeout:40000,maxBuffer:8*1024*1024,env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1'}});
+const run=(args)=>spawnSync(process.execPath,[cli,...args],{cwd,encoding:'utf8',timeout:40000,maxBuffer:8*1024*1024,env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1',BRONTO_CHROME_NO_SANDBOX:'1'}});
 function skipChrome(t,r){if(r.error?.code==='ENOENT'||/Cannot find Chrome\/Chromium/.test(r.stderr||'')){if (process.env.BRONTO_REQUIRE_CHROME === '1') throw new Error('Chromium is required for CI but was not found'); t.skip('Chrome unavailable');return true;}return false;}
 test('CLI browser actions reach interactive application states before measuring',t=>{
  const r=run(['check','--spec','examples/stateful.json','--width','375','--json']);

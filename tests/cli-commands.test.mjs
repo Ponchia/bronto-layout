@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 const cwd = path.resolve(import.meta.dirname, '..');
 const cli = path.join(cwd, 'bin/bronto-layout.mjs');
-const exec = (args, basedir=cwd) => spawnSync(process.execPath,[cli,...args],{cwd:basedir,encoding:'utf8',env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1'},timeout:30000,maxBuffer:8*1024*1024});
+const exec = (args, basedir=cwd) => spawnSync(process.execPath,[cli,...args],{cwd:basedir,encoding:'utf8',env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1',BRONTO_CHROME_NO_SANDBOX:'1'},timeout:30000,maxBuffer:8*1024*1024});
 function skipChrome(t,r){if (r.error?.code==='ENOENT'||/Cannot find Chrome\/Chromium/.test(r.stderr||'')){if (process.env.BRONTO_REQUIRE_CHROME === '1') throw new Error('Chromium is required for CI but was not found'); t.skip('Chrome not available');return true;}return false;}
 test('CLI help shows native check, inspect, init and scan',()=>{
   const result=exec(['--help']);
