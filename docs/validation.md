@@ -55,3 +55,21 @@ The deployed website tests are a baseline only. They do not establish the absenc
   comprehensive visual quality or WCAG conformance assessments. Test more
   real designs and capture reviewed true/false labels before claiming
   competitive accuracy or a low false-positive rate.
+
+## 2026-10-11: CSS container-query inspection
+
+- Chromium inspected a controlled fixture containing a named
+  `gallery` container, one condition at 400px and a nested conditional
+  rule at 500px. At viewport widths 375/768, the queried child measured
+  80/180px wide and 40/90px high. Four browser integration tests passed.
+- Read-only inspection of Sense6 English's deployed homepage reported three
+  CSS `@container` rules: `dotfit (inline-size < 18rem)`,
+  `bronto (inline-size <= 34rem)`, and
+  `bronto (inline-size <= 30rem)`. Their conditions were observable
+  in the external stylesheet, without any inaccessible stylesheet
+  in that test. No visible named/size-query container was found in the
+  *homepage state* at 375px; this does not imply that interactive experiment
+  states never instantiate one.
+- Numeric rem/em thresholds retain their CSS units; the tool does not
+  misrepresent them as viewport pixel breakpoints or claim a condition
+  applies to one selected element without container association.

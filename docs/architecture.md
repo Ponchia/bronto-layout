@@ -117,6 +117,24 @@ runtime, responsive CSS-breakpoint scanner, JSON report handling and normal
 exit-code semantics. No additional runtime libraries, proprietary services,
 or MCP implementation are required.
 
+## Browser-observed CSS container-query inventory
+
+The portable, self-contained browser adapter
+`src/container-queries.ts` walks accessible CSSOM rules including
+nested grouping and imported stylesheets, reads `CSSContainerRule`
+single- or multi-condition APIs, and records computed named/sized query
+container boxes. It tracks unreadable CSSOM stylesheets and strict
+traversal/output bounds rather than silently claiming complete coverage.
+
+Literal `px` thresholds are **candidate values of container dimensions**.
+Relative `rem`/`em` thresholds retain their units and cannot
+be converted into viewport pixels without the correct query container.
+They are not window viewport breakpoints, active-style statements,
+layout contract violations or automatic patch recommendations.
+Cross-origin stylesheets can deny CSSOM access. The CLI currently exposes
+the adapter through opt-in `inspect --container-queries`, not strict
+`check` contracts or automatic `--css-breakpoints` sampling.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

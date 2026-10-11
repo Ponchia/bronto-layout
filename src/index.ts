@@ -30,3 +30,6 @@ export type { GeometryDifference, GeometryStabilization } from './geometry-stabi
 export { analyzePageAudit } from './audit.js';
 export { capturePageAuditObservations } from './audit-browser.js';
 export type { ViewportAudit, PageAuditObservations, AuditFinding } from './audit.js';
+
+export { captureContainerQueryEvidence } from './container-queries.js';
+export type { ContainerQueryEvidence } from './container-queries.js';

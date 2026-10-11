@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
+import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { parseContract, validWidth } from '../dist/contract.js';
@@ -55,6 +56,7 @@ Options:
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
   --css-sources         Include matched CSS hints in inspect or failed check widths
+  --container-queries   Inspect CSS @container conditions and observed container sizes
   --layout-shifts       Collect browser-observed loading/hydration shift events
   --ready-selector CSS  Wait for element to exist after page navigation
   --settle MS           Additional fixed delay for rendering (default: 0)
@@ -84,7 +86,7 @@ const OPTIONS = {
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
-  selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
+  selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
@@ -674,10 +676,18 @@ async function inspect(a) {
     const snapshots = [];
     const evidence = [];
     const cssSources = [];
+    const containerQueries = [];
     for (const width of widths) {
       const snapshot = await measure(cdp, url, width, selectors, config, fixture);
       snapshots.push(snapshot);
       if (a['css-sources']) cssSources.push(await inspectCSSWithCDP(cdp, selectors, snapshot));
+      if (a['container-queries']) {
+        const details = await cdp.eval('(' + captureContainerQueryEvidence.toString() + ')()');
+        if (!details || details.supported !== true) {
+          throw new Error('--container-queries requires a browser with CSSContainerRule support');
+        }
+        containerQueries.push({ width, ...details });
+      }
       if (evidence.length < 12 && a['evidence-dir']) {
         const paths = Object.values(snapshot.selectors).flat().slice(0, 24).map(el => el.path);
         const screenshot = await saveEvidence(cdp, snapshot, [{ id: 'selected elements', paths }], width, a, 'inspect');
@@ -686,6 +696,7 @@ async function inspect(a) {
     }
     return { schemaVersion: 1, mode: 'inspect', url: publicURL, snapshots,
       ...(a['css-sources'] ? { cssSources } : {}),
+      ...(a['container-queries'] ? { containerQueries } : {}),
       ...(a['evidence-dir'] ? { evidence } : {}) };
   });
   const text = [
@@ -718,7 +729,16 @@ async function inspect(a) {
         : ['    CSS unavailable: ' + el.reason])
     ])
   ]) ?? [];
-  await output(a, result, [text, ...geometryWaits, ...shifts, ...sourceLines].join('\n'));
+  const containerLines = result.containerQueries?.flatMap(item => [
+    '  ' + item.width + 'px CSS containers: ' + item.namedOrSizedContainers +
+      ' measured, ' + item.discoveredRules + ' @container rules, ' +
+      item.stylesheetsInaccessible + ' inaccessible stylesheets' +
+      (item.containersTruncated || item.rulesTruncated ? ' (INCOMPLETE)' : ''),
+    ...item.rules.slice(0, 16).map(rule =>
+      '    ' + (rule.name || '(unnamed)') + ' ' + rule.query +
+      ' [conditional container width, not viewport breakpoints]')
+  ]) ?? [];
+  await output(a, result, [text, ...geometryWaits, ...shifts, ...sourceLines, ...containerLines].join('\n'));
 }
 async function init(a) {
   const file = path.resolve(a.out ?? 'bronto-layout.json');
@@ -1014,6 +1034,7 @@ async function main() {
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare', 'audit'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
+  if (a['container-queries'] && a.command !== 'inspect') throw new Error('--container-queries currently applies only to inspect');
   if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
   if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
   if (a.command === 'audit' && a.spec) throw new Error('audit is zero-contract; omit --spec');
