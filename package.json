@@ -1,7 +1,6 @@
 {
   "name": "@ponchia/layout",
-  "version": "0.3.0",
-  "private": true,
+  "version": "0.4.0",
   "description": "Open-source layout contracts, responsive diagnostics, and agent-ready CLI",
   "type": "module",
   "license": "MIT",
@@ -19,7 +18,8 @@
     "demo": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/healthy.html",
     "demo:broken": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/broken.html",
     "demo:inspect": "node bin/bronto-layout.mjs inspect --url examples/healthy.html --width 375 --selector heading=.heading",
-    "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine"
+    "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine",
+    "test:package": "npm run build && node scripts/verify-package.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
@@ -65,5 +65,27 @@
     "README.md",
     "LICENSE",
     "examples"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ponchia/bronto-layout.git"
+  },
+  "homepage": "https://github.com/Ponchia/bronto-layout#readme",
+  "bugs": {
+    "url": "https://github.com/Ponchia/bronto-layout/issues"
+  },
+  "keywords": [
+    "layout",
+    "responsive",
+    "css",
+    "web",
+    "devtools",
+    "cli",
+    "agent",
+    "testing",
+    "typescript"
   ]
 }

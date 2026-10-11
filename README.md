@@ -16,6 +16,31 @@ The thesis: a layout should be testable by the *relationships between elements*,
 
 TypeScript is the only development dependency. The CLI has no runtime third-party dependencies and the included `dist/` lets the examples run without compilation.
 
+## Install from source
+
+The package is ready to pack and install locally, but **it has not been
+published to npm**. There is no paid service, account requirement, hosted
+runtime or production npm release yet.
+
+~~~sh
+git clone https://github.com/Ponchia/bronto-layout.git
+cd bronto-layout
+npm ci
+npm run test:package  # builds + packs + verifies an isolated installation
+npm link
+bronto-layout --help
+~~~
+
+The installed CLI uses a local Chrome/Chromium executable (Node.js 22+);
+it does not ship a browser binary. The published release will be
+`@ponchia/layout`, with the executable named
+`bronto-layout`. The normal browser sandbox stays enabled.
+
+A clean-room npm install of a generated tarball is tested in CI on Node 22
+and 24, including the installed CLI's browser checks against bundled
+trusted fixtures. **Preparing a publishable package does not imply that
+it has been published to the npm registry.**
+
 ## Quick start
 
 Requirements: Node.js 22+, Chrome or Chromium. In a source checkout, build once using `npm install` (which compiles the TypeScript automatically), or use a packaged copy with `dist/` included:

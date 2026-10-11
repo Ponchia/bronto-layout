@@ -30,8 +30,10 @@ jobs:
           BRONTO_CHROME_NO_SANDBOX: '1'
           BRONTO_TEST_INLINE_FIXTURE: '1'
         run: npm run check
-      - name: Validate CLI packaging
-        run: |
-          node bin/bronto-layout.mjs --version
-          node bin/bronto-layout.mjs validate --spec examples/shadow.json
-          npm pack --dry-run --json > /tmp/bronto-package-inspection.json
+      - name: Verify the installed npm tarball and CLI
+        env:
+          BRONTO_REQUIRE_CHROME: '1'
+          # Only bundled trusted fixtures run with this explicit sandbox override
+          # on GitHub's ephemeral CI runner. Normal CLI use retains sandboxing.
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: npm run test:package
