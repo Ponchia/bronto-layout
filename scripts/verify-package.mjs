@@ -35,7 +35,7 @@ try {
   assert.ok(existsSync(archive), 'npm did not write its tarball');
   const packedFiles = new Set(packed.files.map(file => file.path));
   const required = [
-    'bin/bronto-layout.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
+    'bin/bronto-layout.mjs', 'bin/local-fixture-server.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/contract.js', 'examples/layout.json',
     'examples/healthy.html', 'README.md', 'LICENSE', 'package.json'
   ];

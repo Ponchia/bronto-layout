@@ -311,7 +311,7 @@ No usage analytics, account, hosted service, external API or paid features.
 3. A browser extension, permanent visual inspector, MCP tools, CSS source attribution, WebKit/Firefox automation, and reliable zero-config discovery **are not implemented**. Basic breakpoint refinement and locale/state setup already work.
 4. It checks *explicit user intent*. It does not claim that all reported overlaps are bugs, that it understands art direction, or that its heuristics outperform competitors.
 5. Images rendered with `object-fit: cover/contain/scale-down` preserve content proportions inside a potentially differently shaped image box; the prototype skips naive outer-box aspect ratio diagnostics for those cases.
-6. When security policy prevents even local navigation, the CLI falls back to injecting the self-contained HTML fixture. In that restricted case, external stylesheets and assets are not faithfully loaded. For real sites, use an ordinary local HTTP server/URL.
+6. Local HTML fixtures use a loopback-only asset server. It only serves common web asset extensions under the fixture directory, and rejects hidden files and symlink escapes. This is not a JavaScript sandbox: only run trusted fixtures with normal Chromium sandboxing enabled. A restricted test fallback can inject self-contained markup *only when* `BRONTO_TEST_INLINE_FIXTURE=1` is set; it is never silently used for production audits. Use an existing development server for full application projects.
 7. This is a v0.x alpha; it has not yet been published to npm. First-party live-site CLI smoke and batch audits have passed; broader cross-browser validation is still needed.
 
 ## Real-site CLI validation

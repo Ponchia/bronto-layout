@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add an opt-in first-party live-site DOM geometry quiet-window audit for the personal site and Sense6 English/Arabic.
+- Harden the loopback-only HTML fixture server: deny hidden files, unsupported asset extensions and realpath/symlink escapes; cover it with direct Node tests and package verification.
 
 - Add an opt-in live-site laboratory layout-shift audit for the personal website and Sense6 English, Arabic and Learn routes.
 
