@@ -57,6 +57,16 @@ test('batch dry-run previews first-party routes and locales without launching Ch
   assert.equal(arabic.locale, 'ar');
   assert.equal(arabic.target, 'https://sense6.net/ar/');
 });
+test('batch forwards per-job dark and reduced-motion preferences to Chromium', t => {
+  const r = run(['batch', '--manifest', 'examples/batch-media.json', '--json', '--compact']);
+  if (skipMissingChrome(t, r)) return;
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const data = JSON.parse(r.stdout);
+  assert.equal(data.summary.passed, 1);
+  assert.equal(data.summary.errors, 0);
+  assert.equal(data.jobs[0].result.summary.failed, 0);
+  assert.deepEqual(data.jobs[0].result.sampledWidths, [375]);
+});
 test('invalid manifests fail before launching any batch browser jobs', () => {
   const r = run(['batch', '--manifest', 'examples/batch.json', '--spec', 'examples/layout.json', '--json']);
   assert.equal(r.status, 2);
