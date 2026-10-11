@@ -1,6 +1,7 @@
 import type { LayoutFinding, LayoutReport } from './core.js';
 import type { LayoutComparison } from './compare.js';
 import type { RuleTransition } from './sweep.js';
+import type { CSSFailureSourceLead } from './css-failure-leads.js';
 
 /** A bounded output shape for coding agents. It never asserts correctness at untested widths. */
 const MAX_ITEMS = 100;
@@ -32,6 +33,8 @@ interface CheckData {
   summary: { passed: number; failed: number; skipped: number };
   transitions: RuleTransition[];
   cssBreakpointScan?: { thresholds: number[]; widths: number[]; addedWidths: number[] };
+  cssSourceLeads?: CSSFailureSourceLead[];
+  omittedCSSSourceWidths?: number;
   evidence?: { width: number; screenshot: string }[];
 }
 
@@ -56,6 +59,7 @@ export function compactCheckReport(result: CheckData) {
     omittedUnmeasurable: unmeasurable.omitted,
     transitions: result.transitions,
     ...(result.cssBreakpointScan ? { cssBreakpointScan: result.cssBreakpointScan } : {}),
+    ...(result.cssSourceLeads ? { cssSourceLeads: result.cssSourceLeads, omittedCSSSourceWidths: result.omittedCSSSourceWidths ?? 0 } : {}),
     ...(result.evidence ? { evidence: result.evidence } : {})
   };
 }

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Allow opt-in `check --css-sources` and `scan --css-sources`
+  to attach bounded matched CSS evidence directly to failing layout rules;
+  preserve unattributed failures and omitted-width counts.
+
+
+
 - Add opt-in `inspect --css-sources` CDP author CSS stylesheet/declaration hints, including explicit open Shadow DOM selectors and bounded output.
 - Distinguish external CSS source lines from inline style sheets to prevent fabricated positions or automatic root-cause claims.
 

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "url": "css-sources-fixture.html",
+  "widths": [375],
+  "selectors": { "example": "#example" },
+  "rules": [
+    { "id": "unexpectedly-wide-main", "type": "size-range", "element": "example", "axis": "width", "max": 100, "tolerance": 0 }
+  ]
+}

@@ -17,3 +17,6 @@ export type { CSSRuleLead, CSSSourceSummary } from './css-sources.js';
 
 export { inspectCSSWithCDP } from './css-inspector.js';
 export type { CSSInspection } from './css-inspector.js';
+
+export { selectCSSFailureAliases } from './css-failure-leads.js';
+export type { CSSFailureSourceLead } from './css-failure-leads.js';

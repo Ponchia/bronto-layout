@@ -145,6 +145,26 @@ node bin/bronto-layout.mjs inspect --url examples/css-sources-fixture.html --wid
 node bin/bronto-layout.mjs inspect --url examples/css-sources-fixture.html --selector "inside=#host >>> .inner" --css-sources --json
 ~~~
 
+The same flag also works with `check` and `scan`:
+it gathers CSS rule leads **only on failing viewport widths**, using named
+elements actually associated with the violated constraints:
+
+~~~sh
+node bin/bronto-layout.mjs check --spec examples/css-sources-check.json --css-sources --json --compact
+~~~
+
+The report returns `cssSourceLeads` grouped by sampled width, with
+`ruleIdsByAlias` mapping each inspected element alias back to violated
+layout rules. Missing selectors or document-level overflow often cannot be
+attributed to a named inspected element, so those rule IDs appear under
+`unattributedRuleIds` rather than receiving invented causes.
+
+At most eight failing widths are inspected for CSS, with
+`omittedCSSSourceWidths` retaining the number not examined.
+This is opt-in and does not change the rule results or CI exit codes.
+When all constraints pass, no additional stylesheet inspection is performed.
+`compare` remains deliberately unsupported by this flag.
+
 The optional `cssSources` response contains selected aliases, matched
 element counts, sampled elements, matched author selectors, relevant layout
 declarations and browser-observed stylesheet URLs. **Only external CSS URLs

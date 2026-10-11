@@ -77,10 +77,11 @@ test('CSS source inspection preserves caps and advertises omitted elements',t=>{
   assert.equal(report.inspectedCount,6);
   assert.equal(report.omittedElements,309);
 });
-test('CSS source mode rejects unsupported command types and remains opt-in',t=>{
-  const invalid=run(['check','--spec','examples/layout.json','--css-sources','--json']);
+test('CSS source mode rejects unsupported compare operations and remains opt-in',t=>{
+  const invalid=run(['compare','--spec','examples/layout.json','--baseline','examples/healthy.html',
+    '--url','examples/broken.html','--css-sources','--json']);
   assert.equal(invalid.status,2);
-  assert.match(JSON.parse(invalid.stdout).error.message,/only to inspect/);
+  assert.match(JSON.parse(invalid.stdout).error.message,/only to inspect, check and scan/);
   const without=run(['inspect','--url','examples/css-sources-fixture.html',
     '--selector','example=#example','--json']);
   if(unavailable(t,without))return;
