@@ -472,7 +472,11 @@ function summary(reports) {
 async function output(a, data, printable, sarif) {
   const payload = a.sarif ? sarif : data;
   if (a.sarif && !sarif) throw new Error('SARIF is supported for check and compare, not this command');
-  if (a.report) await writeFile(a.report, JSON.stringify(payload, null, 2) + '\n', 'utf8');
+  if (a.report) {
+    const destination = path.resolve(a.report);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, JSON.stringify(payload, null, 2) + '\n', 'utf8');
+  }
   if (a.json || a.sarif) console.log(JSON.stringify(payload, null, 2));
   else console.log(printable);
 }
@@ -732,7 +736,7 @@ async function batch(a) {
     if (scheme) argv.push('--color-scheme', scheme);
     if (job.reducedMotion ?? a['reduced-motion']) argv.push('--reduced-motion');
     if (job.mobile ?? a.mobile) argv.push('--mobile');
-    for (const [option, value] of [['height', a.height], ['timeout', a.timeout],
+    for (const [option, value] of [['ready-selector', a['ready-selector']], ['height', a.height], ['timeout', a.timeout],
       ['settle', a.settle], ['chrome', a.chrome]]) {
       if (value !== undefined) argv.push('--' + option, value);
     }

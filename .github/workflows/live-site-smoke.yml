@@ -5,6 +5,10 @@ name: Live-site CLI smoke
 on:
   workflow_dispatch:
     inputs:
+      batch:
+        description: 'Run the multilingual route suite with the CLI batch command'
+        type: boolean
+        default: false
       css_breakpoints:
         description: 'Also scan CSS media-query boundaries on the portfolio and Sense6'
         type: boolean
@@ -38,6 +42,7 @@ jobs:
           done
       - name: Audit only the known first-party websites
         id: audit
+        if: ${{ !inputs.batch }}
         env:
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: |
@@ -64,6 +69,16 @@ jobs:
           printf '%s\n' "Contracts with failures or navigation errors: ${failures}/4"
           set -e
           test "$failures" -eq 0
+      - name: Audit the first-party multilingual batch
+        if: ${{ inputs.batch }}
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          mkdir -p reports logs
+          node bin/bronto-layout.mjs batch --manifest examples/live-sites-batch.json \
+            --json --compact --ready-selector body --settle 600 --timeout 30000 \
+            --report reports/batch.json > logs/batch.txt 2>&1
+          cat logs/batch.txt
       - name: Audit CSS breakpoints on selected first-party sites
         if: ${{ inputs.css_breakpoints }}
         env:

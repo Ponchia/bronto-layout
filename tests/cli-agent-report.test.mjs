@@ -31,6 +31,18 @@ test('fatal input errors produce JSON and a failure report, not unparseable stde
     assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), data);
   } finally { rmSync(dir, { force: true, recursive: true }); }
 });
+test('successful CLI reports create parent directories as well as failure reports', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'bronto-cli-success-report-'));
+  try {
+    const file = path.join(dir, 'nested', 'reports', 'validated.json');
+    const result = run(['validate', '--spec', 'examples/layout.json', '--json', '--report', file]);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+    assert.equal(data.mode, 'validate');
+    assert.equal(data.valid, true);
+    assert.deepEqual(data, JSON.parse(result.stdout));
+  } finally { rmSync(dir, { force: true, recursive: true }); }
+});
 test('compact flag is opt-in and restricted to JSON layout checks', () => {
   const r = run(['validate', '--spec', 'examples/layout.json', '--json', '--compact']);
   assert.equal(r.status, 2);
