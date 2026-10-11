@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add review-first `suggest` and `approve` CLI commands to draft browser-observed semantic layout contracts, with bounded selector discovery, width-scoped repeated gaps and explicit human acceptance.
+- Add a separate real-website benchmark pipeline with an allowlisted 30-state first-party capture manifest, initial-viewport screenshots, content-hash provenance, human-only labeling and missing-evidence-aware scoring.
+- Permit opt-in raw audit screenshots without treating screenshot contents as automatic detector results.
+
 - Add optional zero-contract before/after audit comparisons via
   `audit --baseline URL --url URL`, with new measured regression,
   improvement and review-only changes kept separate.

@@ -99,9 +99,7 @@ test('automatic audit refuses geometry stabilization without named child selecto
   assert.equal(r.status,2);
   assert.match(JSON.parse(r.stdout).error.message,/requires named selectors/);
 });
-test('audit rejects unsupported SARIF and screenshot evidence instead of silently omitting data',()=>{
-  for(const flags of [['--sarif'],['--evidence-dir','tests/screens']]){
-    const r=run(['audit','--url','examples/audit-healthy.html',...flags]);
-    assert.equal(r.status,2,r.stderr||r.stdout);
-  }
+test('audit rejects unsupported SARIF instead of silently omitting data',()=>{
+  const r=run(['audit','--url','examples/audit-healthy.html','--sarif']);
+  assert.equal(r.status,2,r.stderr||r.stdout);
 });

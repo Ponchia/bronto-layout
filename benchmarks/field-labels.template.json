@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "bronto-field-first-party-v0_1",
+  "reviewProtocol": "A named human reviewer independently inspects the rendered website, browser screenshot and DOM evidence at the recorded width and state, then records every positive detector code and intentional exception before viewing the CLI findings.",
+  "cases": []
+}

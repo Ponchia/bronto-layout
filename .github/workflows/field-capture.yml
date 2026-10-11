@@ -1,0 +1,56 @@
+name: Manual first-party field benchmark capture
+
+# Explicit opt-in only. Raw screenshots are diagnostic evidence and may contain
+# publicly visible content; do not schedule this or run on arbitrary URLs.
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Comma-separated manifest case IDs, or all for 30 cases'
+        required: true
+        default: 'portfolio-375,sense6-ar-375'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bronto-field-capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Compile and validate the field cohort
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          npm run field:validate
+      - name: Capture first-party pages on an ephemeral isolated runner
+        env:
+          CASE_IDS: ${{ inputs.ids }}
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          # Chromium user namespaces are restricted on hosted CI; bypass the
+          # sandbox ONLY on this disposable runner for the allowlisted public
+          # first-party sites in benchmarks/field-sites.v0.1.json.
+          args=()
+          if [ "$CASE_IDS" != "all" ]; then args+=(--ids "$CASE_IDS"); fi
+          node scripts/field-benchmark.mjs capture \
+            --manifest benchmarks/field-sites.v0.1.json \
+            --out "reports/field-${GITHUB_RUN_ID}" "${args[@]}"
+      - name: Preserve reports and screenshots for independent human review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bronto-layout-field-capture
+          path: reports/field-*/
+          if-no-files-found: warn
+          retention-days: 7

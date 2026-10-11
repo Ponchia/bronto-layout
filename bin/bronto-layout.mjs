@@ -10,6 +10,8 @@ import { serveTarget } from './local-fixture-server.mjs';
 import { findChromiumPageTarget } from './chromium-target.mjs';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
+import { discoverPageSelectors } from '../dist/selector-discovery.js';
+import { suggestLayoutContracts, acceptContractProposals } from '../dist/contract-discovery.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { analyzePageAudit } from '../dist/audit.js';
@@ -35,6 +37,8 @@ Usage:
   bronto-layout audit --baseline URL --url URL [--json --compact]
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
+  bronto-layout suggest --url URL [--selector name=CSS ...] [--out draft.json]
+  bronto-layout approve --draft draft.json --accept id[,id...] --out contract.json
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
   bronto-layout compare --spec layout.json --baseline URL --url URL [--scan 320:1440:80] [--refine]
   bronto-layout validate --spec layout.json [--json]
@@ -57,7 +61,9 @@ Options:
   --refine              Bisect observed state changes to one-pixel intervals
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
-  --selector name=CSS   Named selector for inspect; can be repeated
+  --selector name=CSS   Named selector for inspect or suggest; can be repeated
+  --draft FILE          Candidate draft for approve
+  --accept CSV          Proposal IDs chosen for approval
   --css-sources         Include matched CSS hints in inspect or failed check widths
   --container-queries   Inspect CSS @container conditions and observed container sizes
   --layout-shifts       Collect browser-observed loading/hydration shift events
@@ -71,7 +77,7 @@ Options:
   --compact             With --json: actionable findings, sampled widths, and totals
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
-  --evidence-dir DIR    Annotated Chromium screenshots for failed widths (max 12)
+  --evidence-dir DIR    Annotated check screenshots; raw audit viewport screenshots
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
   --out FILE            Output path for init (default: bronto-layout.json)
   --force               Overwrite an existing file with init
@@ -93,14 +99,14 @@ const OPTIONS = {
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
-  out: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
+  out: { type: 'string' }, draft: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
 function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit'].includes(command) || positionals.length > 1) {
+  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'approve'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -1031,8 +1037,21 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      reports.push(await captureAuditAt(cdp, url, width, config, fixture));
+      const report = await captureAuditAt(cdp, url, width, config, fixture);
+      if (a['evidence-dir']) {
+        const image = await cdp.send('Page.captureScreenshot', {
+          format: 'png', captureBeyondViewport: false, fromSurface: true
+        });
+        if (!image?.data) throw new Error('Could not capture audit screenshot');
+        const directory = path.resolve(a['evidence-dir']);
+        await mkdir(directory, { recursive: true });
+        const screenshot = path.join(directory, `audit-${width}px.png`);
+        await writeFile(screenshot, Buffer.from(image.data, 'base64'));
+        report.screenshot = { file: screenshot, coverage: 'viewport-only' };
+      }
+      reports.push(report);
     }
+    const browser = await cdp.eval('({ userAgent: navigator.userAgent, actualUrl: location.href, language: navigator.language })');
     const summary = {
       viewports: reports.length,
       measuredIssues: reports.reduce((count, report) => count + report.summary.errors, 0),
@@ -1040,13 +1059,13 @@ async function audit(a) {
       incompleteViewports: reports.filter(report => !report.summary.verified).length,
       visitedElements: reports.reduce((count, report) => count + report.coverage.visitedElements, 0)
     };
-    return { schemaVersion: 1, mode: 'audit', url: publicURL, summary,
+    return { schemaVersion: 1, mode: 'audit', url: publicURL, browser, summary,
       sampledWidths: widths, reports,
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}) };
   });
   const payload = a.compact ? {
     schemaVersion: result.schemaVersion, mode: 'audit', format: 'compact',
-    url: result.url, summary: result.summary, sampledWidths: result.sampledWidths,
+    url: result.url, browser: result.browser, summary: result.summary, sampledWidths: result.sampledWidths,
     reports: result.reports.map(report => ({
       width: report.viewport.width,
       direction: report.viewport.direction,
@@ -1064,6 +1083,7 @@ async function audit(a) {
         visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded
       },
       findings: report.findings,
+      ...(report.screenshot ? { screenshot: report.screenshot } : {}),
       ...(report.stabilization ? { stabilization: report.stabilization } : {}),
       ...(report.layoutShifts ? { layoutShifts: {
         supported: report.layoutShifts.supported,
@@ -1094,6 +1114,54 @@ async function audit(a) {
   else if (result.summary.measuredIssues) process.exitCode = 1;
 }
 
+/** Suggestions never become enforced contracts without a separate approval. */
+async function suggest(a) {
+  if (!a.url) throw new Error('suggest requires --url URL or local HTML path');
+  const widths = a.width !== undefined || a.widths !== undefined || a.scan
+    ? getWidths(a) : [375, 768, 1280];
+  const draft = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
+    if (widths.length > config.maxSamples) throw new Error('Too many suggestion widths');
+    const explicit = Boolean(a.selector?.length);
+    let selectors, groups = [], truncated = false;
+    if (explicit) selectors = selectorsForInspect(a);
+    else {
+      await measure(cdp, url, widths[0], { page: 'body' }, config, fixture);
+      const discovered = await cdp.eval('(' + discoverPageSelectors.toString() + ')()');
+      if (!discovered?.selectors || typeof discovered.candidatesTruncated !== 'boolean')
+        throw new Error('Selector discovery unavailable');
+      selectors = discovered.selectors;
+      groups = discovered.groupAliases;
+      truncated = discovered.candidatesTruncated;
+    }
+    const snapshots = [];
+    for (const width of widths) snapshots.push(await measure(cdp, url, width, selectors, config, fixture));
+    if (explicit) groups = Object.keys(selectors).filter(alias => snapshots.every(snapshot =>
+      (snapshot.selectorCounts?.[alias] ?? 0) >= 3 &&
+      snapshot.selectorCounts[alias] === snapshot.selectors[alias]?.length));
+    return suggestLayoutContracts(publicURL, selectors, snapshots, groups, truncated);
+  });
+  if (a.out) {
+    const destination = path.resolve(a.out);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, JSON.stringify(draft, null, 2) + '\n', { flag: a.force ? 'w' : 'wx' });
+  }
+  await output(a, draft, [
+    'Bronto Layout: ' + draft.proposals.length + ' unapproved candidate contracts over ' + draft.widths.join(', ') + 'px',
+    ...draft.proposals.map(p => '  ' + p.id + ': ' + p.rationale),
+    'Review candidates and run approve --accept id[,id...] to make an explicit contract.'
+  ].join('\n'));
+}
+async function approve(a) {
+  if (!a.draft || !a.accept || !a.out) throw new Error('approve requires --draft FILE, --accept id[,id...], and --out FILE');
+  const source = path.resolve(a.draft), destination = path.resolve(a.out);
+  if (source === destination) throw new Error('Cannot overwrite the source proposal draft');
+  const ids = a.accept.split(',').map(id => id.trim());
+  const contract = acceptContractProposals(JSON.parse(await readFile(source, 'utf8')), ids);
+  await mkdir(path.dirname(destination), { recursive: true });
+  await writeFile(destination, JSON.stringify(contract, null, 2) + '\n', { flag: a.force ? 'w' : 'wx' });
+  await output(a, { mode: 'approve', file: destination, acceptedIds: ids, contract },
+    'Approved ' + ids.length + ' reviewed rule(s): ' + destination + '. Run validate and check for current results.');
+}
 async function validate(a) {
   if (!a.spec) throw new Error('validate requires --spec FILE');
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
@@ -1122,14 +1190,16 @@ async function main() {
   if (a.command === 'audit' && a['stable-for'] !== undefined) throw new Error('audit --stable-for requires named selectors; use inspect or check with a contract instead');
   if (a.command === 'audit' && a['fail-on-skip']) throw new Error('audit has no contract skips; remove --fail-on-skip');
   if (a.command === 'audit' && a.refine) throw new Error('audit does not infer contracts for --refine; use scan with a contract');
-  if (a.command === 'audit' && a['evidence-dir']) throw new Error('automatic audit image annotations are not yet supported; omit --evidence-dir');
+  if (a.command === 'audit' && a.baseline && a['evidence-dir']) throw new Error('Compared audit screenshots are not yet supported');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');
   if (a.command === 'batch' && a.spec) throw new Error('batch reads contracts from its manifest; omit --spec');
   if (a.command === 'batch' && a.sarif) throw new Error('batch supports JSON reports, not SARIF');
   configFromArgs(a);
-  if (a.command === 'batch') await batch(a);
+  if (a.command === 'suggest') await suggest(a);
+  else if (a.command === 'approve') await approve(a);
+  else if (a.command === 'batch') await batch(a);
   else if (a.command === 'init') await init(a);
   else if (a.command === 'validate') await validate(a);
   else if (a.command === 'audit') await audit(a);
