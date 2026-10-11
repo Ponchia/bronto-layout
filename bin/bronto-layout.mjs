@@ -9,6 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
+import { capturePageAuditObservations } from '../dist/audit-browser.js';
+import { analyzePageAudit } from '../dist/audit.js';
 import { parseContract, validWidth } from '../dist/contract.js';
 import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
@@ -26,6 +28,7 @@ const HELP = `Bronto Layout — browser-native spatial contracts
 
 Usage:
   bronto-layout check --spec layout.json [--url URL] [--json|--sarif] [--report FILE]
+  bronto-layout audit --url URL [--widths 320,375,768,1280] [--json --compact]
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
@@ -34,7 +37,7 @@ Usage:
   bronto-layout batch --manifest batch.json [--json --compact] [--dry-run]
 
 Options:
-  --spec FILE           Versioned layout contract (JSON)
+  --spec FILE           Versioned layout contract (JSON; not needed for audit)
   --manifest FILE       Batch jobs referencing individual layout contracts
   --dry-run             Validate and preview a batch without opening a browser
   --url URL|FILE        Target website, local HTML fixture, or development server
@@ -92,7 +95,7 @@ function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch'].includes(command) || positionals.length > 1) {
+  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -900,6 +903,98 @@ async function batch(a) {
   else if (summaryData.violations) process.exitCode = 1;
 }
 
+/**
+ * Conservative no-contract preflight. High-confidence mechanical observations
+ * are failures, while potentially intentional clipping is review-only.
+ * Incomplete traversal has exit 2, never a misleading "all clear".
+ */
+async function audit(a) {
+  if (!a.url) throw new Error('audit requires --url URL (or a local HTML path)');
+  const baseWidths = a.scan || a.width !== undefined || a.widths !== undefined
+    ? getWidths(a) : [320, 375, 768, 1280];
+  const result = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
+    const cssBreakpoints = a['css-breakpoints']
+      ? await discoverCSSBreakpointWidths(cdp, url, baseWidths, config, fixture)
+      : undefined;
+    const widths = cssBreakpoints?.widths ?? baseWidths;
+    if (widths.length > config.maxSamples) throw new Error(
+      'Audit selected ' + widths.length + ' viewport widths, exceeding --max-samples ' +
+      config.maxSamples
+    );
+    const reports = [];
+    for (const width of widths) {
+      // The body is measured for optional geometry stabilization. The separate
+      // observer scans all visible top-level DOM/shadow children.
+      const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture);
+      const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
+      if (!observations || !Number.isInteger(observations.visitedElements) ||
+          typeof observations.truncated !== 'boolean') {
+        throw new Error('Browser did not return usable DOM audit observations');
+      }
+      const report = analyzePageAudit(snapshot, observations);
+      reports.push({
+        ...report,
+        ...(snapshot.stabilization ? { stabilization: snapshot.stabilization } : {}),
+        ...(snapshot.layoutShifts ? { layoutShifts: snapshot.layoutShifts } : {})
+      });
+    }
+    const summary = {
+      viewports: reports.length,
+      measuredIssues: reports.reduce((count, report) => count + report.summary.errors, 0),
+      reviewWarnings: reports.reduce((count, report) => count + report.summary.warnings, 0),
+      incompleteViewports: reports.filter(report => !report.summary.verified).length,
+      visitedElements: reports.reduce((count, report) => count + report.coverage.visitedElements, 0)
+    };
+    return { schemaVersion: 1, mode: 'audit', url: publicURL, summary,
+      sampledWidths: widths, reports,
+      ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}) };
+  });
+  const payload = a.compact ? {
+    schemaVersion: result.schemaVersion, mode: 'audit', format: 'compact',
+    url: result.url, summary: result.summary, sampledWidths: result.sampledWidths,
+    reports: result.reports.map(report => ({
+      width: report.viewport.width,
+      direction: report.viewport.direction,
+      summary: report.summary,
+      coverage: {
+        visitedElements: report.coverage.visitedElements,
+        truncated: report.coverage.truncated,
+        embeddedFrames: report.coverage.embeddedFrames,
+        totalImages: report.coverage.totalImages,
+        intentionalEllipses: report.coverage.intentionalEllipses,
+        visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded
+      },
+      findings: report.findings,
+      ...(report.stabilization ? { stabilization: report.stabilization } : {}),
+      ...(report.layoutShifts ? { layoutShifts: {
+        supported: report.layoutShifts.supported,
+        maxSessionScore: report.layoutShifts.maxSessionScore,
+        shiftCount: report.layoutShifts.shiftCount
+      } } : {})
+    })),
+    ...(result.cssBreakpointScan ? { cssBreakpointScan: result.cssBreakpointScan } : {})
+  } : result;
+  const printable = [
+    'Bronto Layout zero-contract audit — ' + result.url,
+    ...result.reports.flatMap(report => [
+      report.viewport.width + 'px (' + report.viewport.direction + '): ' +
+        report.summary.errors + ' measured issues, ' + report.summary.warnings +
+        ' review warnings; ' + report.coverage.visitedElements + ' DOM elements traversed' +
+        (report.coverage.truncated ? ' (INCOMPLETE)' : ''),
+      ...report.findings.map(finding =>
+        '  ' + finding.severity.toUpperCase() + ' ' + finding.code + ': ' + finding.message +
+          (finding.path ? ' [' + finding.path + ']' : ''))
+    ]),
+    'Total: ' + result.summary.measuredIssues + ' measured issues, ' +
+      result.summary.reviewWarnings + ' review warnings, ' +
+      result.summary.incompleteViewports + ' incomplete viewport(s)',
+    'Caution: measured facts do not establish whether overflow/truncation was intentional.'
+  ].join('\n');
+  await output(a, payload, printable);
+  if (result.summary.incompleteViewports) process.exitCode = 2;
+  else if (result.summary.measuredIssues) process.exitCode = 1;
+}
+
 async function validate(a) {
   if (!a.spec) throw new Error('validate requires --spec FILE');
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
@@ -913,14 +1008,20 @@ async function main() {
   if (a.help) { console.log(HELP); return; }
   if (a.version) { const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')); console.log('Bronto Layout ' + pkg.version); return; }
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
-  if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch'].includes(a.command))) {
+  if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch', 'audit'].includes(a.command))) {
     throw new Error('--compact requires --json with check, scan, or compare');
   }
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
-  if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
+  if (a['css-breakpoints'] && !['check', 'scan', 'compare', 'audit'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
-  if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
-  if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
+  if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
+  if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
+  if (a.command === 'audit' && a.spec) throw new Error('audit is zero-contract; omit --spec');
+  if (a.command === 'audit' && a.sarif) throw new Error('audit supports structured JSON; SARIF belongs to explicit contract checks');
+  if (a.command === 'audit' && a['stable-for'] !== undefined) throw new Error('audit --stable-for requires named selectors; use inspect or check with a contract instead');
+  if (a.command === 'audit' && a['fail-on-skip']) throw new Error('audit has no contract skips; remove --fail-on-skip');
+  if (a.command === 'audit' && a.refine) throw new Error('audit does not infer contracts for --refine; use scan with a contract');
+  if (a.command === 'audit' && a['evidence-dir']) throw new Error('automatic audit image annotations are not yet supported; omit --evidence-dir');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');
@@ -930,6 +1031,7 @@ async function main() {
   if (a.command === 'batch') await batch(a);
   else if (a.command === 'init') await init(a);
   else if (a.command === 'validate') await validate(a);
+  else if (a.command === 'audit') await audit(a);
   else if (a.command === 'compare') await compare(a);
   else if (a.command === 'inspect') await inspect(a);
   else if (a.command === 'scan') {

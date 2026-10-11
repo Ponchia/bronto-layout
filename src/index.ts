@@ -26,3 +26,7 @@ export type { LayoutShiftSummary, ShiftEntry } from './layout-shifts.js';
 
 export { compareLayoutGeometry, truncatedGeometryAliases } from './geometry-stability.js';
 export type { GeometryDifference, GeometryStabilization } from './geometry-stability.js';
+
+export { analyzePageAudit } from './audit.js';
+export { capturePageAuditObservations } from './audit-browser.js';
+export type { ViewportAudit, PageAuditObservations, AuditFinding } from './audit.js';
