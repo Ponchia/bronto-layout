@@ -1,4 +1,5 @@
 /** Pure contract evaluation. No DOM, CSS runtime, Node, automation, or framework dependency. */
+import type { LayoutShiftSummary } from './layout-shifts.js';
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface ElementStyles {
   display?: string; position?: string; visibility?: string; direction?: 'ltr' | 'rtl';
@@ -36,11 +37,14 @@ export interface LayoutSnapshot {
   selectorCounts?: Record<string, number>;
   /** Bounded suggestions for investigating horizontal document overflow. */
   overflowCandidates?: OverflowCandidate[];
+  /** Optional lab-observed loading/hydration movement for this navigation. */
+  layoutShifts?: LayoutShiftSummary;
 }
 export type Edge = 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y' | 'inline-start' | 'inline-end';
 export interface RuleBase { id: string; description?: string; tolerance?: number; minWidth?: number; maxWidth?: number }
 export type LayoutRule =
   | (RuleBase & { type: 'document-overflow' })
+  | (RuleBase & { type: 'layout-stability'; maxScore: number })
   | (RuleBase & { type: 'align-edge'; a: string; b: string; edgeA: Edge; edgeB?: Edge })
   | (RuleBase & { type: 'centered'; element: string; in: string | 'viewport'; axis: 'x' | 'y' })
   | (RuleBase & { type: 'contained'; element: string; in: string | 'viewport'; axis?: 'x' | 'y' | 'both' })
@@ -83,6 +87,7 @@ export interface LayoutReport {
   viewport: LayoutSnapshot['viewport'];
   summary: { passed: number; failed: number; skipped: number };
   findings: LayoutFinding[];
+  layoutShifts?: LayoutShiftSummary;
 }
 function edge(rect: Rect, kind: Edge, direction: 'ltr' | 'rtl'): number {
   switch (kind) {
@@ -131,7 +136,29 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
       return false;
     };
     const report = (finding: LayoutFinding) => findings.push({ ...finding, description: rule.description });
-    if (rule.type === 'document-overflow') {
+    if (rule.type === 'layout-stability') {
+      const observed = s.layoutShifts;
+      if (!observed?.supported) {
+        report({
+          id: rule.id, type: rule.type, status: 'skip',
+          code: 'measurement-unavailable',
+          message: 'Layout Instability API unavailable or incomplete: ' +
+            (observed?.reason ?? 'observer was not enabled for this navigation')
+        });
+        continue;
+      }
+      const delta = Math.max(0, observed.maxSessionScore - rule.maxScore);
+      const result = compare(
+        rule.id, rule.type, delta, rule.tolerance ?? 0,
+        'Observed max layout-shift session score ' + observed.maxSessionScore.toFixed(6) +
+          '; budget ' + rule.maxScore.toFixed(6) +
+          '; ' + observed.shiftCount + ' non-input shift(s), ' +
+          observed.ignoredInputCount + ' ignored after recent input'
+      );
+      result.measured = observed.maxSessionScore;
+      result.expected = rule.maxScore;
+      report(result);
+    } else if (rule.type === 'document-overflow') {
       const delta = Math.max(0, s.document.width - (s.viewport.contentWidth ?? s.viewport.width));
       const finding = compare(rule.id, rule.type, delta, tolerance, `Document extends ${delta.toFixed(2)}px beyond the viewport`);
       if (finding.status === 'fail' && s.overflowCandidates?.length) {
@@ -293,6 +320,7 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
   }
   return {
     viewport: s.viewport,
+    ...(s.layoutShifts ? { layoutShifts: s.layoutShifts } : {}),
     summary: {
       passed: findings.filter(x => x.status === 'pass').length,
       failed: findings.filter(x => x.status === 'fail').length,

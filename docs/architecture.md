@@ -36,6 +36,22 @@ The pure modules have no Node.js or DOM imports. Applications can generate a `La
   frames, closed shadow roots, source maps to original preprocessors, and
   authoritative causal CSS attribution remain out of scope.
 
+## Layout instability observation
+
+`src/layout-shifts.ts` provides two isolated capabilities: a
+self-contained early-page `PerformanceObserver` collector injected
+through CDP `Page.addScriptToEvaluateOnNewDocument`, and a pure
+TypeScript reducer calculating the maximum CLS-style session-window score.
+Only entries without `hadRecentInput` contribute to the score.
+Events and element geometry are bounded; incomplete observations are marked
+unmeasurable instead of being treated as zero.
+
+The `layout-stability` contract validates the score against an
+explicit maximum. Ordinary browser geometry remains separate in
+`captureDOMGeometry`. This metric observes *one navigation
+and its configured settle/actions window*; it cannot establish later
+conditions or population-wide Core Web Vitals.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

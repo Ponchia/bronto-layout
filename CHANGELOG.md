@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add Chromium laboratory layout-shift capture, an explicit `layout-stability` contract rule, scored comparisons, and bounded affected-element evidence.
+- Exclude recent-input shifts and report unsupported or truncated observations as unmeasurable instead of passing.
+
 - Prepare npm package v0.4.0 metadata for public distribution, without
   publishing to the registry.
 - Test an installed tarball in isolation (compiled library, CLI executable,

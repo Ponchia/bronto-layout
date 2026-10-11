@@ -20,3 +20,6 @@ export type { CSSInspection } from './css-inspector.js';
 
 export { selectCSSFailureAliases } from './css-failure-leads.js';
 export type { CSSFailureSourceLead } from './css-failure-leads.js';
+
+export { summarizeLayoutShifts, installLayoutShiftCollector } from './layout-shifts.js';
+export type { LayoutShiftSummary, ShiftEntry } from './layout-shifts.js';
