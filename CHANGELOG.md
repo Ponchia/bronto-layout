@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add a manually triggered read-only four-site zero-contract audit with preserved JSON and CLI logs.
+- Add a 13-case hand-labeled zero-contract audit benchmark, per-detector confusion matrices and a Node 24 CI regression gate.
 
 - Add experimental `audit --url` zero-contract CLI findings for
   measured root overflow, broken visible images, and review-only clipping

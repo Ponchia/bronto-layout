@@ -19,7 +19,8 @@
     "demo:broken": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/broken.html",
     "demo:inspect": "node bin/bronto-layout.mjs inspect --url examples/healthy.html --width 375 --selector heading=.heading",
     "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine",
-    "test:package": "npm run build && node scripts/verify-package.mjs"
+    "test:package": "npm run build && node scripts/verify-package.mjs",
+    "benchmark:audit": "node scripts/benchmark-audit.mjs --assert"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
