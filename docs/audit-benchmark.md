@@ -74,7 +74,7 @@ The first controlled Chromium run scored **31/31 exact label matches**, with
 0 mismatches or incomplete samples. This is reproducible evidence about the
 **hand-authored fixtures**, not an independent production-site accuracy
 estimate and not a comparison against Snug or Polypane. Both v0.1 and v0.2
-are checked on Node 24 in CI; the normal CLI matrix continues on Node 22/24.
+remain available as separately versioned datasets; v0.3 now runs in the Node 24 CI benchmark step, while the ordinary CLI matrix continues on Node 22/24.
 
 **Next benchmark milestone:** independently review at least 30 external
 real-world application states with evidence-based true/false labels,
@@ -82,6 +82,58 @@ including plausible intentional overflow, localization and art-direction
 cases. We should publish per-detector precision/recall on that separately
 labeled dataset, and evaluate competitors under identical browser and
 content-state conditions before claiming superiority.
+
+## Element-localization accuracy: v0.3
+
+A **separately versioned** `audit-controlled-v0.3.json` keeps the full
+31-case v0.2 detector/viewport classification matrix unchanged, then adds
+expected **exact DOM element paths** for two useful diagnostic categories.
+The v0.3 dataset contains **33 cases**: those 31 original cases plus two
+cases with repeated IDs in different open Shadow DOM roots. Browser diagnostics
+must report the composed path including the host, not an ambiguous bare ID.
+
+- `broken-image`: visible resource failures must point to the actual
+  image, including the tested open Shadow DOM resource.
+- `possible-text-clipping`: review-only warnings must point to the
+  actual text element, not another clipped element on the same page.
+
+Run the additional evaluation:
+
+    npm run benchmark:audit:locations
+
+Or retain the scored JSON:
+
+    node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert --json --report /tmp/bronto-audit-v0.3.json
+
+This reports **separate element-path precision/recall**, with TP/FP/FN for
+each expected issue-type+DOM-path pair. Crucially, a detector that reports
+the correct *category* on the **wrong DOM element** now counts as both a
+localization false negative and a false positive. Extra spurious element
+references are also penalized even when the expected element was found.
+
+There is no finite universe of "true negative" DOM paths; for that reason,
+element localization deliberately publishes **no TN count**. When there are
+no positive labels/predictions, precision or recall is `null`, not a
+manufactured perfect score. If the audit truncates its element list or
+omits the element path, the localization case is classified **incomplete**
+and excluded from the denominator (assertion mode fails).
+
+A case's `expectedLocations` labels are human-authored from the checked
+HTML/CSS fixtures. They are not generated from Bronto's detector output.
+This does not establish real-world localization precision, nor does it
+infer unique locators for closed shadow roots or inaccessible frame contents.
+
+The first complete controlled Chromium evaluation of v0.3 on 12 October
+2026 returned **33/33 case-level classification matches**, 22 measured
+positive issue-code/viewport labels and 5 review positives, and
+**15/15 correctly attributed individual element paths** (no observed
+localization FP/FN). These labels were hand-authored from controlled
+fixtures; the results do not estimate performance on independent
+production sites or establish relative quality against Snug or Polypane.
+
+The v0.3 benchmark runs instead of v0.2's browser repetition in the
+Node 24 CI job; unit tests still check the historical label versions
+for reproducibility.
 
 ## Metrics and denominators
 

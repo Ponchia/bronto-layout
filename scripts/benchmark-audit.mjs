@@ -74,8 +74,28 @@ async function main() {
       document?.mode==='audit' && document?.summary?.viewports===1 &&
       report?.width===sample.width && report?.summary?.verified===true &&
       Array.isArray(report.findings);
+    const localizationCodes=manifest.localization?.codes ?? [];
+    const observedLocations=Object.fromEntries(localizationCodes.map(code => [
+      code,valid ? [...new Set(report.findings.filter(f => f.code===code && typeof f.path==='string')
+        .map(f=>f.path))] : []
+    ]));
+    const unlocalized=valid ? report.findings.filter(f =>
+      localizationCodes.includes(f.code) && !(typeof f.path==='string' && f.path.length>0)) : [];
+    // A capped per-element evidence list cannot prove that the named element
+    // was found. This is an incomplete attribution, not a true negative.
+    const localizationComplete=valid &&
+      unlocalized.length===0 &&
+      (report.coverage?.omittedBrokenImages===0) &&
+      (report.coverage?.omittedTextClips===0);
     rows.push({
       id:sample.id, fixture:sample.fixture,width:sample.width,
+      ...(manifest.localization ? {
+        expectedLocations:sample.expectedLocations,
+        observedLocations,localizationComplete,
+        ...(!localizationComplete ? {
+          localizationError:'Element paths missing or omitted from bounded diagnostic evidence'
+        } : {})
+      } : {}),
       expectedMeasured:sample.expectedMeasured,
       expectedReview:sample.expectedReview,
       observedMeasured:valid?[...new Set(report.findings
@@ -111,6 +131,12 @@ async function main() {
       expectedReview:row.expectedReview,
       observedMeasured:row.observedMeasured,
       observedReview:row.observedReview,
+      ...(manifest.localization ? {
+        expectedLocations:row.expectedLocations,
+        observedLocations:row.observedLocations,
+        localizationComplete:row.localizationComplete,
+        ...(row.localizationError ? { localizationError:row.localizationError } : {})
+      } : {}),
       issueCounts:row.issueCounts,
       complete:row.complete,
       ...(row.error?{error:row.error}:{})
@@ -144,6 +170,17 @@ async function main() {
       ', FN '+scored.review.fn+', precision '+
       (scored.review.precision?.toFixed(3)??'N/A')+', recall '+
       (scored.review.recall?.toFixed(3)??'N/A')+'\n'+
+      (scored.localization ? 'Element localization: '+scored.localization.evaluatedCases+'/'+
+        scored.localization.labeledCases+' labeled cases, '+scored.localization.matchingCases+
+        ' exact path matches; TP '+scored.localization.tp+', FP '+scored.localization.fp+
+        ', FN '+scored.localization.fn+', precision '+
+        (scored.localization.precision?.toFixed(3)??'N/A')+', recall '+
+        (scored.localization.recall?.toFixed(3)??'N/A')+'\n' : '')+
+      (scored.localization?.caseResults.some(row=>row.status!=='match') ?
+        scored.localization.caseResults.filter(row=>row.status!=='match').map(row=>
+          '  Element '+row.id+': '+row.status+
+          (row.mismatches?.length?' '+row.mismatches.map(m=>m.code+'/'+m.path+'/'+m.type).join(', '):'')
+        ).join('\n')+'\n' : '')+
       (scored.caseResults.some(row=>row.status!=='match') ?
         scored.caseResults.filter(row=>row.status!=='match').map(row=>
           '  '+row.id+': '+row.status+(row.mismatches?.length ?
@@ -152,8 +189,9 @@ async function main() {
       'Warning: this tiny controlled dataset is not evidence of real-world competitive accuracy.\n'
     );
   }
-  if(scored.incompleteCases)process.exitCode=2;
-  else if(flag('--assert') && scored.matchingCases!==scored.evaluatedCases)process.exitCode=1;
+  if(scored.incompleteCases || scored.localization?.incompleteCases)process.exitCode=2;
+  else if(flag('--assert') && (scored.matchingCases!==scored.evaluatedCases ||
+    (scored.localization && scored.localization.matchingCases!==scored.localization.evaluatedCases)))process.exitCode=1;
 }
 main().catch(error=>{
   console.error('Bronto audit benchmark: '+(error?.message || String(error)));

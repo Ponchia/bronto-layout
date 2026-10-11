@@ -979,6 +979,10 @@ async function audit(a) {
         truncated: report.coverage.truncated,
         embeddedFrames: report.coverage.embeddedFrames,
         totalImages: report.coverage.totalImages,
+        brokenImageCount: report.coverage.brokenImageCount,
+        omittedBrokenImages: report.coverage.omittedBrokenImages,
+        textClipCount: report.coverage.textClipCount,
+        omittedTextClips: report.coverage.omittedTextClips,
         intentionalEllipses: report.coverage.intentionalEllipses,
         visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded
       },
