@@ -1,0 +1,85 @@
+import type { LayoutFinding, LayoutReport } from './core.js';
+import type { LayoutComparison } from './compare.js';
+import type { RuleTransition } from './sweep.js';
+
+/** A bounded output shape for coding agents. It never asserts correctness at untested widths. */
+const MAX_ITEMS = 100;
+const bounded = <T>(items: readonly T[]) => ({
+  values: items.slice(0, MAX_ITEMS),
+  omitted: Math.max(0, items.length - MAX_ITEMS)
+});
+
+function compactFinding(finding: LayoutFinding, width: number) {
+  return {
+    width,
+    id: finding.id,
+    type: finding.type,
+    status: finding.status,
+    ...(finding.code ? { code: finding.code } : {}),
+    message: finding.message,
+    ...(finding.deviation !== undefined ? { deviation: finding.deviation } : {}),
+    ...(finding.tolerance !== undefined ? { tolerance: finding.tolerance } : {}),
+    ...(finding.paths?.length ? { paths: finding.paths.slice(0, 6) } : {}),
+    ...(finding.evidence?.length ? { evidence: finding.evidence.slice(0, 4) } : {}),
+    ...(finding.overflowCandidates?.length
+      ? { overflowCandidates: finding.overflowCandidates.slice(0, 4) } : {})
+  };
+}
+
+interface CheckData {
+  url: string;
+  reports: LayoutReport[];
+  summary: { passed: number; failed: number; skipped: number };
+  transitions: RuleTransition[];
+  cssBreakpointScan?: { thresholds: number[]; widths: number[]; addedWidths: number[] };
+  evidence?: { width: number; screenshot: string }[];
+}
+
+/** Omits successful assertions, while retaining precise evidence for every retained violation. */
+export function compactCheckReport(result: CheckData) {
+  const failed = result.reports.flatMap(report => report.findings
+    .filter(f => f.status === 'fail')
+    .map(f => compactFinding(f, report.viewport.width)));
+  const unmeasured = result.reports.flatMap(report => report.findings
+    .filter(f => f.status === 'skip' && f.code === 'measurement-unavailable')
+    .map(f => compactFinding(f, report.viewport.width)));
+  const failures = bounded(failed);
+  const unmeasurable = bounded(unmeasured);
+  return {
+    schemaVersion: 1 as const, mode: 'check' as const, format: 'compact' as const,
+    url: result.url,
+    summary: result.summary,
+    sampledWidths: result.reports.map(r => r.viewport.width),
+    failures: failures.values,
+    omittedFailures: failures.omitted,
+    unmeasurable: unmeasurable.values,
+    omittedUnmeasurable: unmeasurable.omitted,
+    transitions: result.transitions,
+    ...(result.cssBreakpointScan ? { cssBreakpointScan: result.cssBreakpointScan } : {}),
+    ...(result.evidence ? { evidence: result.evidence } : {})
+  };
+}
+
+/** A comparison reports existing candidate problems separately from new regressions. */
+export function compactCompareReport(result: LayoutComparison & {
+  cssBreakpointScan?: { thresholds: number[]; widths: number[]; addedWidths: number[] };
+  evidence?: { width: number; screenshot: string }[];
+}) {
+  const changes = bounded(result.changes.filter(c => c.kind !== 'unchanged'));
+  const remaining = bounded(result.candidate.flatMap(report => report.findings
+    .filter(f => f.status === 'fail')
+    .map(f => compactFinding(f, report.viewport.width))));
+  return {
+    schemaVersion: 1 as const, mode: 'compare' as const, format: 'compact' as const,
+    baselineUrl: result.baselineUrl,
+    candidateUrl: result.candidateUrl,
+    summary: result.summary,
+    sampledWidths: result.candidate.map(r => r.viewport.width),
+    changes: changes.values,
+    omittedChanges: changes.omitted,
+    remainingFailures: remaining.values,
+    omittedRemainingFailures: remaining.omitted,
+    ...(result.cssBreakpointScan ? { cssBreakpointScan: result.cssBreakpointScan } : {}),
+    ...(result.evidence ? { evidence: result.evidence } : {})
+  };
+}

@@ -68,6 +68,28 @@ The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file pa
 
 The result returns `pass`, `fail`, or `skip` for every rule; missing elements are failures rather than silently skipped tests. Each geometry failure includes the measured deviation, tolerance, and identified browser elements.
 
+## Agent-friendly CLI output
+
+Use compact structured reports when a coding agent needs failures and responsive
+sample widths rather than hundreds of passing rectangles:
+
+~~~sh
+node bin/bronto-layout.mjs check --spec examples/layout.json --url examples/broken.html --json --compact
+node bin/bronto-layout.mjs compare --spec examples/layout.json --baseline examples/healthy.html --url examples/broken.html --json --compact
+~~~
+
+Compact check reports include all failure and unmeasurable counts, up to 100
+individual findings in each category, omitted counts when capped, factual
+element geometry, sampled widths and CSS breakpoint metadata. Compact compares
+also preserve *existing candidate failures* separately from newly verified
+regressions. These are **observations at sampled widths only** and do not prove
+continuous correctness between samples.
+
+Fatal errors under `--json` now produce a JSON error envelope on stdout with
+`mode: "error"`, `exitCode: 2`, and the diagnostic message. An explicit
+`--report FILE` is also written on failure, even if its parent directory does
+not exist. Routine human-readable errors still use stderr.
+
 ## Architecture
 
 - `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.

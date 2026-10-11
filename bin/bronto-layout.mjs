@@ -15,6 +15,7 @@ import { compareReports } from '../dist/compare.js';
 import { toSarif } from '../dist/sarif.js';
 import { sweepLayout, widthRange } from '../dist/sweep.js';
 import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/breakpoints.js';
+import { compactCheckReport, compactCompareReport } from '../dist/agent-report.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -46,6 +47,7 @@ Options:
   --chrome PATH         Chrome/Chromium executable (autodetected otherwise)
   --no-sandbox          Explicitly disable Chromium sandbox (unsafe on untrusted URLs)
   --json                Machine-readable JSON to stdout
+  --compact             With --json: actionable findings, sampled widths, and totals
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
   --evidence-dir DIR    Annotated Chromium screenshots for failed widths (max 12)
@@ -67,7 +69,7 @@ const OPTIONS = {
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
   selector: { type: 'string', multiple: true },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
-  chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
+  chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
   out: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
@@ -553,7 +555,7 @@ async function check(a) {
     ...(result.transitions.length ? ['Observed transitions:', ...result.transitions.map(t => `  ${t.ruleId}: ${t.from} → ${t.to}, ${t.previousWidth}–${t.width}px (${t.precision})`)] : []),
     `Total: ${result.summary.failed} failed, ${result.summary.passed} passed, ${result.summary.skipped} skipped`
   ].join('\n');
-  await output(a, result, printable, toSarif(result.url, result.reports));
+  await output(a, a.compact ? compactCheckReport(result) : result, printable, toSarif(result.url, result.reports));
   if (result.summary.failed || (a['fail-on-skip'] && hasUnmeasuredRules(result.reports))) process.exitCode = 1;
 }
 async function inspect(a) {
@@ -577,9 +579,9 @@ async function inspect(a) {
   const text = [
     `Bronto Layout inspection — ${result.url}`,
     ...result.snapshots.flatMap(s => [
-      `${s.viewport.width}px · ${s.viewport.direction} · document ${s.document.width}×${s.document.height} · overflow ${Math.max(0, s.document.width - s.viewport.width)}px`,
+      `${s.viewport.width}px · ${s.viewport.direction} · document ${s.document.width}×${s.document.height} · overflow ${Math.max(0, s.document.width - (s.viewport.contentWidth ?? s.viewport.width))}px`,
       ...Object.entries(s.selectors).flatMap(([alias, elements]) => [
-        `  ${alias} — ${elements.length} visible match(es)`,
+        `  ${alias} — ${s.selectorCounts?.[alias] ?? elements.length} visible match(es)${(s.selectorCounts?.[alias] ?? elements.length) > elements.length ? ', ' + elements.length + ' measured' : ''}`,
         ...elements.slice(0, 20).map(el => `    ${el.path} [${[el.rect.x, el.rect.y, el.rect.width, el.rect.height].map(n => Number(n.toFixed(2))).join(', ')}]`),
         ...(elements.length > 20 ? [`    ... ${elements.length - 20} more (see JSON output)`] : [])
       ])
@@ -670,7 +672,7 @@ async function compare(a) {
     ...important.map(c => `  ${c.width}px ${c.kind.toUpperCase()} ${c.ruleId}: ${c.baselineStatus} → ${c.candidateStatus}${c.errorDelta === undefined ? '' : `, error Δ ${c.errorDelta.toFixed(2)}${c.errorUnit}`}`),
     `Total: ${result.summary.regressions} regressions, ${result.summary.improvements} improvements, ${result.summary.unverified} unverified, ${result.summary.candidateFailures} candidate violations remaining`
   ].join('\n');
-  await output(a, result, printable, toSarif(result.candidateUrl, result.candidate, result));
+  await output(a, a.compact ? compactCompareReport(result) : result, printable, toSarif(result.candidateUrl, result.candidate, result));
   if (result.summary.regressions || (a['fail-on-skip'] && (result.summary.unverified || hasUnmeasuredRules(result.candidate)))) process.exitCode = 1;
 }
 async function validate(a) {
@@ -686,6 +688,9 @@ async function main() {
   if (a.help) { console.log(HELP); return; }
   if (a.version) { console.log('Bronto Layout 0.3.0'); return; }
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
+  if (a.compact && (!a.json || !['check', 'scan', 'compare'].includes(a.command))) {
+    throw new Error('--compact requires --json with check, scan, or compare');
+  }
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   configFromArgs(a);
@@ -698,4 +703,24 @@ async function main() {
     await check(a);
   } else await check(a);
 }
-main().catch(error => { console.error(`Bronto Layout: ${error.message}`); process.exitCode = 2; });
+main().catch(async error => {
+  process.exitCode = 2;
+  const message = error instanceof Error ? error.message : String(error);
+  const args = process.argv.slice(2);
+  const report = {
+    schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
+    error: { code: 'CLI_ERROR', message }
+  };
+  if (args.includes('--json')) console.log(JSON.stringify(report, null, 2));
+  else console.error('Bronto Layout: ' + message);
+  const index = args.lastIndexOf('--report');
+  const pathValue = index >= 0 ? args[index + 1] : args.find(arg => arg.startsWith('--report='))?.slice(9);
+  if (pathValue && !pathValue.startsWith('--')) {
+    try {
+      await mkdir(path.dirname(path.resolve(pathValue)), { recursive: true });
+      await writeFile(pathValue, JSON.stringify(report, null, 2) + '\n', 'utf8');
+    } catch (failure) {
+      console.error('Bronto Layout: Could not write failure report: ' + failure.message);
+    }
+  }
+});
