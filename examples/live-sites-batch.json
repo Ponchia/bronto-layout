@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    { "id": "personal-website", "spec": "personal-site.json" },
+    { "id": "sense6-english", "spec": "sense6-gallery.json" },
+    { "id": "sense6-arabic", "spec": "sense6-ar.json", "locale": "ar" },
+    { "id": "sense6-learn", "spec": "sense6-learn.json" }
+  ]
+}

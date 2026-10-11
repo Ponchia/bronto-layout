@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add declarative sequential CLI batches with per-job locale/viewport state, offline dry-run previews and aggregate JSON/exit codes.
+
+
 - Add opt-in `--json --compact` agent reports preserving violations, unmeasurable checks, and sampled widths.
 - Emit machine-readable JSON for fatal CLI errors and write explicit failure report files.
 - Fix inspector overflow measurements against the usable scrollport and show exact counts when element geometry is sampled.
