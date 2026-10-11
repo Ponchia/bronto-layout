@@ -13,6 +13,10 @@ on:
         description: 'Also scan CSS media-query boundaries on the portfolio and Sense6'
         type: boolean
         default: false
+      css_sources:
+        description: 'Inspect matched author CSS rules on the deployed portfolio and Sense6'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -108,6 +112,46 @@ jobs:
           echo "CSS breakpoint contracts with failures or navigation errors: $failures/3"
           set -e
           test "$failures" -eq 0
+      - name: Inspect live first-party CSS source hints
+        if: ${{ inputs.css_sources }}
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          # Run only on this ephemeral CI machine with our known public sites.
+          # On a developer machine keep Chrome sandboxed for arbitrary pages.
+          mkdir -p reports logs
+          for name in personal-site sense6-gallery; do
+            if [ "$name" = "personal-site" ]; then
+              url="https://brontolotto.observer/"
+              selector=".site-header"
+            else
+              url="https://sense6.net/en/"
+              selector=".gallery-hero"
+            fi
+            echo "::group::CSS source inspection: $name"
+            node bin/bronto-layout.mjs inspect --url "$url" \
+              --selector "target=$selector" --ready-selector "$selector" \
+              --width 375 --settle 600 --timeout 30000 \
+              --css-sources --json --report "reports/css-source-$name.json" \
+              > "logs/css-source-$name.txt" 2>&1
+            # The inspect result must contain actual matched author rules,
+            # not merely a successful page navigation with an empty selector.
+            node -e '
+              const fs = require("node:fs");
+              const doc = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const alias = doc.cssSources?.[0]?.aliases?.[0];
+              const matched = alias?.elements?.flatMap(x => x.status === "ok" ? x.rules : []) ?? [];
+              if (doc.mode !== "inspect" || !alias || alias.visibleCount === 0 || matched.length === 0) {
+                console.error("No verified CSS source evidence for " + process.argv[2]);
+                process.exit(1);
+              }
+              console.log(process.argv[2] + ": " + alias.visibleCount + " visible elements, " +
+                matched.length + " matched author rules (" +
+                matched.filter(x => x.sourceKind === "external-stylesheet").length +
+                " external stylesheets)");
+            ' "reports/css-source-$name.json" "$name"
+            echo "::endgroup::"
+          done
       - name: Upload diagnostic reports
         if: always()
         uses: actions/upload-artifact@v4
