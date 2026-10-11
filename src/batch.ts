@@ -13,6 +13,7 @@ export interface BatchJob {
   reducedMotion?: boolean;
   mobile?: boolean;
   layoutShifts?: boolean;
+  stableFor?: number;
 }
 
 export interface BatchManifest {
@@ -23,7 +24,7 @@ export interface BatchManifest {
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v);
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
-const allowed = new Set(['id', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts']);
+const allowed = new Set(['id', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts', 'stableFor']);
 const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/i;
 
 /**
@@ -78,6 +79,11 @@ export function parseBatchManifest(value: unknown): BatchManifest {
       if (job[key] !== undefined && typeof job[key] !== 'boolean') {
         throw new Error(label + ' ' + key + ' must be boolean');
       }
+    }
+    if (job.stableFor !== undefined && (
+      !Number.isInteger(job.stableFor) || (job.stableFor as number) < 100 ||
+      (job.stableFor as number) > 5000)) {
+      throw new Error(label + ' stableFor must be an integer from 100 to 5000 ms');
     }
     // All public fields were checked above; reify this validated record.
     return job as unknown as BatchJob;

@@ -1,4 +1,5 @@
 /** Pure contract evaluation. No DOM, CSS runtime, Node, automation, or framework dependency. */
+import type { GeometryStabilization } from './geometry-stability.js';
 import type { LayoutShiftSummary } from './layout-shifts.js';
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface ElementStyles {
@@ -35,6 +36,8 @@ export interface LayoutSnapshot {
   selectors: Record<string, ElementGeometry[]>;
   /** Exact number of visible elements, even when geometry details are bounded. */
   selectorCounts?: Record<string, number>;
+  /** Optional geometry polling evidence from CLI/browser adapter. */
+  stabilization?: GeometryStabilization;
   /** Bounded suggestions for investigating horizontal document overflow. */
   overflowCandidates?: OverflowCandidate[];
   /** Optional lab-observed loading/hydration movement for this navigation. */
@@ -88,6 +91,7 @@ export interface LayoutReport {
   summary: { passed: number; failed: number; skipped: number };
   findings: LayoutFinding[];
   layoutShifts?: LayoutShiftSummary;
+  stabilization?: GeometryStabilization;
 }
 function edge(rect: Rect, kind: Edge, direction: 'ltr' | 'rtl'): number {
   switch (kind) {
@@ -321,6 +325,7 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
   return {
     viewport: s.viewport,
     ...(s.layoutShifts ? { layoutShifts: s.layoutShifts } : {}),
+    ...(s.stabilization ? { stabilization: s.stabilization } : {}),
     summary: {
       passed: findings.filter(x => x.status === 'pass').length,
       failed: findings.filter(x => x.status === 'fail').length,

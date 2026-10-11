@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Continuously moving geometry</title>
+  <style>
+    body { margin: 0; font: 16px system-ui; }
+    #card {
+      width: 80px; height: 60px; margin: 20px; background: #cad5dc;
+      animation: drift 20s linear infinite;
+    }
+    @keyframes drift { from { transform: translateX(0) } to { transform: translateX(200px) } }
+  </style>
+</head>
+<body>
+  <div id="card">Continuous layout drift</div>
+</body>
+</html>
