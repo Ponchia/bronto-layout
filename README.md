@@ -133,6 +133,35 @@ and `examples/live-sites-batch.json` for our personal site and Sense6
 English/Arabic/Learn contracts. Optional settings can also be provided per job
 rather than changing the underlying app or writing custom shell scripts.
 
+## Browser-observed CSS source hints
+
+For a selected element, Bronto Layout can optionally retrieve the matching
+**author CSS declarations** and their stylesheet locations using Chromium's
+native CSS domain. This is useful after a failing spatial contract: identify
+which style rules are associated with the element before editing CSS.
+
+~~~sh
+node bin/bronto-layout.mjs inspect --url examples/css-sources-fixture.html --width 375 --selector example=#example --css-sources --json
+node bin/bronto-layout.mjs inspect --url examples/css-sources-fixture.html --selector "inside=#host >>> .inner" --css-sources --json
+~~~
+
+The optional `cssSources` response contains selected aliases, matched
+element counts, sampled elements, matched author selectors, relevant layout
+declarations and browser-observed stylesheet URLs. **Only external CSS URLs
+with verified declaration ranges receive source line numbers.** Inline
+`<style>` declarations may carry the enclosing page URL but no
+misleading HTML line number. CSS `style` attributes are distinguished.
+
+The tool **does not** infer which matched declaration actually won the cascade,
+which authored Sass/LESS file generated an output stylesheet, or whether a
+declaration caused a layout defect. These are evidence leads for a developer or
+coding agent. In open Shadow DOM use `>>>` selector boundaries;
+closed roots and cross-origin frame contents are unsupported.
+
+This is deliberately opt-in and bounded: up to 24 aliases, 6 elements per alias,
+48 inspected elements in total and 16 layout-relevant rules per element, with
+omission counts. No extra runtime dependencies, paid services or MCP server.
+
 ## Architecture
 
 - `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.
