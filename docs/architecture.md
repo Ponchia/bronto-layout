@@ -73,6 +73,27 @@ error, never a passing layout contract. This does not certify the state of a
 page outside its finite sampled interval, nor does it infer design intent.
 There is no browser-automation framework dependency.
 
+## Local HTML fixture server
+
+The CLI delegates local HTML asset loading to
+`bin/local-fixture-server.mjs`. It binds to 127.0.0.1 only, resolves
+real filesystem paths before streaming, rejects hidden files, path traversal,
+unsupported extensions and symlinks escaping the fixture directory. No
+directory listing is exposed. Common HTML, CSS, JavaScript, image, font and
+media asset types continue to load normally.
+
+The fixture server is a boundary against accidental local-file exposure,
+**not** an isolation environment for arbitrary untrusted HTML/JavaScript.
+Use Chromium's default sandbox for untrusted websites and prefer a real
+development server for full applications. The isolated self-contained markup
+fallback requires an explicit test-only environment variable; it never
+silently stands in for unavailable production assets.
+
+`tests/local-fixture-server.test.mjs` directly verifies normal
+assets, hidden files, denied extensions, traversal, symlinks, file URL input
+and HTTP URL passthrough. The package validator requires the server module
+to be present in the installable npm tarball.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

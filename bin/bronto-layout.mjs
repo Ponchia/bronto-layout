@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /** Bronto Layout CLI: intentionally independent from Playwright, Puppeteer and UI frameworks. */
 import { spawn, spawnSync } from 'node:child_process';
-import { createReadStream, existsSync, readdirSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { existsSync, readdirSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { serveTarget } from './local-fixture-server.mjs';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { parseContract, validWidth } from '../dist/contract.js';
@@ -325,29 +325,6 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
     await cdp.send('Network.enable');
     return { cdp, async close() { cdp.close(); await stop(); } };
   } catch (error) { await stop(); throw error; }
-}
-async function serveTarget(raw) {
-  if (/^https?:\/\//.test(raw)) return { url: raw, close() {} };
-  const source = raw.startsWith('file://') ? fileURLToPath(raw) : path.resolve(raw);
-  if (!existsSync(source)) throw new Error(`URL or file does not exist: ${raw}`);
-  const root = path.dirname(source);
-  const types = { '.html':'text/html', '.css':'text/css', '.js':'application/javascript', '.mjs':'application/javascript',
-    '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg',
-    '.webp':'image/webp', '.woff':'font/woff', '.woff2':'font/woff2' };
-  const server = createServer((req, res) => {
-    let file;
-    try { file = path.resolve(root, decodeURIComponent((req.url || '').split('?')[0]).replace(/^\/+/, '')); }
-    catch { res.writeHead(400).end(); return; }
-    if (file !== root && !file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
-    res.setHeader('Content-Type', types[path.extname(file).toLowerCase()] ?? 'application/octet-stream');
-    const stream = createReadStream(file);
-    stream.on('error', () => { if (!res.headersSent) res.writeHead(404); res.end(); });
-    stream.pipe(res);
-  });
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
-  const address = server.address();
-  return { url: `http://127.0.0.1:${address.port}/${encodeURIComponent(path.basename(source))}`,
-    sourcePath: source, close() { server.close(); } };
 }
 /**
  * Opt-in geometry quiet window. Repeatedly compare with the geometry at the
