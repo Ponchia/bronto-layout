@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a manually triggered read-only four-site zero-contract audit with preserved JSON and CLI logs.
+
 - Add experimental `audit --url` zero-contract CLI findings for
   measured root overflow, broken visible images, and review-only clipping
   and pending image evidence; preserve bounded coverage and explicit exit codes.
