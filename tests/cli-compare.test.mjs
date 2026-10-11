@@ -42,7 +42,7 @@ test('SARIF compare includes only regressions as findings',t=>{
 test('CLI detects conflicting output modes',()=>{
  const r=run(['check','--spec','examples/layout.json','--json','--sarif']);
  assert.equal(r.status,2);
- assert.match(r.stderr,/Choose --json or --sarif/);
+ assert.match(JSON.parse(r.stdout).error.message,/Choose --json or --sarif/);
 });
 test('comparison rejects missing baseline rather than defaulting to a green result',()=>{
  const r=run(['compare','--spec','examples/layout.json','--url','examples/healthy.html']);
