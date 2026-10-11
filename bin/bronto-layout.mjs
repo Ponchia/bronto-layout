@@ -42,7 +42,7 @@ Options:
   --settle MS           Additional time for client-side rendering (default: 0)
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
   --chrome PATH         Chrome/Chromium executable (autodetected otherwise)
-  --no-sandbox          Disable Chromium sandbox (only for trusted, isolated test environments)
+  --no-sandbox          Explicitly disable Chromium sandbox (unsafe on untrusted URLs)
   --json                Machine-readable JSON to stdout
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
@@ -229,7 +229,7 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
     '--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
     '--disable-background-networking', '--disable-dev-shm-usage',
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
-    ...(process.getuid?.() === 0 || noSandbox ? ['--no-sandbox'] : []),
+    ...(noSandbox ? ['--no-sandbox'] : []),
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
   let startupDiagnostics = '';
   child.stderr?.on('data', data => { startupDiagnostics = (startupDiagnostics + data.toString()).slice(-8192); });
@@ -239,10 +239,26 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
   const stop = async () => {
     if (closed) return;
     closed = true;
-    child.kill('SIGTERM');
-    await pause(100);
-    if (child.exitCode == null) child.kill('SIGKILL');
-    await rm(profile, { recursive: true, force: true });
+    // Chrome may still be writing its profile when SIGTERM is delivered.
+    // Wait for the process to exit before deleting it, or removal can race
+    // with an active browser and fail with ENOTEMPTY.
+    const hasExited = () => child.exitCode !== null || child.signalCode !== null;
+    const waitForClose = async (timeout) => {
+      if (hasExited()) return;
+      await Promise.race([
+        new Promise(resolve => child.once('close', resolve)),
+        pause(timeout),
+      ]);
+    };
+    if (!hasExited()) {
+      child.kill('SIGTERM');
+      await waitForClose(1500);
+    }
+    if (!hasExited()) {
+      child.kill('SIGKILL');
+      await waitForClose(1500);
+    }
+    await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 150 });
   };
   try {
     let port;

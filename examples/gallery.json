@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "url": "gallery.html",
+  "widths": [
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "tiles": ".gallery > .card"
+  },
+  "rules": [
+    {
+      "id": "uniform-gallery-columns",
+      "type": "uniform-gaps",
+      "element": "tiles",
+      "axis": "x",
+      "laneTolerance": 2,
+      "tolerance": 1
+    },
+    {
+      "id": "six-tiles-present",
+      "type": "selector-count",
+      "element": "tiles",
+      "exactly": 6
+    }
+  ]
+}

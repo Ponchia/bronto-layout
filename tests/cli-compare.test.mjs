@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 const cwd=path.resolve(import.meta.dirname,'..');
 const cli=path.join(cwd,'bin/bronto-layout.mjs');
-const run=(args)=>spawnSync(process.execPath,[cli,...args],{cwd,encoding:'utf8',timeout:40000,maxBuffer:8*1024*1024,env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1'}});
+const run=(args)=>spawnSync(process.execPath,[cli,...args],{cwd,encoding:'utf8',timeout:40000,maxBuffer:8*1024*1024,env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1',BRONTO_CHROME_NO_SANDBOX:'1'}});
 function skipChrome(t,r){if(r.error?.code==='ENOENT'||/Cannot find Chrome\/Chromium/.test(r.stderr||'')){if (process.env.BRONTO_REQUIRE_CHROME === '1') throw new Error('Chromium is required for CI but was not found'); t.skip('Chrome unavailable');return true;}return false;}
 test('validate checks contracts without launching Chrome',()=>{
  const r=run(['validate','--spec','examples/layout.json','--json']);

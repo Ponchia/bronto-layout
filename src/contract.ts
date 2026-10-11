@@ -9,7 +9,7 @@ export interface LayoutContract {
   selectors: Record<string, string>;
   rules: LayoutRule[];
 }
-const TYPES = new Set(['document-overflow', 'align-edge', 'centered', 'contained', 'non-overlapping', 'equal-gaps', 'image-aspect', 'gap-range', 'same-size', 'size-range', 'selector-count', 'no-clipping']);
+const TYPES = new Set(['document-overflow', 'align-edge', 'centered', 'contained', 'non-overlapping', 'equal-gaps', 'uniform-gaps', 'image-aspect', 'gap-range', 'same-size', 'size-range', 'selector-count', 'no-clipping']);
 const EDGES = new Set<Edge>(['left', 'right', 'top', 'bottom', 'center-x', 'center-y', 'inline-start', 'inline-end']);
 const AXES = new Set(['x', 'y']);
 function record(value: unknown): value is Record<string, unknown> {
@@ -69,7 +69,7 @@ export function parseContract(input: unknown): LayoutContract {
     const ownFields: Record<string, string[]> = {
       'document-overflow': [], 'align-edge': ['a', 'b', 'edgeA', 'edgeB'],
       centered: ['element', 'in', 'axis'], contained: ['element', 'in', 'axis'],
-      'non-overlapping': ['a', 'b'], 'equal-gaps': ['elements', 'axis'],
+      'non-overlapping': ['a', 'b'], 'equal-gaps': ['elements', 'axis'], 'uniform-gaps': ['element', 'axis', 'laneTolerance'],
       'image-aspect': ['element', 'tolerancePercent'], 'gap-range': ['a', 'b', 'axis', 'min', 'max'],
       'same-size': ['a', 'b', 'axis'], 'size-range': ['element', 'axis', 'min', 'max'],
       'selector-count': ['element', 'min', 'max', 'exactly'], 'no-clipping': ['element', 'axis']
@@ -89,12 +89,12 @@ export function parseContract(input: unknown): LayoutContract {
     if (['centered', 'contained'].includes(rule.type)) {
       requireAlias(rule.element, `${rule.id}.element`); requireAlias(rule.in, `${rule.id}.in`, true);
     }
-    if (['image-aspect', 'selector-count', 'no-clipping', 'size-range'].includes(rule.type)) requireAlias(rule.element, `${rule.id}.element`);
+    if (['image-aspect', 'selector-count', 'no-clipping', 'size-range', 'uniform-gaps'].includes(rule.type)) requireAlias(rule.element, `${rule.id}.element`);
     if (rule.type === 'align-edge') {
       requireThat(EDGES.has(rule.edgeA as Edge), `${rule.id} edgeA is invalid`);
       requireThat(rule.edgeB === undefined || EDGES.has(rule.edgeB as Edge), `${rule.id} edgeB is invalid`);
     }
-    if (['centered', 'gap-range', 'equal-gaps'].includes(rule.type)) requireThat(AXES.has(rule.axis as string), `${rule.id} axis must be x or y`);
+    if (['centered', 'gap-range', 'equal-gaps', 'uniform-gaps'].includes(rule.type)) requireThat(AXES.has(rule.axis as string), `${rule.id} axis must be x or y`);
     if (rule.type === 'contained') requireThat(rule.axis === undefined || ['x', 'y', 'both'].includes(rule.axis as string), `${rule.id} axis must be x, y or both`);
     if (rule.type === 'no-clipping') requireThat(rule.axis === undefined || ['x', 'y', 'both'].includes(rule.axis as string), `${rule.id} axis must be x, y or both`);
     if (rule.type === 'equal-gaps') {
@@ -102,6 +102,7 @@ export function parseContract(input: unknown): LayoutContract {
       for (const alias of rule.elements) requireAlias(alias, `${rule.id}.elements`);
       requireThat(new Set(rule.elements).size === rule.elements.length, `${rule.id} elements must be distinct`);
     }
+    if (rule.type === 'uniform-gaps') requireThat(rule.laneTolerance === undefined || nonNegative(rule.laneTolerance), rule.id + ' laneTolerance must be nonnegative');
     if (rule.type === 'same-size') requireThat(['width', 'height', 'both'].includes(rule.axis as string), `${rule.id} axis must be width, height or both`);
     if (rule.type === 'size-range') requireThat(['width', 'height'].includes(rule.axis as string), `${rule.id} axis must be width or height`);
     if (rule.type === 'gap-range' || rule.type === 'size-range') {
