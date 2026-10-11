@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Responsive component container query</title>
+  <style>
+    * { box-sizing: border-box }
+    body { margin: 0; padding: 16px; font: 16px system-ui }
+    article { width: min(100%, 600px); container-type: inline-size }
+    .component { width: 100%; height: 90px; background: #d6e6ec }
+    /* The component has a deliberately broken branch at narrow containers. */
+    @container (max-width: 400px) {
+      .component { width: calc(100vw + 50px) }
+    }
+  </style>
+</head>
+<body>
+  <article><h1>Container query</h1><div class="component">Component-dependent responsiveness</div></article>
+</body>
+</html>

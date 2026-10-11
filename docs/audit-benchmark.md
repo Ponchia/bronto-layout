@@ -41,6 +41,48 @@ Those labels were specified from the controlled fixture behavior,
 not inferred from the Bronto Layout detector output. They do not replace
 independent annotations of external production websites.
 
+## Extended fixture suite: v0.2
+
+The original `audit-controlled-v0.1.json` is deliberately **immutable**:
+its 13 fixture/viewport labels remain available to reproduce the original
+evaluation. An extended, separately versioned
+`audit-controlled-v0.2.json` adds 18 cases (31 total) with six new HTML
+fixtures covering:
+
+- CSS `@container` thresholds at 320, 375, 430, 450 and 768px
+  (a viewport-only media-query scanner cannot infer all container behavior).
+- Deliberately oversized RTL content, checked at mobile/tablet/desktop widths.
+- A missing resource inside **open Shadow DOM**, where the DOM observer can
+  inspect the inner image.
+- An embedded iframe whose internals are intentionally **not** inspected;
+  this must be labeled a coverage warning, not a passing inner-layout test.
+- Intentional overlay badges, inner scrolling and CSS ellipsis with no
+  automatic errors or warnings.
+- Mixed image states: one visible failed image, one loaded vector and one
+  broken resource hidden using `display:none`.
+
+Run only the extended dataset:
+
+    npm run benchmark:audit:expanded
+
+Or retain structured, labeled results:
+
+    node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert --json --report /tmp/bronto-audit-v0.2.json
+
+The first controlled Chromium run scored **31/31 exact label matches**, with
+20 measured positive detector/viewport labels and 5 review positives,
+0 mismatches or incomplete samples. This is reproducible evidence about the
+**hand-authored fixtures**, not an independent production-site accuracy
+estimate and not a comparison against Snug or Polypane. Both v0.1 and v0.2
+are checked on Node 24 in CI; the normal CLI matrix continues on Node 22/24.
+
+**Next benchmark milestone:** independently review at least 30 external
+real-world application states with evidence-based true/false labels,
+including plausible intentional overflow, localization and art-direction
+cases. We should publish per-detector precision/recall on that separately
+labeled dataset, and evaluate competitors under identical browser and
+content-state conditions before claiming superiority.
+
 ## Metrics and denominators
 
 Each labeled evaluation unit is **one detector code for one viewport of
