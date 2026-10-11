@@ -68,7 +68,7 @@ export function parseContract(input: unknown): LayoutContract {
     const fields = new Set(['id', 'type', 'description', 'tolerance', 'minWidth', 'maxWidth']);
     const ownFields: Record<string, string[]> = {
       'document-overflow': [], 'align-edge': ['a', 'b', 'edgeA', 'edgeB'],
-      centered: ['element', 'in', 'axis'], contained: ['element', 'in'],
+      centered: ['element', 'in', 'axis'], contained: ['element', 'in', 'axis'],
       'non-overlapping': ['a', 'b'], 'equal-gaps': ['elements', 'axis'],
       'image-aspect': ['element', 'tolerancePercent'], 'gap-range': ['a', 'b', 'axis', 'min', 'max'],
       'same-size': ['a', 'b', 'axis'], 'size-range': ['element', 'axis', 'min', 'max'],
@@ -95,6 +95,7 @@ export function parseContract(input: unknown): LayoutContract {
       requireThat(rule.edgeB === undefined || EDGES.has(rule.edgeB as Edge), `${rule.id} edgeB is invalid`);
     }
     if (['centered', 'gap-range', 'equal-gaps'].includes(rule.type)) requireThat(AXES.has(rule.axis as string), `${rule.id} axis must be x or y`);
+    if (rule.type === 'contained') requireThat(rule.axis === undefined || ['x', 'y', 'both'].includes(rule.axis as string), `${rule.id} axis must be x, y or both`);
     if (rule.type === 'no-clipping') requireThat(rule.axis === undefined || ['x', 'y', 'both'].includes(rule.axis as string), `${rule.id} axis must be x, y or both`);
     if (rule.type === 'equal-gaps') {
       requireThat(Array.isArray(rule.elements) && rule.elements.length >= 3, `${rule.id} requires at least three elements`);

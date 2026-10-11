@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "url": "https://sense6.net/en/",
+  "widths": [320, 375, 768, 1280],
+  "selectors": {
+    "gallery": ".gallery-hero",
+    "experiments": "#tests",
+    "experimentGrid": ".exam-grid",
+    "research": ".gallery-learn"
+  },
+  "rules": [
+    { "id": "no-page-horizontal-overflow", "type": "document-overflow", "tolerance": 2 },
+    { "id": "gallery-present", "type": "selector-count", "element": "gallery", "exactly": 1 },
+    { "id": "experiments-present", "type": "selector-count", "element": "experimentGrid", "exactly": 1 },
+    { "id": "gallery-fits-horizontally", "type": "contained", "element": "gallery", "in": "viewport", "axis": "x", "tolerance": 2 },
+    { "id": "experiments-fit-horizontally", "type": "contained", "element": "experiments", "in": "viewport", "axis": "x", "tolerance": 2 },
+    { "id": "research-fits-horizontally", "type": "contained", "element": "research", "in": "viewport", "axis": "x", "tolerance": 2 }
+  ]
+}

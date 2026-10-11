@@ -12,6 +12,7 @@ The thesis: a layout should be testable by the *relationships between elements*,
 - Minimal Node 22+ CLI that launches installed Chromium/Chrome (including existing browser caches) using the native Chrome DevTools Protocol, **without Playwright or Puppeteer**.
 - Versioned contracts, width-specific rules, multi-viewport checks, JSON and SARIF reports, optional annotated PNG evidence, comparison of baseline and candidate pages, and nonzero exit status for CI.
 - Tests for pure geometry, browser states, RTL, responsive breakpoints, open Shadow DOM, and deliberate layout violations.
+- Bounded, observed element geometry and computed CSS evidence on failed rules; overflow diagnostics include possible overhanging elements, not asserted root causes.
 
 TypeScript is the only development dependency. The CLI has no runtime third-party dependencies and the included `dist/` lets the examples run without compilation.
 
@@ -39,7 +40,7 @@ To target a website with that site's own valid selectors, place rules in a new s
 node bin/bronto-layout.mjs --spec my-layout.json --url http://localhost:5173/ --widths 320,375,768,1280
 ```
 
-In restricted Linux test environments, Chromium may refuse to start because user namespaces are disabled. Use `--no-sandbox` only for trusted, isolated testing; it disables an important browser security boundary.
+In restricted Linux test environments, Chromium may refuse to start because user namespaces are disabled. Use `--no-sandbox` only for trusted, isolated testing; it disables an important browser security boundary. **The CLI never adds `--no-sandbox` automatically**, including when running as root; browser tests opt into it explicitly. Never browse untrusted websites without browser sandboxing.
 
 The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
 
@@ -86,6 +87,25 @@ No usage analytics, account, hosted service, external API or paid features.
 5. Images rendered with `object-fit: cover/contain/scale-down` preserve content proportions inside a potentially differently shaped image box; the prototype skips naive outer-box aspect ratio diagnostics for those cases.
 6. When security policy prevents even local navigation, the CLI falls back to injecting the self-contained HTML fixture. In that restricted case, external stylesheets and assets are not faithfully loaded. For real sites, use an ordinary local HTTP server/URL.
 7. This is a v0.x alpha; it has not yet been published to npm. Production-site verification with the CLI is still in progress.
+
+## Real-site CLI validation
+
+Use the tracked first-party layout contracts as controlled smoke checks:
+
+```sh
+node bin/bronto-layout.mjs check --spec examples/personal-site.json
+node bin/bronto-layout.mjs check --spec examples/sense6-gallery.json
+node bin/bronto-layout.mjs check --spec examples/sense6-ar.json --locale ar
+node bin/bronto-layout.mjs check --spec examples/sense6-learn.json
+```
+
+On GitHub, the manually triggered **Live-site CLI smoke** workflow checks these
+contracts and preserves JSON reports and logs as artifacts. Unlike unit tests,
+these may fail when a remote site is unavailable or changes independently of
+this repository. They do **not** run on every contribution.
+
+Use `axis: "x"` with `contained` to check horizontal fit of content that extends
+below the viewport. Without `axis`, containment checks both directions.
 
 ## What would justify a standalone Bronto Layout project?
 

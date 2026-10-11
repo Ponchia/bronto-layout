@@ -9,7 +9,7 @@ const cwd = path.resolve(import.meta.dirname, '..');
 const cli = path.join(cwd, 'bin/bronto-layout.mjs');
 const run = (args) => spawnSync(process.execPath, [cli, ...args], {
   cwd, encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
-  env: { ...process.env, BRONTO_TEST_INLINE_FIXTURE: '1' }
+  env: { ...process.env, BRONTO_TEST_INLINE_FIXTURE: '1', BRONTO_CHROME_NO_SANDBOX: '1' }
 });
 function skipIfNoChrome(t, result) {
   if (result.error?.code === 'ENOENT' || /Cannot find Chrome\/Chromium/.test(result.stderr || '')) {
@@ -87,4 +87,39 @@ test('--fail-on-skip does not fail intentionally out-of-range rules', t => {
   const report = JSON.parse(result.stdout);
   assert.equal(report.summary.skipped, 2);
   assert.equal(report.reports[0].findings.find(f => f.id === 'equal-card-gaps').code, 'outside-width-range');
+});
+test('contained axis x permits below-the-fold content while rejecting horizontal overshoot', () => {
+  const snapshot = fixture();
+  snapshot.selectors.a[0].rect = r(10, 1500, 90, 60);
+  const horizontal = evaluateLayout(snapshot, [{id:'in-x',type:'contained',element:'a',in:'viewport',axis:'x'}]);
+  const both = evaluateLayout(snapshot, [{id:'in-both',type:'contained',element:'a',in:'viewport'}]);
+  assert.equal(horizontal.summary.passed, 1);
+  assert.equal(both.summary.failed, 1);
+  snapshot.selectors.a[0].rect.x = 390;
+  assert.equal(evaluateLayout(snapshot, [{id:'in-x',type:'contained',element:'a',in:'viewport',axis:'x'}]).findings[0].deviation, 80);
+});
+test('contained axis is strict and cannot contain misspellings', () => {
+  const c = {selectors:{a:'#a'},rules:[{id:'fit',type:'contained',element:'a',in:'viewport',axis:'horizontal'}]};
+  assert.throws(()=>parseContract(c), /axis must be x, y or both/);
+});
+test('violations carry bounded factual DOM evidence instead of guessed CSS causes', () => {
+  const snapshot = fixture();
+  snapshot.selectors.a[0].styles = { display: 'block', boxSizing: 'border-box' };
+  const output = evaluateLayout(snapshot, [{ id: 'mismatch', type: 'same-size', a: 'a', b: 'b', axis: 'height' }]);
+  const finding = output.findings[0];
+  assert.equal(finding.status, 'fail');
+  assert.equal(finding.evidence?.length, 2);
+  assert.equal(finding.evidence?.[0].styles?.boxSizing, 'border-box');
+  assert.equal(finding.evidence?.[0].rect.height, 60);
+});
+test('document overflow exposes measured element leads without claiming they are causes', () => {
+  const snapshot = fixture();
+  snapshot.document.width = 460;
+  snapshot.overflowCandidates = [{ path: '#wide', rect: r(20, 20, 440, 60), leftOverflow: 0,
+    rightOverflow: 60, position: 'relative', overflowX: 'visible' }];
+  const finding = evaluateLayout(snapshot, [{ id: 'overflow', type: 'document-overflow' }]).findings[0];
+  assert.equal(finding.status, 'fail');
+  assert.equal(finding.deviation, 60);
+  assert.equal(finding.overflowCandidates?.[0].path, '#wide');
+  assert.deepEqual(finding.paths, ['#wide']);
 });

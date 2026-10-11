@@ -2,6 +2,9 @@
 
 ## 0.3.0 — 2026-10-11 (CLI alpha)
 
+- Added a manual real-site smoke workflow and more meaningful contracts for Sense6 gallery, Arabic, and learn pages.
+- Added horizontal-only `contained` checks for below-the-fold layout content.
+- Added bounded element candidates for horizontal overflow and observed DOM evidence on failed rules.
 - Added open Shadow DOM selector chains (`host >>> child`) and composed DOM paths.
 - Added `same-size` and `size-range` geometry rules for responsive galleries and controls.
 - Bounded the returned geometry for broad selectors while preserving full visible-element counts.

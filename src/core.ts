@@ -19,12 +19,23 @@ export interface ElementGeometry {
   fragments?: Rect[];
   styles?: ElementStyles;
 }
+export interface OverflowCandidate {
+  path: string;
+  rect: Rect;
+  /** Candidate overhang, not proof that this element caused document scrolling. */
+  rightOverflow: number;
+  leftOverflow: number;
+  position: string;
+  overflowX: string;
+}
 export interface LayoutSnapshot {
   viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string };
   document: { width: number; height: number };
   selectors: Record<string, ElementGeometry[]>;
   /** Exact number of visible elements, even when geometry details are bounded. */
   selectorCounts?: Record<string, number>;
+  /** Bounded suggestions for investigating horizontal document overflow. */
+  overflowCandidates?: OverflowCandidate[];
 }
 export type Edge = 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y' | 'inline-start' | 'inline-end';
 export interface RuleBase { id: string; description?: string; tolerance?: number; minWidth?: number; maxWidth?: number }
@@ -32,7 +43,7 @@ export type LayoutRule =
   | (RuleBase & { type: 'document-overflow' })
   | (RuleBase & { type: 'align-edge'; a: string; b: string; edgeA: Edge; edgeB?: Edge })
   | (RuleBase & { type: 'centered'; element: string; in: string | 'viewport'; axis: 'x' | 'y' })
-  | (RuleBase & { type: 'contained'; element: string; in: string | 'viewport' })
+  | (RuleBase & { type: 'contained'; element: string; in: string | 'viewport'; axis?: 'x' | 'y' | 'both' })
   | (RuleBase & { type: 'non-overlapping'; a: string; b: string })
   | (RuleBase & { type: 'equal-gaps'; elements: string[]; axis: 'x' | 'y' })
   | (RuleBase & { type: 'image-aspect'; element: string; tolerancePercent?: number })
@@ -42,6 +53,13 @@ export type LayoutRule =
   | (RuleBase & { type: 'selector-count'; element: string; exactly?: number; min?: number; max?: number })
   | (RuleBase & { type: 'no-clipping'; element: string; axis?: 'x' | 'y' | 'both' });
 export type FindingStatus = 'pass' | 'fail' | 'skip';
+export interface FindingEvidence {
+  alias: string;
+  path: string;
+  tag: string;
+  rect: Rect;
+  styles?: ElementStyles;
+}
 export interface LayoutFinding {
   id: string;
   type: LayoutRule['type'];
@@ -53,6 +71,10 @@ export interface LayoutFinding {
   deviation?: number;
   tolerance?: number;
   paths?: string[];
+  /** Bounded observed geometry and computed styles, not inferred source-level causes. */
+  evidence?: FindingEvidence[];
+  /** Browser-derived leads for a document-overflow failure. */
+  overflowCandidates?: OverflowCandidate[];
   /** Stable machine-readable codes for actionable diagnostics, not guesswork about the CSS cause. */
   code?: 'missing-selector' | 'ambiguous-selector' | 'outside-width-range' | 'measurement-unavailable' | 'constraint';
 }
@@ -110,7 +132,12 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
     const report = (finding: LayoutFinding) => findings.push({ ...finding, description: rule.description });
     if (rule.type === 'document-overflow') {
       const delta = Math.max(0, s.document.width - s.viewport.width);
-      report(compare(rule.id, rule.type, delta, tolerance, `Document extends ${delta.toFixed(2)}px beyond the viewport`));
+      const finding = compare(rule.id, rule.type, delta, tolerance, `Document extends ${delta.toFixed(2)}px beyond the viewport`);
+      if (finding.status === 'fail' && s.overflowCandidates?.length) {
+        finding.overflowCandidates = s.overflowCandidates;
+        finding.paths = s.overflowCandidates.map(candidate => candidate.path);
+      }
+      report(finding);
     } else if (rule.type === 'selector-count') {
       const count = s.selectorCounts?.[rule.element] ?? s.selectors[rule.element]?.length ?? 0;
       const min = rule.exactly ?? rule.min ?? 0;
@@ -135,8 +162,10 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
       if (missingOrAmbiguous(rule.element, rule.in)) continue;
       const subject = reference(s, rule.element)!;
       const b = refRect(s, rule.in)!; const a = subject.rect;
-      const delta = Math.max(0, b.x - a.x, b.y - a.y, a.x + a.width - b.x - b.width, a.y + a.height - b.y - b.height);
-      report(compare(rule.id, rule.type, delta, tolerance, `${rule.element} extends ${delta.toFixed(2)}px outside ${rule.in}`, [subject.path]));
+      const dx = Math.max(0, b.x - a.x, a.x + a.width - b.x - b.width);
+      const dy = Math.max(0, b.y - a.y, a.y + a.height - b.y - b.height);
+      const delta = rule.axis === 'x' ? dx : rule.axis === 'y' ? dy : Math.max(dx, dy);
+      report(compare(rule.id, rule.type, delta, tolerance, `${rule.element} extends ${delta.toFixed(2)}px outside ${rule.in} (${rule.axis ?? 'both'} axis)`, [subject.path]));
     } else if (rule.type === 'non-overlapping') {
       if (missingOrAmbiguous(rule.a, rule.b)) continue;
       const a = reference(s, rule.a)!; const b = reference(s, rule.b)!;
@@ -206,6 +235,20 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
       const delta = Math.abs(actual - expected) / expected * 100;
       report(compare(rule.id, rule.type, delta, rule.tolerancePercent ?? 0.5, `Rendered aspect ratio ${actual.toFixed(4)}, original ${expected.toFixed(4)} (${delta.toFixed(2)}% divergence)`, [el.path]));
     }
+  }
+  // Only failures receive evidence; keep ordinary reports bounded for agent use.
+  // Styles are *observed* from the browser, never a guessed CSS root cause.
+  const available = new Map<string, FindingEvidence>();
+  for (const [alias, elements] of Object.entries(s.selectors)) {
+    for (const element of elements) if (!available.has(element.path)) {
+      available.set(element.path, { alias, path: element.path, tag: element.tag,
+        rect: { ...element.rect }, ...(element.styles ? { styles: { ...element.styles } } : {}) });
+    }
+  }
+  for (const finding of findings) {
+    if (finding.status !== 'fail' || !finding.paths?.length) continue;
+    const evidence = finding.paths.slice(0, 10).map(path => available.get(path)).filter((item): item is FindingEvidence => item !== undefined);
+    if (evidence.length) finding.evidence = evidence;
   }
   return {
     viewport: s.viewport,
