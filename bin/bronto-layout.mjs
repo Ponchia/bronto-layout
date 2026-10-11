@@ -264,7 +264,9 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
   };
   try {
     let port;
-    const deadline = Date.now() + timeout;
+    // Browser launch can be slower than CDP operations under shared CI load.
+    const startupTimeout = Math.max(timeout, 30000);
+    const deadline = Date.now() + startupTimeout;
     while (Date.now() < deadline) {
       if (launchError) throw new Error(`Chrome failed to launch: ${launchError.message}`);
       if (child.exitCode !== null || child.signalCode !== null) {
@@ -278,7 +280,11 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
       } catch { /* Chrome still starting. */ }
       await pause(50);
     }
-    if (!port) throw new Error('Chrome debugging endpoint did not start');
+    if (!port) {
+      const detail = startupDiagnostics.trim().slice(-1200);
+      throw new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
+        (detail ? ': ' + detail : ''));
+    }
     let page;
     while (Date.now() < deadline) {
       try {

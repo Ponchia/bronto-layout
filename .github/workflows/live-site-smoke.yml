@@ -4,6 +4,11 @@ name: Live-site CLI smoke
 # so failures here do not block normal library contributions.
 on:
   workflow_dispatch:
+    inputs:
+      css_breakpoints:
+        description: 'Also scan CSS media-query boundaries on the portfolio and Sense6'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -57,6 +62,35 @@ jobs:
             fi
           done
           printf '%s\n' "Contracts with failures or navigation errors: ${failures}/4"
+          set -e
+          test "$failures" -eq 0
+      - name: Audit CSS breakpoints on selected first-party sites
+        if: ${{ inputs.css_breakpoints }}
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          # Opt-in only: additional navigations and viewport samples can be slow.
+          mkdir -p reports logs
+          set +e
+          failures=0
+          for name in personal-site sense6-gallery sense6-ar; do
+            echo "::group::CSS breakpoint scan: ${name}"
+            extra=()
+            if [ "$name" = "sense6-ar" ]; then extra+=(--locale ar); fi
+            node bin/bronto-layout.mjs scan --spec "examples/${name}.json" \
+              --scan 320:1280:240 --css-breakpoints --max-samples 100 \
+              --ready-selector body --settle 600 --timeout 30000 "${extra[@]}" \
+              --report "reports/css-${name}.json" > "logs/css-${name}.txt" 2>&1
+            status=$?
+            cat "logs/css-${name}.txt"
+            printf '\nCLI exit status: %s\n' "$status"
+            echo "::endgroup::"
+            if [ "$status" -ne 0 ]; then
+              failures=$((failures + 1))
+              echo "::warning::CSS breakpoint scan ${name} exited $status; inspect the report artifact"
+            fi
+          done
+          echo "CSS breakpoint contracts with failures or navigation errors: $failures/3"
           set -e
           test "$failures" -eq 0
       - name: Upload diagnostic reports
