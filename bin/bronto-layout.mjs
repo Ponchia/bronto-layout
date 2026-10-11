@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
+import { findChromiumPageTarget } from './chromium-target.mjs';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
@@ -314,16 +315,13 @@ async function startBrowser(chrome, timeout, noSandbox = false) {
       throw new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
         (detail ? ': ' + detail : ''));
     }
-    let page;
-    while (Date.now() < deadline) {
-      try {
-        const list = await (await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(1000) })).json();
-        page = list.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
-        if (page) break;
-      } catch { /* Server not listening yet. */ }
-      await pause(50);
-    }
-    if (!page) throw new Error('Chrome launched but page target was not found');
+    // Independent page-target grace period: Chromium may publish its
+    // debugging port before opening a usable tab on a heavily loaded runner.
+    const pageDeadlineMs = Math.max(12000, Math.min(timeout, 30000));
+    const { page } = await findChromiumPageTarget(port, {
+      timeoutMs: pageDeadlineMs,
+      isAlive: () => child.exitCode === null && child.signalCode === null
+    });
     const cdp = new CDP(page.webSocketDebuggerUrl, timeout);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
