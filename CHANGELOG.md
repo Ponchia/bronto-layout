@@ -5,6 +5,7 @@
 - Add opt-in `--json --compact` agent reports preserving violations, unmeasurable checks, and sampled widths.
 - Emit machine-readable JSON for fatal CLI errors and write explicit failure report files.
 - Fix inspector overflow measurements against the usable scrollport and show exact counts when element geometry is sampled.
+- Add optional Chromium dark-mode and reduced-motion emulation in CLI checks/inspections, recorded in viewport evidence.
 
 ## 0.3.0 — 2026-10-11 (CLI alpha)
 

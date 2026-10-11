@@ -114,7 +114,9 @@ export function captureDOMGeometry(selectors: Record<string, string>): LayoutSna
   return {
     viewport: { width: window.innerWidth, height: window.innerHeight, contentWidth: scrollportWidth, contentHeight: scrollportHeight, direction,
       deviceScaleFactor: window.devicePixelRatio, coarsePointer: window.matchMedia('(pointer: coarse)').matches,
-      locale: Intl.DateTimeFormat().resolvedOptions().locale },
+      locale: Intl.DateTimeFormat().resolvedOptions().locale,
+      colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches },
     document: { width: docWidth, height: Math.max(root.scrollHeight, body?.scrollHeight ?? 0) },
     selectors: entries, selectorCounts, ...(overflowCandidates.length ? { overflowCandidates } : {})
   };
