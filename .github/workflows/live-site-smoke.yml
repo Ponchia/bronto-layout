@@ -21,6 +21,10 @@ on:
         description: 'Measure lab loading layout shifts on the portfolio and Sense6'
         type: boolean
         default: false
+      geometry_stability:
+        description: 'Check sampled DOM geometry quiet windows on selected first-party pages'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -191,6 +195,54 @@ jobs:
           console.log(name + ': ' + snapshots.map(x =>
             x.viewport.width + 'px=' + x.layoutShifts.maxSessionScore.toFixed(6) +
             ' (' + x.layoutShifts.shiftCount + ' non-input shifts)').join(', '));
+          NODE
+            echo "::endgroup::"
+          done
+      - name: Audit DOM geometry quiet windows on first-party pages
+        if: ${{ inputs.geometry_stability }}
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: |
+          # Diagnostic only. A quiet window does not prove that a site never
+          # moves later or that all visual styling has been checked.
+          mkdir -p reports logs
+          for name in personal-site sense6-gallery sense6-ar; do
+            case "$name" in
+              personal-site)
+                url="https://brontolotto.observer/"
+                selector="site=.site"
+                ;;
+              sense6-gallery)
+                url="https://sense6.net/en/"
+                selector="gallery=.gallery-hero"
+                ;;
+              sense6-ar)
+                url="https://sense6.net/ar/"
+                selector="gallery=.gallery-hero"
+                ;;
+            esac
+            extra=()
+            if [ "$name" = "sense6-ar" ]; then extra+=(--locale ar); fi
+            echo "::group::Geometry quiet window: $name"
+            node bin/bronto-layout.mjs inspect --url "$url" --selector "$selector" \
+              --widths 375,768,1280 --ready-selector body --settle 600 \
+              --stable-for 350 --timeout 30000 --json "${extra[@]}" \
+              --report "reports/geometry-$name.json" > "logs/geometry-$name.txt" 2>&1
+            node - "$name" "reports/geometry-$name.json" <<'NODE'
+          const fs = require('node:fs');
+          const name = process.argv[2];
+          const doc = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+          const samples = doc.snapshots ?? [];
+          if (doc.mode !== 'inspect' || samples.length !== 3 ||
+              samples.some(s => s.stabilization?.status !== 'stable' ||
+                s.stabilization?.stableForMs !== 350 ||
+                s.stabilization?.samples < 3)) {
+            console.error('Missing measured DOM geometry quiet window for ' + name);
+            process.exit(1);
+          }
+          console.log(name + ': ' + samples.map(s =>
+            s.viewport.width + 'px stable after ' + s.stabilization.waitedMs +
+            'ms / ' + s.stabilization.samples + ' samples').join(', '));
           NODE
             echo "::endgroup::"
           done
