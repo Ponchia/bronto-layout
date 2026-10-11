@@ -18,6 +18,7 @@ import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/bre
 import { compactCheckReport, compactCompareReport } from '../dist/agent-report.js';
 import { parseBatchManifest } from '../dist/batch.js';
 import { inspectCSSWithCDP } from '../dist/css-inspector.js';
+import { selectCSSFailureAliases } from '../dist/css-failure-leads.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -48,7 +49,7 @@ Options:
   --css-breakpoints     Add CSS media-query boundary widths to --scan
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
-  --css-sources         Include matched author CSS source hints in inspect output
+  --css-sources         Include matched CSS hints in inspect or failed check widths
   --ready-selector CSS  Wait for element to exist after page navigation
   --settle MS           Additional time for client-side rendering (default: 0)
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
@@ -556,9 +557,28 @@ async function check(a) {
       : undefined;
     const sampledWidths = cssBreakpoints?.widths ?? widths;
     const evidence = [];
+    const cssSourceLeads = [];
+    let omittedCSSSourceWidths = 0;
     const checked = await sweepLayout(sampledWidths, async width => {
       const snapshot = await measure(cdp, url, width, spec.selectors, config, fixture, spec.actions);
       const report = evaluateLayout(snapshot, spec.rules);
+      if (a['css-sources'] && report.summary.failed) {
+        // Only collect matched author CSS on failing widths/aliases. A missing
+        // element or document overflow may have no attributable named element.
+        if (cssSourceLeads.length >= 8) {
+          omittedCSSSourceWidths++;
+        } else {
+          const selected = selectCSSFailureAliases(report, spec.selectors);
+          const inspection = Object.keys(selected.selectors).length
+            ? await inspectCSSWithCDP(cdp, selected.selectors, snapshot)
+            : undefined;
+          cssSourceLeads.push({
+            width, ruleIdsByAlias: selected.ruleIdsByAlias,
+            unattributedRuleIds: selected.unattributedRuleIds,
+            ...(inspection ? { inspection } : {})
+          });
+        }
+      }
       if (report.summary.failed && evidence.length < 12 && a['evidence-dir']) {
         const screenshot = await saveEvidence(cdp, snapshot, report.findings.filter(f => f.status === 'fail'), width, a, 'check');
         if (screenshot) evidence.push({ width, screenshot });
@@ -567,13 +587,19 @@ async function check(a) {
     }, Boolean(a.refine), config.maxSamples);
     const total = summary(checked.reports);
     return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions,
-      ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}), ...(a['evidence-dir'] ? { evidence } : {}) };
+      ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
+      ...(a['css-sources'] ? { cssSourceLeads, omittedCSSSourceWidths } : {}),
+      ...(a['evidence-dir'] ? { evidence } : {}) };
   });
   const printable = [
     `Bronto Layout — ${result.url}`,
     ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
     ...result.reports.map(r => `${r.viewport.width}px (${r.viewport.direction}): ${r.summary.passed} passed, ${r.summary.failed} failed, ${r.summary.skipped} skipped`),
     ...result.reports.flatMap(r => r.findings.filter(f => f.status === 'fail' || (a['fail-on-skip'] && f.code === 'measurement-unavailable')).map(f => `  ${r.viewport.width}px ${f.status.toUpperCase()} ${f.id}: ${f.message}`)),
+    ...(result.cssSourceLeads ? result.cssSourceLeads.map(item =>
+      '  ' + item.width + 'px matched CSS hints: ' +
+      (Object.keys(item.ruleIdsByAlias).join(', ') || 'no attributable aliases') +
+      ' (use --json for declarations)') : []),
     ...(result.transitions.length ? ['Observed transitions:', ...result.transitions.map(t => `  ${t.ruleId}: ${t.from} → ${t.to}, ${t.previousWidth}–${t.width}px (${t.precision})`)] : []),
     `Total: ${result.summary.failed} failed, ${result.summary.passed} passed, ${result.summary.skipped} skipped`
   ].join('\n');
@@ -827,7 +853,7 @@ async function main() {
   }
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
-  if (a['css-sources'] && a.command !== 'inspect') throw new Error('--css-sources applies only to inspect');
+  if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');

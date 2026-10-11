@@ -25,6 +25,13 @@ The pure modules have no Node.js or DOM imports. Applications can generate a `La
   Only external stylesheet URLs receive declaration positions. Chrome can
   return an HTML document URL for a `<style>` sheet; the adapter must
   check its `isInline` flag and never publish misleading file-line positions.
+- `src/css-failure-leads.ts` selects only the DOM element aliases
+  actually associated with failed contract findings. The CLI can attach those
+  matched author CSS rules directly to failed `check`/`scan`
+  widths using `--css-sources`. Unattributed failures stay explicit:
+  neither a document overflow nor a missing selector is assigned a guessed
+  source. At most eight failing widths are instrumented; omission counts
+  remain visible even in compact JSON reports.
 - Every inspector result is bounded and carries omitted counts. Cross-origin
   frames, closed shadow roots, source maps to original preprocessors, and
   authoritative causal CSS attribution remain out of scope.
