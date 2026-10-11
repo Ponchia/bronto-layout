@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css-sources-fixture.css">
+  <style>
+    .inline { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <main class="external inline" id="example" style="padding-left: 12px">
+    <div id="host"></div>
+  </main>
+  <script>
+    const shadow = document.querySelector('#host').attachShadow({ mode: 'open' });
+    shadow.innerHTML = '<style>.inner { width: 95px; margin-left: 20px }</style><div class="inner">Open shadow root</div>';
+  </script>
+</body>
+</html>

@@ -11,3 +11,9 @@ export { compactCheckReport, compactCompareReport } from './agent-report.js';
 
 export { parseBatchManifest } from './batch.js';
 export type { BatchJob, BatchManifest } from './batch.js';
+
+export { summarizeMatchedCSS } from './css-sources.js';
+export type { CSSRuleLead, CSSSourceSummary } from './css-sources.js';
+
+export { inspectCSSWithCDP } from './css-inspector.js';
+export type { CSSInspection } from './css-inspector.js';

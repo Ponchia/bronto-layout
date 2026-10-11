@@ -13,6 +13,22 @@
 
 The pure modules have no Node.js or DOM imports. Applications can generate a `LayoutSnapshot` without Chromium.
 
+## Matched CSS source diagnostics
+
+- `src/css-sources.ts` is a portable pure normalizer for observed CDP
+  matched author CSS styles, capped to layout-related declarations and rules.
+- `src/css-inspector.ts` provides a CDP adapter using
+  `DOM.getDocument`, `DOM.querySelectorAll` and
+  `CSS.getMatchedStylesForNode`, including explicit traversal of open
+  shadow roots. The CLI only invokes it when `inspect --css-sources` is requested.
+- Matched declarations are **not** cascade winners or verified causes.
+  Only external stylesheet URLs receive declaration positions. Chrome can
+  return an HTML document URL for a `<style>` sheet; the adapter must
+  check its `isInline` flag and never publish misleading file-line positions.
+- Every inspector result is bounded and carries omitted counts. Cross-origin
+  frames, closed shadow roots, source maps to original preprocessors, and
+  authoritative causal CSS attribution remain out of scope.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

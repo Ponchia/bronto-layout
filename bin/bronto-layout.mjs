@@ -17,6 +17,7 @@ import { sweepLayout, widthRange } from '../dist/sweep.js';
 import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/breakpoints.js';
 import { compactCheckReport, compactCompareReport } from '../dist/agent-report.js';
 import { parseBatchManifest } from '../dist/batch.js';
+import { inspectCSSWithCDP } from '../dist/css-inspector.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -47,6 +48,7 @@ Options:
   --css-breakpoints     Add CSS media-query boundary widths to --scan
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
+  --css-sources         Include matched author CSS source hints in inspect output
   --ready-selector CSS  Wait for element to exist after page navigation
   --settle MS           Additional time for client-side rendering (default: 0)
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
@@ -74,7 +76,7 @@ const OPTIONS = {
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
-  selector: { type: 'string', multiple: true },
+  selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
@@ -585,16 +587,20 @@ async function inspect(a) {
   const result = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     const snapshots = [];
     const evidence = [];
+    const cssSources = [];
     for (const width of widths) {
       const snapshot = await measure(cdp, url, width, selectors, config, fixture);
       snapshots.push(snapshot);
+      if (a['css-sources']) cssSources.push(await inspectCSSWithCDP(cdp, selectors, snapshot));
       if (evidence.length < 12 && a['evidence-dir']) {
         const paths = Object.values(snapshot.selectors).flat().slice(0, 24).map(el => el.path);
         const screenshot = await saveEvidence(cdp, snapshot, [{ id: 'selected elements', paths }], width, a, 'inspect');
         if (screenshot) evidence.push({ width, screenshot });
       }
     }
-    return { schemaVersion: 1, mode: 'inspect', url: publicURL, snapshots, ...(a['evidence-dir'] ? { evidence } : {}) };
+    return { schemaVersion: 1, mode: 'inspect', url: publicURL, snapshots,
+      ...(a['css-sources'] ? { cssSources } : {}),
+      ...(a['evidence-dir'] ? { evidence } : {}) };
   });
   const text = [
     `Bronto Layout inspection — ${result.url}`,
@@ -607,7 +613,24 @@ async function inspect(a) {
       ])
     ])
   ].join('\n');
-  await output(a, result, text);
+  const sourceLines = result.cssSources?.flatMap(item => [
+    item.width + 'px matched CSS source hints:',
+    ...item.aliases.flatMap(alias => [
+      '  ' + alias.alias + ': ' + alias.inspectedCount + '/' + alias.matchedCount +
+        ' matched DOM elements inspected' + (alias.omittedElements ? ' (truncated)' : ''),
+      ...alias.elements.flatMap(el => el.status === 'ok'
+        ? el.rules.map(rule => {
+          const line = rule.declarations.find(declaration => declaration.line)?.line;
+          const location = rule.sourceUrl ? rule.sourceUrl + (line ? ':' + line : '')
+            : rule.documentUrl ? rule.sourceKind + ' in ' + rule.documentUrl : rule.sourceKind;
+          return '    ' + rule.selector + ': ' +
+            rule.declarations.map(declaration => declaration.name).join(', ') +
+            ' (' + location + ')';
+        })
+        : ['    CSS unavailable: ' + el.reason])
+    ])
+  ]) ?? [];
+  await output(a, result, [text, ...sourceLines].join('\n'));
 }
 async function init(a) {
   const file = path.resolve(a.out ?? 'bronto-layout.json');
@@ -804,6 +827,7 @@ async function main() {
   }
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
+  if (a['css-sources'] && a.command !== 'inspect') throw new Error('--css-sources applies only to inspect');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');

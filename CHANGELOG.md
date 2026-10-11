@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add opt-in `inspect --css-sources` CDP author CSS stylesheet/declaration hints, including explicit open Shadow DOM selectors and bounded output.
+- Distinguish external CSS source lines from inline style sheets to prevent fabricated positions or automatic root-cause claims.
+
+
+
 - Add opt-in batch execution for the live-site smoke workflow and create report parent directories before writing successful CLI results.
 
 

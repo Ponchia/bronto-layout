@@ -1,0 +1,6 @@
+/* This is an external stylesheet, so its line numbers are grounded. */
+.external {
+  margin-left: 28px;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+}
