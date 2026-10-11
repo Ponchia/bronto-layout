@@ -8,3 +8,6 @@ export * from './sarif.js';
 export * from './breakpoints.js';
 
 export { compactCheckReport, compactCompareReport } from './agent-report.js';
+
+export { parseBatchManifest } from './batch.js';
+export type { BatchJob, BatchManifest } from './batch.js';

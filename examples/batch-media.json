@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "dark-accessible-state",
+      "spec": "media-preferences.json",
+      "widths": [375],
+      "colorScheme": "dark",
+      "reducedMotion": true
+    }
+  ]
+}

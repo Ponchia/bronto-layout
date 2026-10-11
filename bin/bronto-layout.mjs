@@ -16,6 +16,7 @@ import { toSarif } from '../dist/sarif.js';
 import { sweepLayout, widthRange } from '../dist/sweep.js';
 import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/breakpoints.js';
 import { compactCheckReport, compactCompareReport } from '../dist/agent-report.js';
+import { parseBatchManifest } from '../dist/batch.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -26,9 +27,12 @@ Usage:
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
   bronto-layout compare --spec layout.json --baseline URL --url URL [--scan 320:1440:80] [--refine]
   bronto-layout validate --spec layout.json [--json]
+  bronto-layout batch --manifest batch.json [--json --compact] [--dry-run]
 
 Options:
   --spec FILE           Versioned layout contract (JSON)
+  --manifest FILE       Batch jobs referencing individual layout contracts
+  --dry-run             Validate and preview a batch without opening a browser
   --url URL|FILE        Target website, local HTML fixture, or development server
   --baseline URL|FILE   Original website or fixture for compare
   --widths CSV          Widths to check: 320,375,768,1280
@@ -66,7 +70,7 @@ No account, network service, hosted subscription, Playwright, or Puppeteer requi
 `;
 
 const OPTIONS = {
-  spec: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
+  spec: { type: 'string' }, manifest: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
@@ -74,14 +78,14 @@ const OPTIONS = {
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
-  out: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' },
+  out: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
 function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate'].includes(command) || positionals.length > 1) {
+  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -687,6 +691,97 @@ async function compare(a) {
   await output(a, a.compact ? compactCompareReport(result) : result, printable, toSarif(result.candidateUrl, result.candidate, result));
   if (result.summary.regressions || (a['fail-on-skip'] && (result.summary.unverified || hasUnmeasuredRules(result.candidate)))) process.exitCode = 1;
 }
+async function batch(a) {
+  const manifestFile = path.resolve(a.manifest);
+  const manifest = parseBatchManifest(JSON.parse(await readFile(manifestFile, 'utf8')));
+  // Validate every referenced contract before launching any browser.
+  const baseDirectory = path.dirname(manifestFile);
+  const jobs = await Promise.all(manifest.jobs.map(async job => {
+    const spec = path.resolve(baseDirectory, job.spec);
+    const contract = parseContract(JSON.parse(await readFile(spec, 'utf8')));
+    return { ...job, absoluteSpec: spec, contractURL: contract.url };
+  }));
+  if (a['dry-run']) {
+    const data = {
+      schemaVersion: 1, mode: 'batch-plan', manifest: manifestFile,
+      total: jobs.length,
+      jobs: jobs.map(job => ({ id: job.id, spec: job.absoluteSpec,
+        target: job.url ?? job.contractURL ?? null,
+        widths: job.widths ?? null, scan: job.scan ?? null,
+        cssBreakpoints: Boolean(job.cssBreakpoints),
+        locale: job.locale ?? a.locale ?? null,
+        colorScheme: job.colorScheme ?? a['color-scheme'] ?? null,
+        reducedMotion: Boolean(job.reducedMotion ?? a['reduced-motion']),
+        mobile: Boolean(job.mobile ?? a.mobile) }))
+    };
+    await output(a, data, 'Validated ' + jobs.length + ' batch jobs without opening Chromium');
+    return;
+  }
+  const outcomes = [];
+  for (const job of jobs) {
+    const argv = [fileURLToPath(import.meta.url), 'check', '--spec', job.absoluteSpec, '--json'];
+    if (a.compact) argv.push('--compact');
+    if (job.url) argv.push('--url', /^https?:\/\//.test(job.url) || /^file:\/\//.test(job.url)
+      ? job.url : path.resolve(baseDirectory, job.url));
+    if (job.widths) argv.push('--widths', job.widths.join(','));
+    if (job.scan) argv.push('--scan', job.scan);
+    if (job.cssBreakpoints) argv.push('--css-breakpoints');
+    const locale = job.locale ?? a.locale;
+    if (locale) argv.push('--locale', locale);
+    const scheme = job.colorScheme ?? a['color-scheme'];
+    if (scheme) argv.push('--color-scheme', scheme);
+    if (job.reducedMotion ?? a['reduced-motion']) argv.push('--reduced-motion');
+    if (job.mobile ?? a.mobile) argv.push('--mobile');
+    for (const [option, value] of [['height', a.height], ['timeout', a.timeout],
+      ['settle', a.settle], ['chrome', a.chrome]]) {
+      if (value !== undefined) argv.push('--' + option, value);
+    }
+    if (a['no-sandbox']) argv.push('--no-sandbox');
+    if (a['fail-on-skip']) argv.push('--fail-on-skip');
+    if (a['evidence-dir']) argv.push('--evidence-dir', path.join(a['evidence-dir'], job.id));
+    // Run each check with Node argv, never a shell or a manifest-provided command.
+    const runtime = configFromArgs(a);
+    const sampleCount = job.scan ? getWidths({ scan: job.scan }).length + 24 : (job.widths?.length ?? 4);
+    const timeout = Math.min(600000, Math.max(90000, runtime.timeout * (sampleCount + 3)));
+    const child = spawnSync(process.execPath, argv, {
+      cwd: process.cwd(), encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024, env: process.env
+    });
+    let report;
+    try { report = JSON.parse(child.stdout); } catch { report = null; }
+    const exitCode = (child.status === 0 || child.status === 1) && report?.mode === 'check'
+      ? child.status : 2;
+    const status = exitCode === 2 ? 'error' : exitCode === 1 ? 'violations' : 'pass';
+    outcomes.push({
+      id: job.id, status, exitCode,
+      ...(report ? { result: report } : {
+        result: { schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
+          error: { code: 'BATCH_JOB_ERROR', message: child.error?.message || child.stderr?.trim() ||
+            'Job exited without a readable JSON report' } }
+      })
+    });
+  }
+  const summaryData = {
+    total: outcomes.length,
+    passed: outcomes.filter(j => j.status === 'pass').length,
+    violations: outcomes.filter(j => j.status === 'violations').length,
+    errors: outcomes.filter(j => j.status === 'error').length,
+    checksPassed: outcomes.reduce((n, j) => n + (j.result?.summary?.passed ?? 0), 0),
+    checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0)
+  };
+  const result = { schemaVersion: 1, mode: 'batch', manifest: manifestFile,
+    ...(a.compact ? { format: 'compact' } : {}), summary: summaryData, jobs: outcomes };
+  const printable = [
+    'Bronto Layout batch — ' + manifestFile,
+    ...outcomes.map(j => '  ' + j.id + ': ' + j.status.toUpperCase() +
+      ' (exit ' + j.exitCode + ', ' + (j.result?.summary?.failed ?? 0) + ' failed checks)'),
+    'Total: ' + summaryData.passed + ' passed, ' + summaryData.violations +
+      ' with violations, ' + summaryData.errors + ' errors'
+  ].join('\n');
+  await output(a, result, printable);
+  if (summaryData.errors) process.exitCode = 2;
+  else if (summaryData.violations) process.exitCode = 1;
+}
+
 async function validate(a) {
   if (!a.spec) throw new Error('validate requires --spec FILE');
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
@@ -700,13 +795,19 @@ async function main() {
   if (a.help) { console.log(HELP); return; }
   if (a.version) { console.log('Bronto Layout 0.3.0'); return; }
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
-  if (a.compact && (!a.json || !['check', 'scan', 'compare'].includes(a.command))) {
+  if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch'].includes(a.command))) {
     throw new Error('--compact requires --json with check, scan, or compare');
   }
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
+  if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
+  if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
+  if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');
+  if (a.command === 'batch' && a.spec) throw new Error('batch reads contracts from its manifest; omit --spec');
+  if (a.command === 'batch' && a.sarif) throw new Error('batch supports JSON reports, not SARIF');
   configFromArgs(a);
-  if (a.command === 'init') await init(a);
+  if (a.command === 'batch') await batch(a);
+  else if (a.command === 'init') await init(a);
   else if (a.command === 'validate') await validate(a);
   else if (a.command === 'compare') await compare(a);
   else if (a.command === 'inspect') await inspect(a);

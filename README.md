@@ -107,6 +107,32 @@ Fatal errors under `--json` now produce a JSON error envelope on stdout with
 `--report FILE` is also written on failure, even if its parent directory does
 not exist. Routine human-readable errors still use stderr.
 
+## Batch layout checks across routes and languages
+
+The CLI can run a finite suite of **independent layout contracts** using a
+versioned batch manifest. The manifest lists each job's unique id, spec file,
+and optional URL, locale, viewport widths, responsive scan, or CSS preferences.
+
+~~~sh
+# Check the plan without launching Chromium
+node bin/bronto-layout.mjs batch --manifest examples/live-sites-batch.json --dry-run --json
+
+# Check the actual first-party sites and receive an agent-friendly aggregate
+node bin/bronto-layout.mjs batch --manifest examples/live-sites-batch.json --json --compact
+~~~
+
+Job paths are relative to the manifest; each job runs sequentially in a separate
+local Chromium inspection process. There is **no shell execution from manifests**,
+and a manifest is limited to 16 jobs. The batch preserves all results, even if
+an individual page fails to load. The aggregate exit status is 0 for all passing,
+1 for one or more layout violations, and 2 if any job has an inspection/runtime
+error. Use `--dry-run` before running a large first-party site suite.
+
+See `examples/batch.json` for controlled passing and broken fixtures,
+and `examples/live-sites-batch.json` for our personal site and Sense6
+English/Arabic/Learn contracts. Optional settings can also be provided per job
+rather than changing the underlying app or writing custom shell scripts.
+
 ## Architecture
 
 - `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.
