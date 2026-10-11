@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add experimental `audit --url` zero-contract CLI findings for
+  measured root overflow, broken visible images, and review-only clipping
+  and pending image evidence; preserve bounded coverage and explicit exit codes.
+- Suppress visually hidden 1x1 assistive labels (verified on Sense6
+  English/Arabic), intentional CSS ellipsis and nested scroll containers
+  from naive clipping false positives.
+
+
 - Add an opt-in first-party live-site DOM geometry quiet-window audit for the personal site and Sense6 English/Arabic.
 - Harden the loopback-only HTML fixture server: deny hidden files, unsupported asset extensions and realpath/symlink escapes; cover it with direct Node tests and package verification.
 

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Healthy intentional layout structures</title>
+  <style>
+    body { margin: 0; padding: 16px; font: 16px system-ui }
+    .scroller { max-width: 100%; overflow-x: auto; white-space: nowrap }
+    .chip { display: inline-block; min-width: 150px; margin-right: 8px }
+    #ellipsized {
+      width: 90px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis
+    }
+    .decorative { position: absolute; left: 0; top: 0; pointer-events: none }
+    .contents { display: contents }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      overflow: hidden; white-space: nowrap;
+      clip: rect(0, 0, 0, 0);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Healthy responsive document</h1>
+    <div class="scroller">
+      <span class="chip">A</span><span class="chip">B</span><span class="chip">C</span>
+    </div>
+    <div id="ellipsized">This long label deliberately uses ellipsis.</div>
+    <span class="sr-only">This label is intentionally available to screen readers only.</span>
+    <div class="contents">
+      <img id="loaded" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='60'%20height='35'%3E%3Crect%20width='60'%20height='35'%20fill='green'/%3E%3C/svg%3E" alt="Loaded" width="60" height="35">
+    </div>
+  </main>
+</body>
+</html>

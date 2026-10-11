@@ -94,6 +94,29 @@ assets, hidden files, denied extensions, traversal, symlinks, file URL input
 and HTTP URL passthrough. The package validator requires the server module
 to be present in the installable npm tarball.
 
+## Zero-contract mechanical audit
+
+`src/audit-browser.ts` is a self-contained DOM capture adapter
+that traverses visible DOM elements and explicitly open Shadow DOM. It
+collects bounded, factual evidence for images that failed to decode/load
+and potentially clipped leaf text. It deliberately excludes text explicitly
+truncated with `text-overflow: ellipsis` and 1x1 clipped,
+absolutely/fixed-positioned assistive labels. Source URLs omit query strings,
+fragments and embedded data.
+
+`src/audit.ts` is pure TypeScript. It combines those observations
+with the existing DOM geometry snapshot to identify top-level horizontal
+overflow and classify results into measured observations and review-only
+warnings. It does not infer CSS root causes or report all overlaps as bugs.
+The audit summarizes viewport coverage and reports bounded omissions rather
+than hiding them. It deliberately does not recurse into frame documents or
+claim to understand canvas/WebGL internals.
+
+`bin/bronto-layout.mjs audit` uses the existing Chromium/CDP
+runtime, responsive CSS-breakpoint scanner, JSON report handling and normal
+exit-code semantics. No additional runtime libraries, proprietary services,
+or MCP implementation are required.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

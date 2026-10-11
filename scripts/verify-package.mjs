@@ -36,7 +36,8 @@ try {
   const packedFiles = new Set(packed.files.map(file => file.path));
   const required = [
     'bin/bronto-layout.mjs', 'bin/local-fixture-server.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
-    'dist/browser.js', 'dist/contract.js', 'examples/layout.json',
+    'dist/browser.js', 'dist/contract.js', 'dist/audit.js', 'dist/audit-browser.js',
+    'examples/audit-healthy.html', 'examples/audit-broken.html', 'examples/layout.json',
     'examples/healthy.html', 'README.md', 'LICENSE', 'package.json'
   ];
   for (const file of required) assert.ok(packedFiles.has(file), 'Missing packaged file: ' + file);
@@ -82,6 +83,12 @@ try {
     const checked = JSON.parse(run(binary, browserArgs, { cwd: consumer, timeout: 90000 }));
     assert.equal(checked.summary.failed, 0);
     assert.ok(checked.summary.passed > 0);
+    const audit = JSON.parse(run(binary, [
+      'audit', '--url', path.join(installed, 'examples', 'audit-healthy.html'),
+      '--width', '320', '--json', '--compact'
+    ], { cwd: consumer, timeout: 90000 }));
+    assert.equal(audit.mode, 'audit');
+    assert.equal(audit.summary.measuredIssues, 0);
   }
 
   print('Packed ' + packed.filename + ': ' + packedFiles.size + ' files, ' +

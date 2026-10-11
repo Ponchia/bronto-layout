@@ -69,6 +69,55 @@ In restricted Linux test environments, Chromium may refuse to start because user
 
 The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
 
+## Zero-configuration layout audit (experimental)
+
+Run `audit` against an ordinary web page **without writing a
+layout contract**. By default it visits 320, 375, 768 and 1280 CSS-pixel
+viewport widths:
+
+~~~sh
+bronto-layout audit --url https://example.com --json --compact
+bronto-layout audit --url http://localhost:5173 --widths 320,375,768 --json
+bronto-layout audit --url examples/audit-broken.html --width 375
+~~~
+
+The first, deliberately conservative checks distinguish:
+
+- **Measured observations (exit 1):** document-wide horizontal overflow
+  beyond the usable viewport, or visible image elements whose load completed
+  without intrinsic image data.
+- **Review warnings (exit remains 0):** potentially clipped leaf text or
+  images still loading during sampling. Explicit CSS ellipsis and common
+  visually hidden/screen-reader-only geometry are suppressed.
+- **Incomplete traversal (exit 2):** more DOM elements were present than
+  the bounded inspector could examine. Embedded frames are reported as
+  review-only unknowns; their internal layout is not inspected.
+
+For details, inspect `reports[].findings`. Every issue has a
+`classification` of `measured` or `review`,
+a code and browser-grounded element evidence. A measured fact does **not**
+establish whether the design decision was intentional. No AI model or
+server is involved.
+
+A CSS-aware sweep also works without a contract:
+
+~~~sh
+bronto-layout audit --url examples/breakpoint.html --scan 600:900:300 --css-breakpoints --json --compact
+~~~
+
+The fixture passes at the two coarse widths but demonstrates horizontal
+overflow around its CSS media-query boundaries. Reports record all sampled
+widths. This is *not* exhaustive proof of correct layout between samples.
+
+The audit uses a bounded DOM traversal and does not inspect internal
+canvas/WebGL geometry, closed Shadow DOM, nested iframe contents or
+cross-browser rendering. It is not an automated WCAG compliance verdict.
+WCAG 2.2's 320-CSS-pixel reflow requirement has exceptions for content that
+needs two-dimensional layout; see
+https://www.w3.org/WAI/WCAG22/Understanding/reflow.html.
+For durable intentionality and exact relationships, use the existing
+`check --spec` layout contracts instead.
+
 ## Browser CSS preference states
 
 The CLI can verify appearance-dependent layout rules without requiring source

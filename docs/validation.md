@@ -34,3 +34,24 @@ The deployed website tests are a baseline only. They do not establish the absenc
 - Tested open Shadow DOM paths and exact counts for selectors with more than 250 matches.
 - Added tests for `same-size`, `size-range`, and viewport-range skips under `--fail-on-skip`.
 - These checks do not yet constitute a completed real-site CLI audit or head-to-head benchmark.
+
+
+## 2026-10-11: Experimental automatic layout auditing
+
+- Controlled healthy and broken HTML fixtures check viewport overflow,
+  missing image resources, possible text clipping, intentional horizontal
+  scroll containers, CSS ellipsis and visually hidden assistive labels.
+- The audit detects the existing `examples/breakpoint.html` media-query
+  overflow without needing a layout contract, whereas coarse 600/900px
+  sampling alone misses it.
+- Read-only live CLI probes: personal portfolio at 375px and Sense6
+  English/Arabic at 320, 375 and 768px yielded **zero measured issues**.
+- The first Sense6 probe flagged its 1x1 `.sr-only` language label as
+  clipped text. We reproduced the exact browser geometry, taught the
+  diagnostic to recognize the assistive-only pattern by computed CSS/size
+  rather than site-specific naming, and reran both language variants. After
+  the change both had zero review warnings.
+- These are **mechanical observations over covered top-level DOM only**, not
+  comprehensive visual quality or WCAG conformance assessments. Test more
+  real designs and capture reviewed true/false labels before claiming
+  competitive accuracy or a low false-positive rate.
