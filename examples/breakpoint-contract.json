@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "url": "breakpoint.html",
+  "selectors": { "panel": ".panel" },
+  "rules": [
+    { "id": "document-fit", "type": "document-overflow", "tolerance": 1 }
+  ]
+}
