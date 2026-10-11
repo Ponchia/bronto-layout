@@ -238,6 +238,12 @@ node bin/bronto-layout.mjs check --spec examples/sense6-ar.json --locale ar
 node bin/bronto-layout.mjs check --spec examples/sense6-learn.json
 ```
 
+The same workflow offers an opt-in `css_sources` input to inspect
+real matched author CSS on the deployed portfolio and Sense6 using isolated
+GitHub Actions Chromium. The JSON reports are retained as downloadable CI
+artifacts. This does not weaken the CLI's default browser sandbox, and
+this external-site check never blocks an ordinary PR.
+
 On GitHub, the manually triggered **Live-site CLI smoke** workflow can
 optionally execute the complete first-party batch manifest using its
 `batch` input; the older individual-route checks remain available.

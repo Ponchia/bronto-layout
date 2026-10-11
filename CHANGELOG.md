@@ -7,6 +7,9 @@
 - Test an installed tarball in isolation (compiled library, CLI executable,
   package metadata and bundled Chromium fixtures) on Node.js 22 and 24.
 - Read the CLI version directly from package metadata to prevent drift.
+- Add a manually triggered live-site smoke mode for browser-observed CSS
+  source hints on the personal website and Sense6, with retained JSON artifacts.
+
 - Allow opt-in `check --css-sources` and `scan --css-sources`
   to attach bounded matched CSS evidence directly to failing layout rules;
   preserve unattributed failures and omitted-width counts.
