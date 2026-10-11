@@ -75,6 +75,18 @@ test('zero-contract audit finds a narrow CSS breakpoint overflow without a spec'
   assert.equal(result.reports.find(report=>report.width===600).summary.errors,0);
   assert.equal(result.reports.find(report=>report.width===900).summary.errors,0);
 });
+test('open Shadow DOM components with repeated local IDs have distinct observed locations',t=>{
+  const r=run(['audit','--url','examples/audit-shadow-duplicate-ids.html',
+    '--width','320','--settle','300','--json','--compact']);
+  if(noChrome(t,r))return;
+  assert.equal(r.status,1,r.stderr||r.stdout);
+  const data=JSON.parse(r.stdout);
+  assert.equal(data.summary.measuredIssues,2);
+  const found=data.reports[0].findings.filter(f=>f.code==='broken-image').map(f=>f.path).sort();
+  assert.deepEqual(found,['#host-a >>> #missing','#host-b >>> #missing']);
+  assert.equal(data.reports[0].coverage.brokenImageCount,2);
+});
+
 test('audit input errors keep JSON error and documented exit 2',()=>{
   const r=run(['audit','--url','examples/audit-healthy.html',
     '--spec','examples/layout.json','--json']);

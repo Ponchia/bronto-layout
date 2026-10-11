@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Two independent components with repeated shadow-local IDs</title>
+  <style>
+    body { margin: 0; padding: 20px; font: 16px system-ui }
+    .hosts { display: flex; gap: 12px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Repeated IDs in separate open shadow roots</h1>
+    <section class="hosts">
+      <div id="host-a"></div>
+      <div id="host-b"></div>
+    </section>
+  </main>
+  <script>
+    for (const id of ['host-a', 'host-b']) {
+      const host = document.getElementById(id);
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML =
+        '<style>img{display:block;width:96px;height:65px}</style>' +
+        '<img id="missing" alt="Broken resource from ' + id +
+        '" src="audit-duplicated-missing-' + id + '.png">';
+    }
+  </script>
+</body>
+</html>

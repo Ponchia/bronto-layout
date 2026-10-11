@@ -494,7 +494,7 @@ node bin/bronto-layout.mjs validate --spec examples/layout.json
 
 `same-size` compares image or control dimensions; `size-range` checks an element's width or height against optional minimum and maximum values. Use `--fail-on-skip` to fail when a measurement is unavailable, without treating an intentionally out-of-range rule as an error. Large selectors return exact visible-match counts but bound detailed geometry to 250 elements.
 
-[Controlled audit benchmarks v0.1 and v0.2](docs/audit-benchmark.md) · [Research and prioritized roadmap](docs/research-and-roadmap-2026-10-11.md) · [Architecture and limits](docs/architecture.md) · [Validation notes](docs/validation.md) · [Contributing](CONTRIBUTING.md)
+[Controlled audit benchmarks v0.1 and v0.2](docs/audit-benchmark.md) · [Controlled element-localization benchmark](docs/audit-benchmark.md) · [Research and prioritized roadmap](docs/research-and-roadmap-2026-10-11.md) · [Architecture and limits](docs/architecture.md) · [Validation notes](docs/validation.md) · [Contributing](CONTRIBUTING.md)
 
 
 ### Repeated-grid layout contracts

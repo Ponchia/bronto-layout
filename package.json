@@ -21,7 +21,8 @@
     "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine",
     "test:package": "npm run build && node scripts/verify-package.mjs",
     "benchmark:audit": "node scripts/benchmark-audit.mjs --assert",
-    "benchmark:audit:expanded": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert"
+    "benchmark:audit:expanded": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert",
+    "benchmark:audit:locations": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

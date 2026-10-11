@@ -1,0 +1,500 @@
+{
+  "schemaVersion": 1,
+  "id": "bronto-audit-controlled-v0.3",
+  "labelSource": "Hand-authored from HTML and CSS, independently scored against observed issue codes and element paths. Not separately human-reviewed production ground truth.",
+  "description": "33 controlled fixture/viewport cases retaining 31 original detector labels and adding exact element-level evidence (including repeated IDs in separate open Shadow DOM roots). Not a representative real-world benchmark.",
+  "detectors": {
+    "measured": [
+      "document-horizontal-overflow",
+      "broken-image"
+    ],
+    "review": [
+      "possible-text-clipping",
+      "pending-image",
+      "embedded-frame-uninspected"
+    ]
+  },
+  "cases": [
+    {
+      "id": "healthy-mobile-320",
+      "fixture": "audit-healthy.html",
+      "width": 320,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Internal horizontal scroller, CSS ellipsis, 1px screen-reader-only text and loaded embedded SVG are intentional",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "healthy-mobile-375",
+      "fixture": "audit-healthy.html",
+      "width": 375,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Intentional internal scrolling does not widen the document; ellipsis is deliberate",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "healthy-desktop-1280",
+      "fixture": "audit-healthy.html",
+      "width": 1280,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Same deliberate controls should stay negative at desktop widths",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "broken-mobile-320",
+      "fixture": "audit-broken.html",
+      "width": 320,
+      "expectedMeasured": [
+        "document-horizontal-overflow",
+        "broken-image"
+      ],
+      "expectedReview": [
+        "possible-text-clipping"
+      ],
+      "labelReason": "The wide block exceeds the viewport; the visible image points to a missing file; the label is clipped without CSS ellipsis",
+      "expectedLocations": {
+        "broken-image": [
+          "#broken"
+        ],
+        "possible-text-clipping": [
+          "#clipped"
+        ]
+      }
+    },
+    {
+      "id": "broken-mobile-375",
+      "fixture": "audit-broken.html",
+      "width": 375,
+      "expectedMeasured": [
+        "document-horizontal-overflow",
+        "broken-image"
+      ],
+      "expectedReview": [
+        "possible-text-clipping"
+      ],
+      "labelReason": "Same deterministic negative asset, root overflow and possible text truncation at 375px",
+      "expectedLocations": {
+        "broken-image": [
+          "#broken"
+        ],
+        "possible-text-clipping": [
+          "#clipped"
+        ]
+      }
+    },
+    {
+      "id": "broken-tablet-768",
+      "fixture": "audit-broken.html",
+      "width": 768,
+      "expectedMeasured": [
+        "document-horizontal-overflow",
+        "broken-image"
+      ],
+      "expectedReview": [
+        "possible-text-clipping"
+      ],
+      "labelReason": "The width expression exceeds the viewport at tablet sizes too",
+      "expectedLocations": {
+        "broken-image": [
+          "#broken"
+        ],
+        "possible-text-clipping": [
+          "#clipped"
+        ]
+      }
+    },
+    {
+      "id": "responsive-below-600",
+      "fixture": "breakpoint.html",
+      "width": 600,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversized media-query branch is disabled below 701px",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-below-700",
+      "fixture": "breakpoint.html",
+      "width": 700,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversize rule begins at 701px",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-boundary-701",
+      "fixture": "breakpoint.html",
+      "width": 701,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "The min-width 701px media rule sets panel width to viewport width plus 60px",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-inside-750",
+      "fixture": "breakpoint.html",
+      "width": 750,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "The oversized layout is active in the middle of the media-query interval",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-boundary-799",
+      "fixture": "breakpoint.html",
+      "width": 799,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "The max-width 799px branch remains active at the inclusive boundary",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-above-800",
+      "fixture": "breakpoint.html",
+      "width": 800,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversized media-query branch is disabled above 799px",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "responsive-above-900",
+      "fixture": "breakpoint.html",
+      "width": 900,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The default width remains contained at a coarse desktop sample",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "container-query-320",
+      "fixture": "audit-container-query.html",
+      "width": 320,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "At width 320 the named container is below/equal 400px, triggering the oversize child",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "container-query-375",
+      "fixture": "audit-container-query.html",
+      "width": 375,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "At width 375 the named container is below/equal 400px, triggering the oversize child",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "container-query-430",
+      "fixture": "audit-container-query.html",
+      "width": 430,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "At width 430 the named container is below/equal 400px, triggering the oversize child",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "container-query-450",
+      "fixture": "audit-container-query.html",
+      "width": 450,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "At width 450 the named container is wider than the 400px threshold, preserving a normal-width child",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "container-query-768",
+      "fixture": "audit-container-query.html",
+      "width": 768,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "At width 768 the named container is wider than the 400px threshold, preserving a normal-width child",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "iframe-coverage-320",
+      "fixture": "audit-iframe-coverage.html",
+      "width": 320,
+      "expectedMeasured": [],
+      "expectedReview": [
+        "embedded-frame-uninspected"
+      ],
+      "labelReason": "The visible iframe exists, but the auditor deliberately does not claim inspection of its embedded document",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "iframe-coverage-768",
+      "fixture": "audit-iframe-coverage.html",
+      "width": 768,
+      "expectedMeasured": [],
+      "expectedReview": [
+        "embedded-frame-uninspected"
+      ],
+      "labelReason": "The visible iframe exists, but the auditor deliberately does not claim inspection of its embedded document",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "intentional-overlap-320",
+      "fixture": "audit-intentional-overlays.html",
+      "width": 320,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The badge overlap, horizontal internal scrolling, and CSS ellipsis are intentional controls, not layout failures",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "intentional-overlap-375",
+      "fixture": "audit-intentional-overlays.html",
+      "width": 375,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The badge overlap, horizontal internal scrolling, and CSS ellipsis are intentional controls, not layout failures",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "intentional-overlap-1280",
+      "fixture": "audit-intentional-overlays.html",
+      "width": 1280,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The badge overlap, horizontal internal scrolling, and CSS ellipsis are intentional controls, not layout failures",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "mixed-image-state-320",
+      "fixture": "audit-image-loading.html",
+      "width": 320,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "A visible image fails to load; the hidden missing image is excluded and the embedded vector image is healthy",
+      "expectedLocations": {
+        "broken-image": [
+          "#missing"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "mixed-image-state-768",
+      "fixture": "audit-image-loading.html",
+      "width": 768,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "A visible image fails to load; the hidden missing image is excluded and the embedded vector image is healthy",
+      "expectedLocations": {
+        "broken-image": [
+          "#missing"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "mixed-image-state-1280",
+      "fixture": "audit-image-loading.html",
+      "width": 1280,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "A visible image fails to load; the hidden missing image is excluded and the embedded vector image is healthy",
+      "expectedLocations": {
+        "broken-image": [
+          "#missing"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "rtl-overflow-320",
+      "fixture": "audit-rtl-overflow.html",
+      "width": 320,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "In RTL writing direction, the banner is deliberately wider than the available inline viewport",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "rtl-overflow-768",
+      "fixture": "audit-rtl-overflow.html",
+      "width": 768,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "In RTL writing direction, the banner is deliberately wider than the available inline viewport",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "rtl-overflow-1280",
+      "fixture": "audit-rtl-overflow.html",
+      "width": 1280,
+      "expectedMeasured": [
+        "document-horizontal-overflow"
+      ],
+      "expectedReview": [],
+      "labelReason": "In RTL writing direction, the banner is deliberately wider than the available inline viewport",
+      "expectedLocations": {
+        "broken-image": [],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "open-shadow-image-320",
+      "fixture": "audit-shadow-resource.html",
+      "width": 320,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "The visible missing image in an explicitly open Shadow DOM root must be included in traversal",
+      "expectedLocations": {
+        "broken-image": [
+          "#host >>> #shadow-broken"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "open-shadow-image-768",
+      "fixture": "audit-shadow-resource.html",
+      "width": 768,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "The visible missing image in an explicitly open Shadow DOM root must be included in traversal",
+      "expectedLocations": {
+        "broken-image": [
+          "#host >>> #shadow-broken"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "open-shadow-duplicate-id-320",
+      "fixture": "audit-shadow-duplicate-ids.html",
+      "width": 320,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "Both open shadow components contain the same local image ID; each missing resource must retain its distinct host-qualified diagnostic path.",
+      "expectedLocations": {
+        "broken-image": [
+          "#host-a >>> #missing",
+          "#host-b >>> #missing"
+        ],
+        "possible-text-clipping": []
+      }
+    },
+    {
+      "id": "open-shadow-duplicate-id-768",
+      "fixture": "audit-shadow-duplicate-ids.html",
+      "width": 768,
+      "expectedMeasured": [
+        "broken-image"
+      ],
+      "expectedReview": [],
+      "labelReason": "Both open shadow components contain the same local image ID; each missing resource must retain its distinct host-qualified diagnostic path.",
+      "expectedLocations": {
+        "broken-image": [
+          "#host-a >>> #missing",
+          "#host-b >>> #missing"
+        ],
+        "possible-text-clipping": []
+      }
+    }
+  ],
+  "localization": {
+    "codes": [
+      "broken-image",
+      "possible-text-clipping"
+    ]
+  }
+}

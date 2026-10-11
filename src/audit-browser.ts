@@ -23,23 +23,35 @@ export function capturePageAuditObservations(): PageAuditObservations {
   const escapeID = (id: string) =>
     typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id.replace(/[^\w-]/g, '_');
   const pathFor = (node: Element): string => {
-    if (node.id) return '#' + escapeID(node.id).slice(0, 150);
-    const components: string[] = [];
-    let cursor: Element | null = node;
-    for (let i = 0; i < 8 && cursor; i++) {
-      const tag = cursor.tagName.toLowerCase();
-      const cls = cursor.classList?.[0];
-      let index = 1;
-      for (let sibling = cursor.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
-        if (sibling.tagName === cursor.tagName) index++;
+    // An ID is unique only within one DOM tree; separate shadow roots can
+    // reuse it. Preserve the host hierarchy instead of a misleading bare ID.
+    const trees: string[] = [];
+    let current: Element | null = node;
+    for (let depth = 0; current && depth < 8; depth++) {
+      const root: Node = current.getRootNode();
+      const components: string[] = [];
+      for (let cursor: Element | null = current;
+           cursor && components.length < 12;
+           cursor = cursor.parentElement) {
+        if (cursor.id) {
+          components.unshift('#' + escapeID(cursor.id).slice(0, 150));
+          break;
+        }
+        const tag = cursor.tagName.toLowerCase();
+        const cls = cursor.classList?.[0];
+        let index = 1;
+        for (let sibling = cursor.previousElementSibling; sibling;
+             sibling = sibling.previousElementSibling) {
+          if (sibling.tagName === cursor.tagName) index++;
+        }
+        components.unshift(tag + (cls ? '.' + escapeID(cls).slice(0, 55) : '') +
+          ':nth-of-type(' + index + ')');
       }
-      components.unshift(tag + (cls ? '.' + escapeID(cls).slice(0, 55) : '') +
-        ':nth-of-type(' + index + ')');
-      const root: Node = cursor.getRootNode();
-      cursor = cursor.parentElement ?? (root instanceof ShadowRoot ? root.host : null);
-      if (cursor?.id) { components.unshift('#' + escapeID(cursor.id).slice(0, 150)); break; }
+      trees.unshift(components.join(' > '));
+      current = root instanceof ShadowRoot ? root.host : null;
     }
-    return components.join(' > ').slice(-350);
+    // A diagnostic composed locator, not a flat CSS selector.
+    return trees.join(' >>> ').slice(-450);
   };
   const sanitizedSource = (img: HTMLImageElement) => {
     const raw = img.currentSrc || img.src || '';

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add separately labeled per-element audit localization evaluation for
+  broken-image and possible-text-clipping findings: exact DOM-path
+  TP/FP/FN, wrong-element penalties and explicitly incomplete sample handling.
+- Preserve bounded diagnostic omission counts in compact automatic-audit
+  reports so downstream tools do not mistake missing evidence for negatives.
+
 - Add opt-in browser-observed CSS container-query inventory, showing computed container sizes and declared pixel threshold candidates without treating them as viewport breakpoints.
 - Expand the controlled zero-contract audit benchmark to an immutable v0.2 with 31 labeled responsive fixtures (container queries, RTL overflow, open Shadow DOM, iframe gaps, intentional overlap and mixed image states). Keep v0.1 reproducible and run both versions in CI.
 
