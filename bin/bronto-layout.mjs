@@ -619,13 +619,18 @@ async function inspect(a) {
       '  ' + alias.alias + ': ' + alias.inspectedCount + '/' + alias.matchedCount +
         ' matched DOM elements inspected' + (alias.omittedElements ? ' (truncated)' : ''),
       ...alias.elements.flatMap(el => el.status === 'ok'
-        ? el.rules.map(rule => '    ' + rule.selector + ': ' +
-          rule.declarations.map(declaration => declaration.name).join(', ') +
-          (rule.sourceUrl ? ' (' + rule.sourceUrl + ')' : ' (' + rule.sourceKind + ')'))
+        ? el.rules.map(rule => {
+          const line = rule.declarations.find(declaration => declaration.line)?.line;
+          const location = rule.sourceUrl ? rule.sourceUrl + (line ? ':' + line : '')
+            : rule.documentUrl ? rule.sourceKind + ' in ' + rule.documentUrl : rule.sourceKind;
+          return '    ' + rule.selector + ': ' +
+            rule.declarations.map(declaration => declaration.name).join(', ') +
+            ' (' + location + ')';
+        })
         : ['    CSS unavailable: ' + el.reason])
     ])
   ]) ?? [];
-  await output(a, result, [text, ...sourceLines].join('\\n'));
+  await output(a, result, [text, ...sourceLines].join('\n'));
 }
 async function init(a) {
   const file = path.resolve(a.out ?? 'bronto-layout.json');

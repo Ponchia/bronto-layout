@@ -46,6 +46,15 @@ test('CDP source hints reveal external CSS file, relative line and style attribu
   const attribute=elem.rules.find(x=>x.sourceKind==='element-style');
   assert.equal(attribute.declarations.find(x=>x.name==='padding-left').value,'12px');
 });
+test('human-readable CSS source leads use real line breaks and external locations', t => {
+  const r = run(['inspect', '--url', 'examples/css-sources-fixture.html',
+    '--width', '375', '--selector', 'example=#example', '--css-sources']);
+  if (unavailable(t,r)) return;
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  assert.match(r.stdout, /\n375px matched CSS source hints:\n/);
+  assert.match(r.stdout, /css-sources-fixture\.css:3/);
+  assert.match(r.stdout, /inline-stylesheet in http:/);
+});
 test('CSS source inspector traverses explicitly open shadow roots', t => {
   const r=run(['inspect', '--url','examples/css-sources-fixture.html',
     '--selector','inside=#host >>> .inner','--css-sources','--json']);
