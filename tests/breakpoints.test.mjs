@@ -5,8 +5,8 @@ import path from 'node:path';
 import { combineCSSBreakpointSamples, mediaBreakpointSamples } from '../dist/breakpoints.js';
 
 const cwd = path.resolve(import.meta.dirname, '..');
-const execute = args => spawnSync(process.execPath, ['bin/bronto-layout.mjs', ...args], {
-  cwd, encoding: 'utf8', timeout: 60000,
+const execute = args => spawnSync(process.execPath, ['bin/bronto-layout.mjs', args[0], '--timeout', '30000', ...args.slice(1)], {
+  cwd, encoding: 'utf8', timeout: 90000,
   env: { ...process.env, BRONTO_TEST_INLINE_FIXTURE: '1', BRONTO_CHROME_NO_SANDBOX: '1' }
 });
 

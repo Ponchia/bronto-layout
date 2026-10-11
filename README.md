@@ -100,9 +100,12 @@ node bin/bronto-layout.mjs check --spec examples/sense6-learn.json
 ```
 
 On GitHub, the manually triggered **Live-site CLI smoke** workflow checks these
-contracts and preserves JSON reports and logs as artifacts. Unlike unit tests,
-these may fail when a remote site is unavailable or changes independently of
-this repository. They do **not** run on every contribution.
+contracts and preserves JSON reports and logs as artifacts. Its optional
+css_breakpoints workflow-dispatch input additionally runs media-query-aware
+scans on the personal site and Sense6 English/Arabic, so the new width sampler is
+tested on real pages without making external websites a normal CI dependency.
+Unlike unit tests, these may fail when a remote site is unavailable or changes
+independently of this repository. They do **not** run on every contribution.
 
 The viewport snapshot preserves `width` for responsive breakpoints and also reports
 `contentWidth`, the space available after reserved scrollbars. Alignment and

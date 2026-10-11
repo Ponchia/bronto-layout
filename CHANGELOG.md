@@ -31,3 +31,5 @@
 - Pure geometry and layout-contract core, Chromium CDP runner, JSON reporting, multiple viewport widths.
 
 - Add optional CSS media-query breakpoint scanning to CLI `check`, `scan`, and `compare`.
+
+- Give Chromium a separate minimum startup deadline on CI runners, preserving faster CDP operation timeouts.
