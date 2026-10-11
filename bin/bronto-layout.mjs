@@ -846,7 +846,7 @@ async function validate(a) {
 async function main() {
   const a = argsFromCLI(process.argv.slice(2));
   if (a.help) { console.log(HELP); return; }
-  if (a.version) { console.log('Bronto Layout 0.3.0'); return; }
+  if (a.version) { const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')); console.log('Bronto Layout ' + pkg.version); return; }
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
   if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch'].includes(a.command))) {
     throw new Error('--compact requires --json with check, scan, or compare');

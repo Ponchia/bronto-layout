@@ -2,22 +2,21 @@
 
 ## Unreleased
 
+- Prepare npm package v0.4.0 metadata for public distribution, without
+  publishing to the registry.
+- Test an installed tarball in isolation (compiled library, CLI executable,
+  package metadata and bundled Chromium fixtures) on Node.js 22 and 24.
+- Read the CLI version directly from package metadata to prevent drift.
 - Allow opt-in `check --css-sources` and `scan --css-sources`
   to attach bounded matched CSS evidence directly to failing layout rules;
   preserve unattributed failures and omitted-width counts.
 
-
-
 - Add opt-in `inspect --css-sources` CDP author CSS stylesheet/declaration hints, including explicit open Shadow DOM selectors and bounded output.
 - Distinguish external CSS source lines from inline style sheets to prevent fabricated positions or automatic root-cause claims.
 
-
-
 - Add opt-in batch execution for the live-site smoke workflow and create report parent directories before writing successful CLI results.
 
-
 - Add declarative sequential CLI batches with per-job locale/viewport state, offline dry-run previews and aggregate JSON/exit codes.
-
 
 - Add opt-in `--json --compact` agent reports preserving violations, unmeasurable checks, and sampled widths.
 - Emit machine-readable JSON for fatal CLI errors and write explicit failure report files.
@@ -37,7 +36,6 @@
 - Improved Chrome discovery by reusing browser binaries from existing Playwright/Puppeteer installations without depending on those libraries.
 - Fixed `--fail-on-skip`: intentional viewport-range exclusions no longer fail CI.
 - Added GitHub CI, architecture and contribution docs, and tests covering the new behavior (47 passing locally).
-
 
 ## 0.2.0 — 2026-10-11 (experimental)
 
