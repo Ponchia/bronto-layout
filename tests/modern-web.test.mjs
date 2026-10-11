@@ -77,8 +77,9 @@ test('CLI fails fast on malformed deep selector rather than claiming no match', 
   const result = run(['inspect', '--url', 'examples/shadow.html', '--selector', 'bad=#card-a >>>', '--json']);
   if (skipIfNoChrome(t, result)) return;
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /Invalid deep selector/);
-  assert.equal(result.stdout.trim(), '');
+  const error = JSON.parse(result.stdout);
+  assert.equal(error.mode, 'error');
+  assert.match(error.error.message, /Invalid deep selector/);
 });
 test('--fail-on-skip does not fail intentionally out-of-range rules', t => {
   const result = run(['check', '--spec', 'examples/layout.json', '--widths', '320,375', '--fail-on-skip', '--json']);

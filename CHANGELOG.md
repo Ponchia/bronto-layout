@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add opt-in `--json --compact` agent reports preserving violations, unmeasurable checks, and sampled widths.
+- Emit machine-readable JSON for fatal CLI errors and write explicit failure report files.
+- Fix inspector overflow measurements against the usable scrollport and show exact counts when element geometry is sampled.
+
 ## 0.3.0 — 2026-10-11 (CLI alpha)
 
 - Fixed false centering deviations caused by reserved vertical scrollbar width; horizontal overflow now checks the usable scrollport.

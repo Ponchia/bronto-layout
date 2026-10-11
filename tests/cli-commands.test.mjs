@@ -58,8 +58,10 @@ test('navigation failures are runtime errors, not false green audits',t=>{
   const r=exec(['check','--spec','examples/layout.json','--url','http://127.0.0.1:9/','--width','375','--json']);
   if(skipChrome(t,r))return;
   assert.equal(r.status,2,r.stderr||r.stdout);
-  assert.match(r.stderr,/Could not navigate|Timed out/);
-  assert.equal(r.stdout.trim(),'');
+  const error = JSON.parse(r.stdout);
+  assert.equal(error.mode, 'error');
+  assert.equal(error.exitCode, 2);
+  assert.match(error.error.message,/Could not navigate|Timed out/);
 });
 test('named CLI selectors are validated before entering the browser',()=>{
   const r=exec(['inspect','--url','examples/healthy.html','--selector','viewport=body']);
