@@ -158,7 +158,11 @@ from rule presence. CSSOM-access-inaccessible stylesheets and bounded
 traversal limits are explicitly reported; a zero detected rule count
 cannot prove a page uses no container queries if stylesheets are inaccessible.
 
-The adapter supports older `CSSContainerRule.containerQuery` and the
+The adapter also inspects accessible style sheets in **open Shadow DOM**
+and adopted stylesheets used by Web Components. Closed roots and inaccessible
+cross-origin stylesheets are outside its evidence coverage.
+
+It supports older `CSSContainerRule.containerQuery` and the
 newer multi-condition `CSSContainerRule.conditions` where available.
 Absolute CSS `px` conditions include a numeric pixel candidate;
 relative `rem` and `em` conditions preserve their declared

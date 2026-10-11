@@ -121,7 +121,8 @@ or MCP implementation are required.
 
 The portable, self-contained browser adapter
 `src/container-queries.ts` walks accessible CSSOM rules including
-nested grouping and imported stylesheets, reads `CSSContainerRule`
+nested grouping and imported stylesheets (including accessible open
+Shadow DOM and adopted stylesheets), reads `CSSContainerRule`
 single- or multi-condition APIs, and records computed named/sized query
 container boxes. It tracks unreadable CSSOM stylesheets and strict
 traversal/output bounds rather than silently claiming complete coverage.

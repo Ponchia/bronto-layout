@@ -33,6 +33,7 @@ export interface ContainerQueryEvidence {
   supported: boolean;
   stylesheetsSeen: number;
   stylesheetsInaccessible: number;
+  openShadowRootsSeen: number;
   rulesVisited: number;
   discoveredRules: number;
   discoveredConditions: number;
@@ -59,6 +60,7 @@ export function captureContainerQueryEvidence(): ContainerQueryEvidence {
   let discoveredRules = 0;
   let discoveredConditions = 0;
   let stylesheetsInaccessible = 0;
+  let openShadowRootsSeen = 0;
   let elementsVisited = 0;
   let namedOrSizedContainers = 0;
   const visitedStylesheets = new Set<CSSStyleSheet>();
@@ -157,6 +159,9 @@ export function captureContainerQueryEvidence(): ContainerQueryEvidence {
     }
   };
   for (const sheet of Array.from(document.styleSheets)) visitStyleSheet(sheet,0);
+  // Constructable stylesheets can be adopted without appearing in the
+  // ordinary document.styleSheets list.
+  for (const sheet of Array.from(document.adoptedStyleSheets ?? [])) visitStyleSheet(sheet,0);
 
   const escapeID = (input: string) =>
     typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(input) : input.replace(/[^\w-]/g,'_');
@@ -181,7 +186,14 @@ export function captureContainerQueryEvidence(): ContainerQueryEvidence {
     elementsVisited++;
     const style=getComputedStyle(el);
     if(style.display==='none')continue;
-    if(el.shadowRoot)nodes.push(...Array.from(el.shadowRoot.children));
+    if(el.shadowRoot) {
+      openShadowRootsSeen++;
+      // Web components may carry their own style sheets and adopted styles.
+      // Closed shadow roots remain inaccessible and must not be certified.
+      for(const sheet of Array.from(el.shadowRoot.styleSheets ?? [])) visitStyleSheet(sheet,0);
+      for(const sheet of Array.from(el.shadowRoot.adoptedStyleSheets ?? [])) visitStyleSheet(sheet,0);
+      nodes.push(...Array.from(el.shadowRoot.children));
+    }
     nodes.push(...Array.from(el.children));
     if(style.visibility==='hidden'||style.visibility==='collapse')continue;
     const type=style.containerType||'normal';
@@ -200,6 +212,7 @@ export function captureContainerQueryEvidence(): ContainerQueryEvidence {
     supported:typeof CSSContainerRule!=='undefined',
     stylesheetsSeen:visitedStylesheets.size,
     stylesheetsInaccessible,
+    openShadowRootsSeen,
     rulesVisited:Math.min(rulesVisited,MAX_RULE_WALK),
     discoveredRules,
     discoveredConditions,

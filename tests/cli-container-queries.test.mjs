@@ -29,7 +29,10 @@ test('inspector detects named container CSS rules and runtime container width at
   for(const v of [narrow,wide]) {
     assert.equal(v.supported,true);
     assert.equal(v.stylesheetsInaccessible,0);
-    assert.ok(v.discoveredRules>=2,JSON.stringify(v.rules));
+    assert.equal(v.openShadowRootsSeen,1);
+    assert.ok(v.discoveredRules>=3,JSON.stringify(v.rules));
+    assert.ok(v.rules.some(x=>x.name==='shadow-card'&&x.query.includes('300px')));
+    assert.ok(v.containers.some(x=>x.name==='shadow-card'&&x.width===320));
     assert.ok(v.rules.some(x=>x.name==='gallery'&&x.query.includes('400px')));
     assert.ok(v.rules.some(x=>x.query.includes('500px')));
     assert.ok(v.rules.some(x=>x.sourceKind==='external-stylesheet'&&x.sourceUrl.endsWith('/container-query.css')));
@@ -49,8 +52,8 @@ test('inspector detects named container CSS rules and runtime container width at
   assert.equal(boxWide.width,180);
   assert.equal(boxNarrow.height,40);
   assert.equal(boxWide.height,90);
-  assert.ok(narrow.containers[0].width < 400);
-  assert.ok(wide.containers[0].width > 500);
+  assert.ok(narrow.containers.find(x=>x.name==='gallery').width < 400);
+  assert.ok(wide.containers.find(x=>x.name==='gallery').width > 500);
 });
 test('human-readable summary keeps query values but never promises viewport boundary guarantees',t=>{
   const r=run(['inspect','--url','examples/container-query.html',

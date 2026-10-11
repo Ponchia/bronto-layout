@@ -11,5 +11,10 @@
     <div class="child" id="child">Changes with container width</div>
     <span class="tag">Conditional label</span>
   </section>
+  <div id="shadow-host"></div>
+  <script>
+    const shadow = document.querySelector('#shadow-host').attachShadow({mode:'open'});
+    shadow.innerHTML = '<style>.shadow-box{container-name:shadow-card;container-type:inline-size;width:320px}@container shadow-card (min-width:300px){.shadow-child{width:150px}}</style><div class="shadow-box"><div class="shadow-child">In open shadow DOM</div></div>';
+  </script>
 </body>
 </html>

@@ -61,7 +61,9 @@ The deployed website tests are a baseline only. They do not establish the absenc
 - Chromium inspected a controlled fixture containing a named
   `gallery` container, one condition at 400px and a nested conditional
   rule at 500px. At viewport widths 375/768, the queried child measured
-  80/180px wide and 40/90px high. Four browser integration tests passed.
+  80/180px wide and 40/90px high. The expanded fixture also contains
+  a nested open Shadow DOM with its own @container stylesheet, which is
+  collected without user instrumentation. Four browser integration tests passed.
 - Read-only inspection of Sense6 English's deployed homepage reported three
   CSS `@container` rules: `dotfit (inline-size < 18rem)`,
   `bronto (inline-size <= 34rem)`, and
