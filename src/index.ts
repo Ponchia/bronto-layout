@@ -33,3 +33,6 @@ export type { ViewportAudit, PageAuditObservations, AuditFinding } from './audit
 
 export { captureContainerQueryEvidence } from './container-queries.js';
 export type { ContainerQueryEvidence } from './container-queries.js';
+
+export { comparePageAudits } from './audit-compare.js';
+export type { AuditComparison, AuditChange } from './audit-compare.js';

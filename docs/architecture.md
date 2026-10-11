@@ -156,6 +156,29 @@ server. The installed npm tarball check confirms the module ships with the CLI.
 This does not retry or hide failed layout assertions. If Chrome still has no
 usable target, the CLI returns a descriptive exit 2 error.
 
+## Before/after automatic audit comparisons
+
+`src/audit-compare.ts` is a pure TypeScript evidence comparison engine.
+It requires the same unique viewport widths in baseline/candidate reports,
+distinguishes new measured problems from improvements and review-only changes,
+and refuses to infer a clean state from truncated DOM traversal or ambiguous
+element paths.
+
+Document-level overflow is compared quantitatively with a 1px significance
+floor. Broken images and possibly clipped text are compared by observed
+element paths; added/missing paths are regression/improvement leads only
+within their respective measured/review categories. Pending images and
+uninspected iframe count differences are **review-only**, not strict errors.
+Any new detector code without comparison semantics is **unverified**, not
+silently ignored.
+
+`bronto-layout audit --baseline URL --url URL` reuses one native-CDP
+browser session and the same geometry/automatic audit adapters for both
+versions. Its optional media-query sweep combines CSS breakpoint evidence
+from baseline and candidate. It keeps normal CLI exit 0/1/2 behavior.
+No generated contracts, LLM calls, MCP, or third-party runtime packages
+are involved.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

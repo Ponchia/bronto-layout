@@ -13,6 +13,7 @@ import { captureDOMGeometry } from '../dist/browser.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { analyzePageAudit } from '../dist/audit.js';
+import { comparePageAudits } from '../dist/audit-compare.js';
 import { parseContract, validWidth } from '../dist/contract.js';
 import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
@@ -31,6 +32,7 @@ const HELP = `Bronto Layout — browser-native spatial contracts
 Usage:
   bronto-layout check --spec layout.json [--url URL] [--json|--sarif] [--report FILE]
   bronto-layout audit --url URL [--widths 320,375,768,1280] [--json --compact]
+  bronto-layout audit --baseline URL --url URL [--json --compact]
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
@@ -43,7 +45,7 @@ Options:
   --manifest FILE       Batch jobs referencing individual layout contracts
   --dry-run             Validate and preview a batch without opening a browser
   --url URL|FILE        Target website, local HTML fixture, or development server
-  --baseline URL|FILE   Original website or fixture for compare
+  --baseline URL|FILE   Original website or fixture for compare or audit
   --widths CSV          Widths to check: 320,375,768,1280
   --width N             Single viewport width (for inspect or check)
   --height N            Viewport height (default: 900)
@@ -53,7 +55,7 @@ Options:
   --reduced-motion     Emulate prefers-reduced-motion: reduce
   --scan MIN:MAX:STEP   Sample a responsive width range (maximum 200 coarse samples)
   --refine              Bisect observed state changes to one-pixel intervals
-  --css-breakpoints     Add CSS media-query boundary widths to --scan
+  --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
   --css-sources         Include matched CSS hints in inspect or failed check widths
@@ -926,10 +928,96 @@ async function batch(a) {
  * are failures, while potentially intentional clipping is review-only.
  * Incomplete traversal has exit 2, never a misleading "all clear".
  */
+async function captureAuditAt(cdp, url, width, config, fixture) {
+  const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture);
+  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
+  if (!observations || !Number.isInteger(observations.visitedElements) ||
+      typeof observations.truncated !== 'boolean') {
+    throw new Error('Browser did not return usable DOM audit observations');
+  }
+  const report = analyzePageAudit(snapshot, observations);
+  return {
+    ...report,
+    ...(snapshot.stabilization ? { stabilization: snapshot.stabilization } : {}),
+    ...(snapshot.layoutShifts ? { layoutShifts: snapshot.layoutShifts } : {})
+  };
+}
+
+/**
+ * Before/after automatic diagnostics without introducing inferred contracts.
+ * Both pages are visited at exactly the same widths in one CDP session.
+ */
+async function compareAudit(a, coarseWidths) {
+  const candidatePath = resolveURL(a);
+  const baselinePath = a.baseline.startsWith('http://') ||
+    a.baseline.startsWith('https://') || a.baseline.startsWith('file://')
+    ? a.baseline : path.resolve(a.baseline);
+  const result = await withBrowser(candidatePath, a,
+    async (cdp, candidateUrl, config, candidateFixture, candidatePublicUrl) => {
+      const baselineTarget = await serveTarget(baselinePath);
+      const baselineFixture = process.env.BRONTO_TEST_INLINE_FIXTURE === '1' && baselineTarget.sourcePath
+        ? await readFile(baselineTarget.sourcePath, 'utf8') : undefined;
+      try {
+        const cssBreakpoints = a['css-breakpoints']
+          ? combineCSSBreakpointSamples(coarseWidths,
+            await discoverCSSBreakpointWidths(cdp, baselineTarget.url, coarseWidths, config, baselineFixture),
+            await discoverCSSBreakpointWidths(cdp, candidateUrl, coarseWidths, config, candidateFixture))
+          : undefined;
+        const widths = cssBreakpoints?.widths ?? coarseWidths;
+        if (widths.length > config.maxSamples) {
+          throw new Error('Automatic audit comparison has ' + widths.length +
+            ' widths, exceeding --max-samples ' + config.maxSamples);
+        }
+        const baselineReports = [], candidateReports = [];
+        for (const width of widths) {
+          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture));
+          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture));
+        }
+        const comparison = comparePageAudits(
+          baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
+          candidatePublicUrl, baselineReports, candidateReports
+        );
+        return {
+          ...comparison,
+          ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {})
+        };
+      } finally { baselineTarget.close(); }
+    });
+  const remaining = result.candidate.flatMap(report => report.findings
+    .filter(f => f.classification === 'measured')
+    .map(finding => ({width:report.viewport.width, ...finding})));
+  const payload = a.compact ? {
+    schemaVersion:result.schemaVersion,mode:'audit-compare',format:'compact',
+    baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
+    summary:result.summary,sampledWidths:result.sampledWidths,
+    changes:result.changes,unverified:result.unverified,
+    remainingMeasuredIssues:remaining.slice(0,100),
+    omittedRemainingMeasuredIssues:Math.max(0,remaining.length-100),
+    ...(result.cssBreakpointScan ? { cssBreakpointScan:result.cssBreakpointScan } : {})
+  } : result;
+  const printable = [
+    'Bronto Layout zero-contract comparison — '+result.baselineUrl+' → '+result.candidateUrl,
+    ...result.changes.map(change=>
+      '  '+change.width+'px '+change.kind.toUpperCase()+' '+change.code+
+      (change.path?' ['+change.path+']':'')+
+      ': '+change.message),
+    ...result.unverified.map(item=>item.width+'px UNVERIFIED: '+item.reasons.join('; ')),
+    'Total: '+result.summary.measuredRegressions+' measured regressions, '+
+      result.summary.measuredImprovements+' improvements, '+
+      result.summary.reviewChanges+' review changes and '+
+      result.summary.unverifiedViewports+' unverified viewports',
+    'Existing candidate issues are not automatically regressions; inspect JSON for remaining issues.'
+  ].join('\n');
+  await output(a, payload, printable);
+  if (result.summary.unverifiedViewports) process.exitCode=2;
+  else if (result.summary.measuredRegressions) process.exitCode=1;
+}
+
 async function audit(a) {
   if (!a.url) throw new Error('audit requires --url URL (or a local HTML path)');
   const baseWidths = a.scan || a.width !== undefined || a.widths !== undefined
     ? getWidths(a) : [320, 375, 768, 1280];
+  if (a.baseline) return compareAudit(a, baseWidths);
   const result = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     const cssBreakpoints = a['css-breakpoints']
       ? await discoverCSSBreakpointWidths(cdp, url, baseWidths, config, fixture)
@@ -943,18 +1031,7 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture);
-      const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
-      if (!observations || !Number.isInteger(observations.visitedElements) ||
-          typeof observations.truncated !== 'boolean') {
-        throw new Error('Browser did not return usable DOM audit observations');
-      }
-      const report = analyzePageAudit(snapshot, observations);
-      reports.push({
-        ...report,
-        ...(snapshot.stabilization ? { stabilization: snapshot.stabilization } : {}),
-        ...(snapshot.layoutShifts ? { layoutShifts: snapshot.layoutShifts } : {})
-      });
+      reports.push(await captureAuditAt(cdp, url, width, config, fixture));
     }
     const summary = {
       viewports: reports.length,
@@ -1039,6 +1116,7 @@ async function main() {
   if (a['container-queries'] && a.command !== 'inspect') throw new Error('--container-queries currently applies only to inspect');
   if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
   if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
+  if (a.baseline && !['compare', 'audit'].includes(a.command)) throw new Error('--baseline applies only to compare or audit');
   if (a.command === 'audit' && a.spec) throw new Error('audit is zero-contract; omit --spec');
   if (a.command === 'audit' && a.sarif) throw new Error('audit supports structured JSON; SARIF belongs to explicit contract checks');
   if (a.command === 'audit' && a['stable-for'] !== undefined) throw new Error('audit --stable-for requires named selectors; use inspect or check with a contract instead');
