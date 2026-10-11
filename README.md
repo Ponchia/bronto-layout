@@ -250,6 +250,12 @@ locale and scripted state. They are not real-user Core Web Vitals or
 proof of layout stability after the observation window. Browser support is
 currently Chromium only; dynamic canvas/WebGL internals are not measured.
 
+The optional `geometry_stability` input of the manually dispatched
+`Live-site CLI smoke` GitHub workflow exercises DOM quiet-window
+measurement on the personal website and Sense6 English/Arabic across several
+viewport widths. It preserves JSON evidence without making external websites
+part of routine PR tests.
+
 ## Wait for a stable layout before verifying a page
 
 Client-rendered websites can change element geometry after initial DOM readiness.
