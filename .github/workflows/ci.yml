@@ -30,6 +30,12 @@ jobs:
           BRONTO_CHROME_NO_SANDBOX: '1'
           BRONTO_TEST_INLINE_FIXTURE: '1'
         run: npm run check
+      - name: Verify labeled automatic-audit benchmark
+        if: matrix.node == 24
+        env:
+          # Trusted HTML fixtures on an ephemeral CI runner only.
+          BRONTO_CHROME_NO_SANDBOX: '1'
+        run: npm run benchmark:audit
       - name: Verify the installed npm tarball and CLI
         env:
           BRONTO_REQUIRE_CHROME: '1'

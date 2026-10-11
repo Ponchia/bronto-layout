@@ -70,10 +70,16 @@ In restricted Linux test environments, Chromium may refuse to start because user
 The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
 
 The manually dispatched `Live-site CLI smoke` workflow also offers an
-opt-in `automatic_audit` mode. It runs this new command against the
+opt-in `automatic_audit` mode. It runs this command against the
 personal website and Sense6 English/Arabic/Learn at four widths, preserving
-its raw JSON and logs as downloadable CI artifacts. It is not part of
-ordinary PR tests, and external sites can change independently.
+JSON and logs as downloadable CI artifacts. It is not part of normal PR
+tests, and external sites can change independently.
+
+The `npm run benchmark:audit` command runs a hand-labeled regression
+suite of known issues, intentional negative controls and media-query
+boundary cases. It reports false positives and false negatives
+**for those controlled fixtures only**, not for production sites.
+See the [benchmark methodology](docs/audit-benchmark.md).
 
 ## Zero-configuration layout audit (experimental)
 

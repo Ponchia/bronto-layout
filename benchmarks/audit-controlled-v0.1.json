@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "bronto-audit-controlled-v0.1",
+  "labelSource": "Hand-authored ground truth from checked HTML and CSS fixture behavior; independently inspect labels when expanding this suite",
+  "description": "Curated mechanical layout observations, intentional false-positive controls and narrow CSS media-query interval tests. This is NOT representative of arbitrary production websites.",
+  "detectors": {
+    "measured": [
+      "document-horizontal-overflow",
+      "broken-image"
+    ],
+    "review": [
+      "possible-text-clipping",
+      "pending-image",
+      "embedded-frame-uninspected"
+    ]
+  },
+  "cases": [
+    {
+      "id": "healthy-mobile-320",
+      "fixture": "audit-healthy.html",
+      "width": 320,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Internal horizontal scroller, CSS ellipsis, 1px screen-reader-only text and loaded embedded SVG are intentional"
+    },
+    {
+      "id": "healthy-mobile-375",
+      "fixture": "audit-healthy.html",
+      "width": 375,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Intentional internal scrolling does not widen the document; ellipsis is deliberate"
+    },
+    {
+      "id": "healthy-desktop-1280",
+      "fixture": "audit-healthy.html",
+      "width": 1280,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "Same deliberate controls should stay negative at desktop widths"
+    },
+    {
+      "id": "broken-mobile-320",
+      "fixture": "audit-broken.html",
+      "width": 320,
+      "expectedMeasured": ["document-horizontal-overflow", "broken-image"],
+      "expectedReview": ["possible-text-clipping"],
+      "labelReason": "The wide block exceeds the viewport; the visible image points to a missing file; the label is clipped without CSS ellipsis"
+    },
+    {
+      "id": "broken-mobile-375",
+      "fixture": "audit-broken.html",
+      "width": 375,
+      "expectedMeasured": ["document-horizontal-overflow", "broken-image"],
+      "expectedReview": ["possible-text-clipping"],
+      "labelReason": "Same deterministic negative asset, root overflow and possible text truncation at 375px"
+    },
+    {
+      "id": "broken-tablet-768",
+      "fixture": "audit-broken.html",
+      "width": 768,
+      "expectedMeasured": ["document-horizontal-overflow", "broken-image"],
+      "expectedReview": ["possible-text-clipping"],
+      "labelReason": "The width expression exceeds the viewport at tablet sizes too"
+    },
+    {
+      "id": "responsive-below-600",
+      "fixture": "breakpoint.html",
+      "width": 600,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversized media-query branch is disabled below 701px"
+    },
+    {
+      "id": "responsive-below-700",
+      "fixture": "breakpoint.html",
+      "width": 700,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversize rule begins at 701px"
+    },
+    {
+      "id": "responsive-boundary-701",
+      "fixture": "breakpoint.html",
+      "width": 701,
+      "expectedMeasured": ["document-horizontal-overflow"],
+      "expectedReview": [],
+      "labelReason": "The min-width 701px media rule sets panel width to viewport width plus 60px"
+    },
+    {
+      "id": "responsive-inside-750",
+      "fixture": "breakpoint.html",
+      "width": 750,
+      "expectedMeasured": ["document-horizontal-overflow"],
+      "expectedReview": [],
+      "labelReason": "The oversized layout is active in the middle of the media-query interval"
+    },
+    {
+      "id": "responsive-boundary-799",
+      "fixture": "breakpoint.html",
+      "width": 799,
+      "expectedMeasured": ["document-horizontal-overflow"],
+      "expectedReview": [],
+      "labelReason": "The max-width 799px branch remains active at the inclusive boundary"
+    },
+    {
+      "id": "responsive-above-800",
+      "fixture": "breakpoint.html",
+      "width": 800,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The oversized media-query branch is disabled above 799px"
+    },
+    {
+      "id": "responsive-above-900",
+      "fixture": "breakpoint.html",
+      "width": 900,
+      "expectedMeasured": [],
+      "expectedReview": [],
+      "labelReason": "The default width remains contained at a coarse desktop sample"
+    }
+  ]
+}
