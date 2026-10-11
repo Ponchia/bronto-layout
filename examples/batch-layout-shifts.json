@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "loading-stability",
+      "spec": "layout-shifts.json",
+      "url": "layout-shifts-unstable.html",
+      "widths": [375],
+      "layoutShifts": true
+    }
+  ]
+}

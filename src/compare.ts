@@ -17,7 +17,7 @@ export interface RuleChange {
   kind: ChangeKind;
   /** Difference in out-of-tolerance error (candidate minus baseline), if measurable. */
   errorDelta?: number;
-  errorUnit?: 'px' | '%' | 'elements';
+  errorUnit?: 'px' | '%' | 'elements' | 'score';
 }
 export interface ComparisonSummary {
   regressions: number;
@@ -84,8 +84,11 @@ export function compareReports(
       } else if (before.status === 'fail' && after.status === 'pass') {
         kind = 'improvement';
       } else if (before.status === 'fail' && after.status === 'fail' && errorDelta !== undefined) {
-        if (errorDelta > significantDelta) kind = 'regression';
-        else if (errorDelta < -significantDelta) kind = 'improvement';
+        // One CSS pixel is not a meaningful threshold for unitless shift scores.
+        // Worsening/improving lab shifts get a smaller score-specific floor.
+        const threshold = before.type === 'layout-stability' ? 0.005 : significantDelta;
+        if (errorDelta > threshold) kind = 'regression';
+        else if (errorDelta < -threshold) kind = 'improvement';
       }
       const change: RuleChange = {
         width, ruleId, type: before.type,
@@ -93,7 +96,7 @@ export function compareReports(
         baselineMessage: before.message, candidateMessage: after.message, kind,
         ...(before.deviation !== undefined ? { baselineDeviation: before.deviation } : {}),
         ...(after.deviation !== undefined ? { candidateDeviation: after.deviation } : {}),
-        ...(errorDelta !== undefined ? { errorDelta, errorUnit: before.type === 'image-aspect' ? '%' : before.type === 'selector-count' ? 'elements' : 'px' } : {})
+        ...(errorDelta !== undefined ? { errorDelta, errorUnit: before.type === 'layout-stability' ? 'score' : before.type === 'image-aspect' ? '%' : before.type === 'selector-count' ? 'elements' : 'px' } : {})
       };
       changes.push(change);
       if (kind === 'regression') summary.regressions++;

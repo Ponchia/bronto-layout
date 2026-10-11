@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Delayed layout movement fixture</title>
+  <style>
+    body { margin: 0; font: 16px system-ui; }
+    main { margin: 20px; width: 320px; }
+    .header { height: 65px; }
+    #placeholder { height: 20px; background: #ddd; }
+    #below { width: 300px; height: 175px; background: #bbc; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="header">Stable header</div>
+    <div id="placeholder"></div>
+    <div id="below">Content pushed downward after first paint</div>
+  </main>
+  <script>
+    // Do not wait for a user gesture: this is an intentional delayed fixture.
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('placeholder').style.height = '265px';
+      }, 260);
+    });
+  </script>
+</body>
+</html>

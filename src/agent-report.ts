@@ -4,6 +4,28 @@ import type { RuleTransition } from './sweep.js';
 import type { CSSFailureSourceLead } from './css-failure-leads.js';
 
 /** A bounded output shape for coding agents. It never asserts correctness at untested widths. */
+const compactShifts = (reports: readonly LayoutReport[]) => reports
+  .filter(report => report.layoutShifts)
+  .map(report => {
+    const shifts = report.layoutShifts!;
+    return {
+      width: report.viewport.width,
+      supported: shifts.supported,
+      ...(shifts.reason ? { reason: shifts.reason } : {}),
+      maxSessionScore: shifts.maxSessionScore,
+      totalScore: shifts.totalScore,
+      shiftCount: shifts.shiftCount,
+      ignoredInputCount: shifts.ignoredInputCount,
+      droppedEvents: shifts.droppedEvents,
+      topEvents: [...shifts.events].filter(event => !event.hadRecentInput)
+        .sort((a, b) => b.value - a.value).slice(0, 3)
+        .map(event => ({
+          time: event.startTime, value: event.value,
+          sources: event.sources.slice(0, 2)
+        }))
+    };
+  });
+
 const MAX_ITEMS = 100;
 const bounded = <T>(items: readonly T[]) => ({
   values: items.slice(0, MAX_ITEMS),
@@ -53,6 +75,7 @@ export function compactCheckReport(result: CheckData) {
     url: result.url,
     summary: result.summary,
     sampledWidths: result.reports.map(r => r.viewport.width),
+    ...(result.reports.some(r => r.layoutShifts) ? { layoutShifts: compactShifts(result.reports) } : {}),
     failures: failures.values,
     omittedFailures: failures.omitted,
     unmeasurable: unmeasurable.values,
@@ -79,6 +102,8 @@ export function compactCompareReport(result: LayoutComparison & {
     candidateUrl: result.candidateUrl,
     summary: result.summary,
     sampledWidths: result.candidate.map(r => r.viewport.width),
+    ...(result.candidate.some(r => r.layoutShifts) ? { layoutShifts: {
+      baseline: compactShifts(result.baseline), candidate: compactShifts(result.candidate) } } : {}),
     changes: changes.values,
     omittedChanges: changes.omitted,
     remainingFailures: remaining.values,

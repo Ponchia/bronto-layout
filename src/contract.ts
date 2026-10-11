@@ -9,7 +9,7 @@ export interface LayoutContract {
   selectors: Record<string, string>;
   rules: LayoutRule[];
 }
-const TYPES = new Set(['document-overflow', 'align-edge', 'centered', 'contained', 'non-overlapping', 'equal-gaps', 'uniform-gaps', 'image-aspect', 'gap-range', 'same-size', 'size-range', 'selector-count', 'no-clipping']);
+const TYPES = new Set(['layout-stability', 'document-overflow', 'align-edge', 'centered', 'contained', 'non-overlapping', 'equal-gaps', 'uniform-gaps', 'image-aspect', 'gap-range', 'same-size', 'size-range', 'selector-count', 'no-clipping']);
 const EDGES = new Set<Edge>(['left', 'right', 'top', 'bottom', 'center-x', 'center-y', 'inline-start', 'inline-end']);
 const AXES = new Set(['x', 'y']);
 function record(value: unknown): value is Record<string, unknown> {
@@ -67,7 +67,7 @@ export function parseContract(input: unknown): LayoutContract {
     requireThat(string(rule.type) && TYPES.has(rule.type), `${rule.id} has unsupported type: ${String(rule.type)}`);
     const fields = new Set(['id', 'type', 'description', 'tolerance', 'minWidth', 'maxWidth']);
     const ownFields: Record<string, string[]> = {
-      'document-overflow': [], 'align-edge': ['a', 'b', 'edgeA', 'edgeB'],
+      'layout-stability': ['maxScore'], 'document-overflow': [], 'align-edge': ['a', 'b', 'edgeA', 'edgeB'],
       centered: ['element', 'in', 'axis'], contained: ['element', 'in', 'axis'],
       'non-overlapping': ['a', 'b'], 'equal-gaps': ['elements', 'axis'], 'uniform-gaps': ['element', 'axis', 'laneTolerance'],
       'image-aspect': ['element', 'tolerancePercent'], 'gap-range': ['a', 'b', 'axis', 'min', 'max'],
@@ -118,6 +118,9 @@ export function parseContract(input: unknown): LayoutContract {
       requireThat(rule.exactly === undefined || (rule.min === undefined && rule.max === undefined), `${rule.id} exactly cannot be combined with min/max`);
       requireThat(rule.min === undefined || rule.max === undefined || (rule.min as number) <= (rule.max as number), `${rule.id} min exceeds max`);
       requireThat(rule.exactly !== undefined || rule.min !== undefined || rule.max !== undefined, `${rule.id} specify exactly, min or max`);
+    }
+    if (rule.type === 'layout-stability') {
+      requireThat(nonNegative(rule.maxScore), rule.id + ' maxScore must be a nonnegative finite score');
     }
     if (rule.type === 'image-aspect') requireThat(rule.tolerancePercent === undefined || nonNegative(rule.tolerancePercent), `${rule.id} tolerancePercent must be >=0`);
   }

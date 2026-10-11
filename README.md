@@ -207,6 +207,43 @@ This is deliberately opt-in and bounded: up to 24 aliases, 6 elements per alias,
 48 inspected elements in total and 16 layout-relevant rules per element, with
 omission counts. No extra runtime dependencies, paid services or MCP server.
 
+## Layout stability contracts (Chromium lab)
+
+Bronto Layout can measure spontaneous layout movement during loading,
+hydration, delayed rendering and font/image settlement. It uses Chromium's
+native Layout Instability API before page navigation; no Playwright or app
+instrumentation is required.
+
+~~~sh
+# Inspect a page's observed layout shifts and affected element boxes
+node bin/bronto-layout.mjs inspect --url examples/layout-shifts-unstable.html --width 375 --layout-shifts --settle 850 --json
+
+# Declare a maximum observed session-window score as a layout contract
+node bin/bronto-layout.mjs check --spec examples/layout-shifts.json --url examples/layout-shifts-unstable.html --settle 850 --json --compact
+
+# Compare a stable version with a shifted one; score changes use "score" units
+node bin/bronto-layout.mjs compare --spec examples/layout-shifts.json --baseline examples/layout-shifts-healthy.html --url examples/layout-shifts-unstable.html --settle 850 --json
+~~~
+
+A `layout-stability` rule requires an explicit nonnegative
+`maxScore` budget. The CLI automatically enables observation whenever
+this rule appears; `--layout-shifts` enables observation without a
+rule for `inspect`, `check`, `scan` and
+`compare`. Batch manifests can request it per job using
+`layoutShifts: true`.
+
+The score is the **largest observed five-second session window**, separated
+by at least a one-second gap, excluding shifts marked with recent user input.
+The report includes bounded affected-element geometry. Use `--settle`
+to capture delayed loading/hydration; an observation stops when each selected
+viewport is measured. Unsupported/truncated observation is reported as
+**unmeasurable**, never a pass. Use `--fail-on-skip` in CI if needed.
+
+These are **lab observations** made under the selected viewport, browser,
+locale and scripted state. They are not real-user Core Web Vitals or
+proof of layout stability after the observation window. Browser support is
+currently Chromium only; dynamic canvas/WebGL internals are not measured.
+
 ## Architecture
 
 - `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.

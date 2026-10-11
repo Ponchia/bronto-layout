@@ -19,6 +19,7 @@ import { compactCheckReport, compactCompareReport } from '../dist/agent-report.j
 import { parseBatchManifest } from '../dist/batch.js';
 import { inspectCSSWithCDP } from '../dist/css-inspector.js';
 import { selectCSSFailureAliases } from '../dist/css-failure-leads.js';
+import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layout-shifts.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -50,6 +51,7 @@ Options:
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
   --css-sources         Include matched CSS hints in inspect or failed check widths
+  --layout-shifts       Collect browser-observed loading/hydration shift events
   --ready-selector CSS  Wait for element to exist after page navigation
   --settle MS           Additional time for client-side rendering (default: 0)
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
@@ -77,7 +79,7 @@ const OPTIONS = {
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
-  selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' },
+  selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
@@ -113,6 +115,7 @@ function configFromArgs(a) {
     locale: a.locale ?? undefined,
     colorScheme: a['color-scheme'] ?? undefined,
     reducedMotion: Boolean(a['reduced-motion']),
+    collectShifts: Boolean(a['layout-shifts']),
   };
 }
 function getWidths(a, spec) {
@@ -397,6 +400,10 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
   for (const action of actions) await runAction(cdp, action, config.timeout);
   const snapshot = await cdp.eval(`(${captureDOMGeometry.toString()})(${JSON.stringify(selectors)})`);
   if (!snapshot?.viewport) throw new Error('Browser did not return a layout snapshot');
+  if (config.collectShifts) {
+    const raw = await cdp.eval('globalThis.__brontoLayoutShiftCollector?.read?.()');
+    snapshot.layoutShifts = summarizeLayoutShifts(raw);
+  }
   return snapshot;
 }
 /** Execute only explicitly declared browser actions; no arbitrary JS from the contract. */
@@ -435,6 +442,13 @@ async function withBrowser(url, a, execute) {
   let browser;
   try {
     browser = await startBrowser(chromeExecutable(a.chrome), config.timeout, Boolean(a['no-sandbox'] || process.env.BRONTO_CHROME_NO_SANDBOX === '1'));
+    if (config.collectShifts) {
+      // Install before navigation. The current about:blank document also gets
+      // instrumentation for explicit restricted-fixture document.write fallback.
+      const source = '(' + installLayoutShiftCollector.toString() + ')();';
+      await browser.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source });
+      await browser.cdp.eval(source);
+    }
     const fixture = process.env.BRONTO_TEST_INLINE_FIXTURE === '1' && target.sourcePath ? await readFile(target.sourcePath, 'utf8') : undefined;
     return await execute(browser.cdp, target.url, config, fixture, target.sourcePath ? pathToFileURL(target.sourcePath).href : target.url);
   } finally { await browser?.close(); target.close(); }
@@ -551,7 +565,8 @@ async function check(a) {
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
   const widths = getWidths(a, spec);
   if (!widths.every(validWidth)) throw new Error('Invalid viewport widths');
-  const result = await withBrowser(resolveURL(a, spec), a, async (cdp, url, config, fixture, publicURL) => {
+  const shiftMode = Boolean(a['layout-shifts'] || spec.rules.some(rule => rule.type === 'layout-stability'));
+  const result = await withBrowser(resolveURL(a, spec), { ...a, 'layout-shifts': shiftMode }, async (cdp, url, config, fixture, publicURL) => {
     const cssBreakpoints = a['css-breakpoints']
       ? await discoverCSSBreakpointWidths(cdp, url, widths, config, fixture, spec.actions)
       : undefined;
@@ -594,6 +609,7 @@ async function check(a) {
   const printable = [
     `Bronto Layout — ${result.url}`,
     ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
+    ...result.reports.filter(r => r.layoutShifts).map(r => '  ' + r.viewport.width + 'px layout stability: ' + (r.layoutShifts.supported ? r.layoutShifts.maxSessionScore.toFixed(6) + ' max-session score' : 'unavailable (' + r.layoutShifts.reason + ')')),
     ...result.reports.map(r => `${r.viewport.width}px (${r.viewport.direction}): ${r.summary.passed} passed, ${r.summary.failed} failed, ${r.summary.skipped} skipped`),
     ...result.reports.flatMap(r => r.findings.filter(f => f.status === 'fail' || (a['fail-on-skip'] && f.code === 'measurement-unavailable')).map(f => `  ${r.viewport.width}px ${f.status.toUpperCase()} ${f.id}: ${f.message}`)),
     ...(result.cssSourceLeads ? result.cssSourceLeads.map(item =>
@@ -639,6 +655,7 @@ async function inspect(a) {
       ])
     ])
   ].join('\n');
+  const shifts = result.snapshots.filter(s => s.layoutShifts).map(s => '  ' + s.viewport.width + 'px layout stability: ' + (s.layoutShifts.supported ? s.layoutShifts.maxSessionScore.toFixed(6) + ' max-session score, ' + s.layoutShifts.shiftCount + ' non-input shifts' : 'unavailable (' + s.layoutShifts.reason + ')'));
   const sourceLines = result.cssSources?.flatMap(item => [
     item.width + 'px matched CSS source hints:',
     ...item.aliases.flatMap(alias => [
@@ -656,7 +673,7 @@ async function inspect(a) {
         : ['    CSS unavailable: ' + el.reason])
     ])
   ]) ?? [];
-  await output(a, result, [text, ...sourceLines].join('\n'));
+  await output(a, result, [text, ...shifts, ...sourceLines].join('\n'));
 }
 async function init(a) {
   const file = path.resolve(a.out ?? 'bronto-layout.json');
@@ -683,7 +700,8 @@ async function compare(a) {
   if (!widths.every(validWidth)) throw new Error('Invalid viewport widths');
   const candidatePath = resolveURL(a, spec);
   const baselinePath = /^https?:\/\//.test(a.baseline) || /^file:\/\//.test(a.baseline) ? a.baseline : path.resolve(a.baseline);
-  const result = await withBrowser(candidatePath, a, async (cdp, candidateUrl, config, fixture, publicURL) => {
+  const shiftMode = Boolean(a['layout-shifts'] || spec.rules.some(rule => rule.type === 'layout-stability'));
+  const result = await withBrowser(candidatePath, { ...a, 'layout-shifts': shiftMode }, async (cdp, candidateUrl, config, fixture, publicURL) => {
     const baselineTarget = await serveTarget(baselinePath);
     const baselineFixture = process.env.BRONTO_TEST_INLINE_FIXTURE === '1' && baselineTarget.sourcePath ? await readFile(baselineTarget.sourcePath, 'utf8') : undefined;
     try {
@@ -765,7 +783,8 @@ async function batch(a) {
         locale: job.locale ?? a.locale ?? null,
         colorScheme: job.colorScheme ?? a['color-scheme'] ?? null,
         reducedMotion: Boolean(job.reducedMotion ?? a['reduced-motion']),
-        mobile: Boolean(job.mobile ?? a.mobile) }))
+        mobile: Boolean(job.mobile ?? a.mobile),
+        layoutShifts: Boolean(job.layoutShifts ?? a['layout-shifts']) }))
     };
     await output(a, data, 'Validated ' + jobs.length + ' batch jobs without opening Chromium');
     return;
@@ -779,6 +798,7 @@ async function batch(a) {
     if (job.widths) argv.push('--widths', job.widths.join(','));
     if (job.scan) argv.push('--scan', job.scan);
     if (job.cssBreakpoints) argv.push('--css-breakpoints');
+    if (job.layoutShifts ?? a['layout-shifts']) argv.push('--layout-shifts');
     const locale = job.locale ?? a.locale;
     if (locale) argv.push('--locale', locale);
     const scheme = job.colorScheme ?? a['color-scheme'];
@@ -854,6 +874,7 @@ async function main() {
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
+  if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');

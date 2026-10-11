@@ -12,6 +12,7 @@ export interface BatchJob {
   colorScheme?: 'light' | 'dark';
   reducedMotion?: boolean;
   mobile?: boolean;
+  layoutShifts?: boolean;
 }
 
 export interface BatchManifest {
@@ -22,7 +23,7 @@ export interface BatchManifest {
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v);
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
-const allowed = new Set(['id', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile']);
+const allowed = new Set(['id', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts']);
 const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/i;
 
 /**
@@ -73,7 +74,7 @@ export function parseBatchManifest(value: unknown): BatchManifest {
     if (job.colorScheme !== undefined && job.colorScheme !== 'light' && job.colorScheme !== 'dark') {
       throw new Error(label + ' colorScheme must be light or dark');
     }
-    for (const key of ['reducedMotion', 'mobile']) {
+    for (const key of ['reducedMotion', 'mobile', 'layoutShifts']) {
       if (job[key] !== undefined && typeof job[key] !== 'boolean') {
         throw new Error(label + ' ' + key + ' must be boolean');
       }

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "url": "layout-shifts-healthy.html",
+  "widths": [375],
+  "selectors": { "main": "main" },
+  "rules": [
+    { "id": "loading-is-stable", "type": "layout-stability", "maxScore": 0.005 },
+    { "id": "main-present", "type": "selector-count", "element": "main", "exactly": 1 }
+  ]
+}
