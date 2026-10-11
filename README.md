@@ -69,6 +69,12 @@ In restricted Linux test environments, Chromium may refuse to start because user
 
 The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
 
+The manually dispatched `Live-site CLI smoke` workflow also offers an
+opt-in `automatic_audit` mode. It runs this new command against the
+personal website and Sense6 English/Arabic/Learn at four widths, preserving
+its raw JSON and logs as downloadable CI artifacts. It is not part of
+ordinary PR tests, and external sites can change independently.
+
 ## Zero-configuration layout audit (experimental)
 
 Run `audit` against an ordinary web page **without writing a
@@ -359,7 +365,7 @@ No usage analytics, account, hosted service, external API or paid features.
 
 1. The CLI currently operates against Chrome/Chromium. The TypeScript core does not depend on it, but **cross-browser verification is future work**.
 2. The DOM adapter handles ordinary elements. Closed shadow roots, cross-origin frames, and contents rendered within canvas/WebGL require additional interfaces or host-provided geometry.
-3. A browser extension, permanent visual inspector, MCP tools, CSS source attribution, WebKit/Firefox automation, and reliable zero-config discovery **are not implemented**. Basic breakpoint refinement and locale/state setup already work.
+3. A browser extension, permanent visual inspector, MCP tools, WebKit/Firefox automation and full layout-intent inference **are not implemented**. The CLI does offer conservative automatic observations and opt-in matched CSS source hints; neither establishes source-level causality.
 4. It checks *explicit user intent*. It does not claim that all reported overlaps are bugs, that it understands art direction, or that its heuristics outperform competitors.
 5. Images rendered with `object-fit: cover/contain/scale-down` preserve content proportions inside a potentially differently shaped image box; the prototype skips naive outer-box aspect ratio diagnostics for those cases.
 6. Local HTML fixtures use a loopback-only asset server. It only serves common web asset extensions under the fixture directory, and rejects hidden files and symlink escapes. This is not a JavaScript sandbox: only run trusted fixtures with normal Chromium sandboxing enabled. A restricted test fallback can inject self-contained markup *only when* `BRONTO_TEST_INLINE_FIXTURE=1` is set; it is never silently used for production audits. Use an existing development server for full application projects.
@@ -432,7 +438,7 @@ node bin/bronto-layout.mjs validate --spec examples/layout.json
 
 `same-size` compares image or control dimensions; `size-range` checks an element's width or height against optional minimum and maximum values. Use `--fail-on-skip` to fail when a measurement is unavailable, without treating an intentionally out-of-range rule as an error. Large selectors return exact visible-match counts but bound detailed geometry to 250 elements.
 
-[Architecture and limits](docs/architecture.md) · [Validation notes](docs/validation.md) · [Contributing](CONTRIBUTING.md)
+[Research and prioritized roadmap](docs/research-and-roadmap-2026-10-11.md) · [Architecture and limits](docs/architecture.md) · [Validation notes](docs/validation.md) · [Contributing](CONTRIBUTING.md)
 
 
 ### Repeated-grid layout contracts
