@@ -1018,6 +1018,8 @@ async function main() {
   if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch', 'audit'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
   if (a.command === 'audit' && a.spec) throw new Error('audit is zero-contract; omit --spec');
   if (a.command === 'audit' && a.sarif) throw new Error('audit supports structured JSON; SARIF belongs to explicit contract checks');
+  if (a.command === 'audit' && a['stable-for'] !== undefined) throw new Error('audit --stable-for requires named selectors; use inspect or check with a contract instead');
+  if (a.command === 'audit' && a['fail-on-skip']) throw new Error('audit has no contract skips; remove --fail-on-skip');
   if (a.command === 'audit' && a.refine) throw new Error('audit does not infer contracts for --refine; use scan with a contract');
   if (a.command === 'audit' && a['evidence-dir']) throw new Error('automatic audit image annotations are not yet supported; omit --evidence-dir');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');

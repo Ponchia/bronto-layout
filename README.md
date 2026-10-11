@@ -109,6 +109,8 @@ The fixture passes at the two coarse widths but demonstrates horizontal
 overflow around its CSS media-query boundaries. Reports record all sampled
 widths. This is *not* exhaustive proof of correct layout between samples.
 
+Unlike named-selector `check` and `inspect` commands, automatic `audit` does not yet accept `--stable-for`: without explicitly selected child elements, a geometrically quiet body box cannot certify that its contents stopped moving.
+
 The audit uses a bounded DOM traversal and does not inspect internal
 canvas/WebGL geometry, closed Shadow DOM, nested iframe contents or
 cross-browser rendering. It is not an automated WCAG compliance verdict.
