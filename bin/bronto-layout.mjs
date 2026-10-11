@@ -19,6 +19,7 @@ import { compactCheckReport, compactCompareReport } from '../dist/agent-report.j
 import { parseBatchManifest } from '../dist/batch.js';
 import { inspectCSSWithCDP } from '../dist/css-inspector.js';
 import { selectCSSFailureAliases } from '../dist/css-failure-leads.js';
+import { compareLayoutGeometry, truncatedGeometryAliases } from '../dist/geometry-stability.js';
 import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layout-shifts.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
@@ -53,7 +54,8 @@ Options:
   --css-sources         Include matched CSS hints in inspect or failed check widths
   --layout-shifts       Collect browser-observed loading/hydration shift events
   --ready-selector CSS  Wait for element to exist after page navigation
-  --settle MS           Additional time for client-side rendering (default: 0)
+  --settle MS           Additional fixed delay for rendering (default: 0)
+  --stable-for MS       Require selected DOM geometry unchanged for 100..5000ms
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
   --chrome PATH         Chrome/Chromium executable (autodetected otherwise)
   --no-sandbox          Explicitly disable Chromium sandbox (unsafe on untrusted URLs)
@@ -80,7 +82,7 @@ const OPTIONS = {
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
-  'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
+  'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' },
   out: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
@@ -105,10 +107,14 @@ function int(value, label, min, max) {
 function configFromArgs(a) {
   if (a.locale && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/i.test(a.locale)) throw new Error('--locale must be a valid language tag');
   if (a['color-scheme'] && !['light', 'dark'].includes(a['color-scheme'])) throw new Error('--color-scheme must be light or dark');
+  const timeout = int(a.timeout ?? '15000', '--timeout', 100, 120000);
+  const stableFor = a['stable-for'] === undefined ? 0 : int(a['stable-for'], '--stable-for', 100, 5000);
+  if (stableFor >= timeout) throw new Error('--stable-for must be shorter than --timeout');
   return {
     height: int(a.height ?? '900', '--height', 200, 10000),
-    timeout: int(a.timeout ?? '15000', '--timeout', 100, 120000),
+    timeout,
     settle: int(a.settle ?? '0', '--settle', 0, 30000),
+    stableFor,
     maxSamples: int(a['max-samples'] ?? '200', '--max-samples', 1, 2000),
     readySelector: a['ready-selector'] ?? undefined,
     mobile: Boolean(a.mobile),
@@ -343,6 +349,62 @@ async function serveTarget(raw) {
   return { url: `http://127.0.0.1:${address.port}/${encodeURIComponent(path.basename(source))}`,
     sourcePath: source, close() { server.close(); } };
 }
+/**
+ * Opt-in geometry quiet window. Repeatedly compare with the geometry at the
+ * start of the current quiet period, so slow cumulative drift is not missed.
+ * A bounded snapshot cannot establish that all matching elements are stable.
+ */
+async function waitForStableGeometry(cdp, selectors, initial, stableForMs, timeoutMs) {
+  const sample = () => cdp.eval('(' + captureDOMGeometry.toString() + ')(' + JSON.stringify(selectors) + ')');
+  const rejectPartial = snapshot => {
+    const truncated = truncatedGeometryAliases(snapshot);
+    if (truncated.length) throw new Error(
+      'Geometry stabilization unavailable: selectors have more matches than measured elements: ' +
+      truncated.slice(0, 8).join(', ') + '. Narrow the selectors.'
+    );
+  };
+  rejectPartial(initial);
+  const start = Date.now();
+  let quietStart = start;
+  let reference = initial;
+  let current = initial;
+  let samples = 1;
+  let changesObserved = 0;
+  let largestObservedDeltaPx = 0;
+  let lastChangedAliases = [];
+  const epsilonPx = 0.5;
+  const pollMs = 100;
+  while (Date.now() - quietStart < stableForMs) {
+    if (Date.now() - start >= timeoutMs || samples >= 120) {
+      throw new Error(
+        'DOM geometry did not stabilize for ' + stableForMs + 'ms within ' + timeoutMs +
+        'ms after ' + samples + ' samples. Latest changed selectors: ' +
+        (lastChangedAliases.join(', ') || '(none)')
+      );
+    }
+    await pause(pollMs);
+    const next = await sample();
+    if (!next?.viewport) throw new Error('Browser did not return a layout snapshot while waiting for stability');
+    rejectPartial(next);
+    samples++;
+    const compared = compareLayoutGeometry(reference, next, epsilonPx);
+    if (!compared.stable) {
+      changesObserved++;
+      largestObservedDeltaPx = Math.max(largestObservedDeltaPx, compared.maxDeltaPx);
+      lastChangedAliases = compared.changedAliases.slice(0, 8);
+      quietStart = Date.now();
+      reference = next;
+    }
+    current = next;
+  }
+  current.stabilization = {
+    status: 'stable', stableForMs,
+    waitedMs: Date.now() - start,
+    samples, changesObserved, largestObservedDeltaPx, epsilonPx
+  };
+  return current;
+}
+
 async function measure(cdp, url, width, selectors, config, fixtureHTML, actions = []) {
   // Respect CSS preference variants before navigating, so initial styles and
   // media-query evaluation use the requested environment throughout each sample.
@@ -398,8 +460,9 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
     return true;
   })()`);
   for (const action of actions) await runAction(cdp, action, config.timeout);
-  const snapshot = await cdp.eval(`(${captureDOMGeometry.toString()})(${JSON.stringify(selectors)})`);
+  let snapshot = await cdp.eval(`(${captureDOMGeometry.toString()})(${JSON.stringify(selectors)})`);
   if (!snapshot?.viewport) throw new Error('Browser did not return a layout snapshot');
+  if (config.stableFor) snapshot = await waitForStableGeometry(cdp, selectors, snapshot, config.stableFor, config.timeout);
   if (config.collectShifts) {
     const raw = await cdp.eval('globalThis.__brontoLayoutShiftCollector?.read?.()');
     snapshot.layoutShifts = summarizeLayoutShifts(raw);
@@ -609,6 +672,7 @@ async function check(a) {
   const printable = [
     `Bronto Layout — ${result.url}`,
     ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
+    ...result.reports.filter(r => r.stabilization).map(r => '  ' + r.viewport.width + 'px geometry stable for ' + r.stabilization.stableForMs + 'ms after ' + r.stabilization.waitedMs + 'ms / ' + r.stabilization.samples + ' samples'),
     ...result.reports.filter(r => r.layoutShifts).map(r => '  ' + r.viewport.width + 'px layout stability: ' + (r.layoutShifts.supported ? r.layoutShifts.maxSessionScore.toFixed(6) + ' max-session score' : 'unavailable (' + r.layoutShifts.reason + ')')),
     ...result.reports.map(r => `${r.viewport.width}px (${r.viewport.direction}): ${r.summary.passed} passed, ${r.summary.failed} failed, ${r.summary.skipped} skipped`),
     ...result.reports.flatMap(r => r.findings.filter(f => f.status === 'fail' || (a['fail-on-skip'] && f.code === 'measurement-unavailable')).map(f => `  ${r.viewport.width}px ${f.status.toUpperCase()} ${f.id}: ${f.message}`)),
@@ -655,6 +719,7 @@ async function inspect(a) {
       ])
     ])
   ].join('\n');
+  const geometryWaits = result.snapshots.filter(s => s.stabilization).map(s => '  ' + s.viewport.width + 'px geometry stable for ' + s.stabilization.stableForMs + 'ms after ' + s.stabilization.waitedMs + 'ms');
   const shifts = result.snapshots.filter(s => s.layoutShifts).map(s => '  ' + s.viewport.width + 'px layout stability: ' + (s.layoutShifts.supported ? s.layoutShifts.maxSessionScore.toFixed(6) + ' max-session score, ' + s.layoutShifts.shiftCount + ' non-input shifts' : 'unavailable (' + s.layoutShifts.reason + ')'));
   const sourceLines = result.cssSources?.flatMap(item => [
     item.width + 'px matched CSS source hints:',
@@ -673,7 +738,7 @@ async function inspect(a) {
         : ['    CSS unavailable: ' + el.reason])
     ])
   ]) ?? [];
-  await output(a, result, [text, ...shifts, ...sourceLines].join('\n'));
+  await output(a, result, [text, ...geometryWaits, ...shifts, ...sourceLines].join('\n'));
 }
 async function init(a) {
   const file = path.resolve(a.out ?? 'bronto-layout.json');
@@ -784,7 +849,8 @@ async function batch(a) {
         colorScheme: job.colorScheme ?? a['color-scheme'] ?? null,
         reducedMotion: Boolean(job.reducedMotion ?? a['reduced-motion']),
         mobile: Boolean(job.mobile ?? a.mobile),
-        layoutShifts: Boolean(job.layoutShifts ?? a['layout-shifts']) }))
+        layoutShifts: Boolean(job.layoutShifts ?? a['layout-shifts']),
+        stableFor: job.stableFor ?? a['stable-for'] ?? null }))
     };
     await output(a, data, 'Validated ' + jobs.length + ' batch jobs without opening Chromium');
     return;
@@ -799,6 +865,8 @@ async function batch(a) {
     if (job.scan) argv.push('--scan', job.scan);
     if (job.cssBreakpoints) argv.push('--css-breakpoints');
     if (job.layoutShifts ?? a['layout-shifts']) argv.push('--layout-shifts');
+    const stableFor = job.stableFor ?? a['stable-for'];
+    if (stableFor !== undefined) argv.push('--stable-for', String(stableFor));
     const locale = job.locale ?? a.locale;
     if (locale) argv.push('--locale', locale);
     const scheme = job.colorScheme ?? a['color-scheme'];
@@ -875,6 +943,7 @@ async function main() {
   if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
   if (a['layout-shifts'] && !['inspect', 'check', 'scan', 'compare', 'batch'].includes(a.command)) throw new Error('--layout-shifts applies only to inspect, check, scan, compare and batch');
+  if (a['stable-for'] !== undefined && !['inspect', 'check', 'scan', 'compare', 'batch'].includes(a.command)) throw new Error('--stable-for applies only to inspect, check, scan, compare and batch');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');

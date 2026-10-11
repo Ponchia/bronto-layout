@@ -250,6 +250,44 @@ locale and scripted state. They are not real-user Core Web Vitals or
 proof of layout stability after the observation window. Browser support is
 currently Chromium only; dynamic canvas/WebGL internals are not measured.
 
+## Wait for a stable layout before verifying a page
+
+Client-rendered websites can change element geometry after initial DOM readiness.
+Use the optional `--stable-for MS` flag to sample the declared selectors
+until their positions, dimensions, wrapping fragments, scroll sizes and the
+document's dimensions remain within **0.5 CSS pixels** of the start of a
+continuous quiet window. Unlike a fixed `--settle` delay, the quiet
+window resets when a meaningful geometry change is observed.
+
+~~~sh
+# This fixture expands a card after loading; the CLI waits before checking.
+node bin/bronto-layout.mjs check --spec examples/geometry-stable.json --stable-for 850 --timeout 5000 --json --compact
+
+# Inspect a page after its measured geometry settles.
+node bin/bronto-layout.mjs inspect --url examples/geometry-delayed.html --selector card=#card --width 375 --stable-for 850 --json
+
+# Deliberately animated geometry cannot claim to have settled.
+node bin/bronto-layout.mjs inspect --url examples/geometry-moving.html --selector card=#card --stable-for 700 --timeout 2500 --json
+~~~
+
+The interval must be **100–5000 ms** and shorter than `--timeout`.
+The option works with `check`, `scan`, `inspect`,
+`compare` and `batch`; batch manifests can set
+`stableFor` per job. Responses include `stabilization`
+evidence with the sample count, elapsed time and observed geometry changes.
+
+If the page never settles within the time budget, the CLI returns exit code
+**2** (inspection could not complete) rather than falsely reporting that its
+layout contracts passed. If a selector matches more elements than the bounded
+DOM sampler can fully measure, stabilization also refuses to claim success.
+
+This is a **sampled geometric quiet window**, not a proof that the page will
+stay unchanged indefinitely. It cannot detect purely decorative color changes,
+visual changes inside a canvas/WebGL surface, or movement entirely between
+sampling instants. Use `--layout-shifts` for observed browser layout
+instability and screenshots for visual judgments. No Playwright, additional
+runtime dependency or application instrumentation is required.
+
 ## Architecture
 
 - `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.

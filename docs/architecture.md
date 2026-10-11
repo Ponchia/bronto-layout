@@ -52,6 +52,27 @@ explicit maximum. Ordinary browser geometry remains separate in
 and its configured settle/actions window*; it cannot establish later
 conditions or population-wide Core Web Vitals.
 
+## Geometric stabilization prior to checks
+
+The pure `src/geometry-stability.ts` compares observed DOM geometry by
+composed element path, instead of relying on DOM enumeration order. It tracks
+element identity and visible counts, bounding boxes, client/scroll dimensions,
+wrapping fragments and document/viewport extent; CSS style differences that do
+not change measured geometry are intentionally outside this signal.
+
+The opt-in CLI `--stable-for` flag repeatedly invokes the same
+`captureDOMGeometry` adapter after navigation, browser readiness,
+declared actions and any fixed `--settle` delay. Each sample is
+compared against the **start of the current quiet window** (rather than only
+the previous sample) to detect cumulative subpixel drift. A geometry change
+resets the quiet window; success records the sample count, observation time and
+maximum measured deviation in the snapshot/report.
+
+Incomplete element samples or a timeout produce an explicit CLI runtime
+error, never a passing layout contract. This does not certify the state of a
+page outside its finite sampled interval, nor does it infer design intent.
+There is no browser-automation framework dependency.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.

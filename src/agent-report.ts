@@ -75,6 +75,8 @@ export function compactCheckReport(result: CheckData) {
     url: result.url,
     summary: result.summary,
     sampledWidths: result.reports.map(r => r.viewport.width),
+    ...(result.reports.some(r => r.stabilization) ? { stabilization: result.reports
+      .filter(r => r.stabilization).map(r => ({ width: r.viewport.width, ...r.stabilization })) } : {}),
     ...(result.reports.some(r => r.layoutShifts) ? { layoutShifts: compactShifts(result.reports) } : {}),
     failures: failures.values,
     omittedFailures: failures.omitted,
@@ -102,6 +104,12 @@ export function compactCompareReport(result: LayoutComparison & {
     candidateUrl: result.candidateUrl,
     summary: result.summary,
     sampledWidths: result.candidate.map(r => r.viewport.width),
+    ...(result.candidate.some(r => r.stabilization) ? { stabilization: {
+      baseline: result.baseline.filter(r => r.stabilization)
+        .map(r => ({ width: r.viewport.width, ...r.stabilization })),
+      candidate: result.candidate.filter(r => r.stabilization)
+        .map(r => ({ width: r.viewport.width, ...r.stabilization }))
+    } } : {}),
     ...(result.candidate.some(r => r.layoutShifts) ? { layoutShifts: {
       baseline: compactShifts(result.baseline), candidate: compactShifts(result.candidate) } } : {}),
     changes: changes.values,

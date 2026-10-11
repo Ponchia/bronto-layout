@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "hydrated-component",
+      "spec": "geometry-stable.json",
+      "stableFor": 850,
+      "widths": [375]
+    }
+  ]
+}

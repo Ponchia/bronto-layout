@@ -23,3 +23,6 @@ export type { CSSFailureSourceLead } from './css-failure-leads.js';
 
 export { summarizeLayoutShifts, installLayoutShiftCollector } from './layout-shifts.js';
 export type { LayoutShiftSummary, ShiftEntry } from './layout-shifts.js';
+
+export { compareLayoutGeometry, truncatedGeometryAliases } from './geometry-stability.js';
+export type { GeometryDifference, GeometryStabilization } from './geometry-stability.js';
