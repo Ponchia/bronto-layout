@@ -132,6 +132,49 @@ https://www.w3.org/WAI/WCAG22/Understanding/reflow.html.
 For durable intentionality and exact relationships, use the existing
 `check --spec` layout contracts instead.
 
+## Inspect CSS container queries (opt-in)
+
+Modern components can switch layout based on the size of an ancestor CSS
+query container, not necessarily a window `@media` rule.
+The browser-native CLI can now inspect the **declared** container rules
+and actual measured named/sized container elements:
+
+~~~sh
+bronto-layout inspect --url examples/container-query.html --widths 375,768   --selector child=#child --container-queries --json
+~~~
+
+The `containerQueries` output gives the observed stylesheet
+accessibility, `@container` condition text and names, bounded candidate
+pixel thresholds, and computed container name/type/size at each sampled
+viewport. The fixture's child changes width when its parent container
+grows beyond a 400px condition. Browser-resolved source URLs omit query
+strings and credentials.
+
+This **does not automatically evaluate whether a particular `@container`
+rule matches a selected element**, or convert a 400px *container* threshold
+into a 400px *viewport* breakpoint. Rules nested under `@media` or
+`@supports` are inspected, but their applicability is not inferred
+from rule presence. CSSOM-access-inaccessible stylesheets and bounded
+traversal limits are explicitly reported; a zero detected rule count
+cannot prove a page uses no container queries if stylesheets are inaccessible.
+
+The adapter also inspects accessible style sheets in **open Shadow DOM**
+and adopted stylesheets used by Web Components. Closed roots and inaccessible
+cross-origin stylesheets are outside its evidence coverage.
+
+It supports older `CSSContainerRule.containerQuery` and the
+newer multi-condition `CSSContainerRule.conditions` where available.
+Absolute CSS `px` conditions include a numeric pixel candidate;
+relative `rem` and `em` conditions preserve their declared
+units instead of inventing a viewport pixel equivalent. Per the
+[CSS Conditional Rules specification](https://www.w3.org/TR/css-contain-3/),
+relative units in container queries are resolved using the queried
+container's relevant computed values, not a generic viewport mapping.
+No application source changes, npm runtime dependencies or MCP are required.
+
+See [MDN CSSContainerRule](https://developer.mozilla.org/en-US/docs/Web/API/CSSContainerRule)
+and [Chrome's DevTools container-query inspector](https://developer.chrome.com/docs/devtools/css/container-queries/).
+
 ## Browser CSS preference states
 
 The CLI can verify appearance-dependent layout rules without requiring source

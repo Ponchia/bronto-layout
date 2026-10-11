@@ -1,0 +1,23 @@
+* { box-sizing: border-box }
+body { margin: 0; padding: 20px; font: 16px system-ui }
+.card-shell {
+  container-type: inline-size;
+  container-name: gallery;
+  width: min(100%, 620px);
+  min-height: 210px;
+  background: #d5dde7;
+}
+.child { width: 80px; height: 40px; background: #bbc5cf }
+@container gallery (min-width: 400px) {
+  .child { width: 180px }
+}
+@media (min-width: 700px) {
+  @container gallery (width >= 500px) {
+    .child { height: 90px }
+  }
+}
+
+/* Relative units are declared but not resolved to guessed CSS pixels. */
+@container gallery (inline-size <= 30rem) {
+  .tag { font-weight: 600; }
+}

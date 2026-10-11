@@ -66,6 +66,13 @@ benchmark nor our small fixtures justify broad superiority claims.
 
 ### P2 — Container-aware responsive analysis
 
+Initial inventory is now available as opt-in
+`inspect --container-queries` with CSSOM declarations and computed
+container boxes. **Not implemented yet:** automatically search parent-container
+size thresholds across application states or verify actual rule applicability.
+
+
+
 Observe container query rules, named containers and actual container sizes
 while varying viewport, content and application state. Locate meaningful
 thresholds empirically; an estimated boundary is a sampling lead, not a

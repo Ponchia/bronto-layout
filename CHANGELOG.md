@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in browser-observed CSS container-query inventory, showing computed container sizes and declared pixel threshold candidates without treating them as viewport breakpoints.
+
 - Add a manually triggered read-only four-site zero-contract audit with preserved JSON and CLI logs.
 - Add a 13-case hand-labeled zero-contract audit benchmark, per-detector confusion matrices and a Node 24 CI regression gate.
 
