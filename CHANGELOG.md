@@ -29,3 +29,5 @@
 ## 0.1.0 — 2026-10-11 (prototype)
 
 - Pure geometry and layout-contract core, Chromium CDP runner, JSON reporting, multiple viewport widths.
+
+- Add optional CSS media-query breakpoint scanning to CLI `check`, `scan`, and `compare`.

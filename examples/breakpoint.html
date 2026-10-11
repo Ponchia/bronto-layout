@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;font:16px system-ui}
+.panel{width:100%;min-height:64px;background:#d8e4f3}
+/* Defect lives entirely between the coarse 600px and 900px samples. */
+@media (min-width:701px) and (max-width:799px){.panel{width:calc(100vw + 60px)}}
+</style>
+</head><body><main><h1>Responsive breakpoint probe</h1><div class="panel">Compare at 600, 900 and within the media interval.</div></main></body></html>

@@ -14,6 +14,7 @@ import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
 import { toSarif } from '../dist/sarif.js';
 import { sweepLayout, widthRange } from '../dist/sweep.js';
+import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/breakpoints.js';
 
 const HELP = `Bronto Layout — browser-native spatial contracts
 
@@ -36,6 +37,7 @@ Options:
   --locale TAG          Emulate locale and Accept-Language (e.g. ar, it-IT)
   --scan MIN:MAX:STEP   Sample a responsive width range (maximum 200 coarse samples)
   --refine              Bisect observed state changes to one-pixel intervals
+  --css-breakpoints     Add CSS media-query boundary widths to --scan
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect; can be repeated
   --ready-selector CSS  Wait for element to exist after page navigation
@@ -62,7 +64,7 @@ No account, network service, hosted subscription, Playwright, or Puppeteer requi
 const OPTIONS = {
   spec: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' }, scan: { type: 'string' },
-  refine: { type: 'boolean' }, 'max-samples': { type: 'string' },
+  refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
   selector: { type: 'string', multiple: true },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
@@ -413,6 +415,30 @@ async function withBrowser(url, a, execute) {
 function hasUnmeasuredRules(reports) {
   return reports.some(report => report.findings.some(f => f.status === 'skip' && f.code === 'measurement-unavailable'));
 }
+
+/** Discover media-query thresholds in the same CDP session used for measuring.
+ * Inspect both ends of the scan: apps may load different stylesheets by width.
+ * Dynamic JS- or container-query breakpoints are outside this CSS-only feature.
+ */
+async function discoverCSSBreakpointWidths(cdp, url, coarseWidths, config, fixture, actions = []) {
+  const range = [...coarseWidths].sort((a, b) => a - b);
+  const min = range[0], max = range.at(-1);
+  await cdp.send('DOM.enable');
+  await cdp.send('CSS.enable');
+  const sources = [];
+  for (const width of new Set([min, max])) {
+    await measure(cdp, url, width, {}, config, fixture, actions);
+    let data;
+    try { data = await cdp.send('CSS.getMediaQueries'); }
+    catch (error) { throw new Error('--css-breakpoints requires CSS.getMediaQueries: ' + error.message); }
+    sources.push(mediaBreakpointSamples(data.medias ?? [], min, max));
+  }
+  const discovered = combineCSSBreakpointSamples(coarseWidths, ...sources);
+  if (discovered.widths.length > config.maxSamples) {
+    throw new Error(`CSS breakpoint sweep has ${discovered.widths.length} widths, exceeding --max-samples ${config.maxSamples}; shorten --scan range`);
+  }
+  return discovered;
+}
 function summary(reports) {
   return reports.reduce((total, report) => ({
     passed: total.passed + report.summary.passed, failed: total.failed + report.summary.failed,
@@ -495,8 +521,12 @@ async function check(a) {
   const widths = getWidths(a, spec);
   if (!widths.every(validWidth)) throw new Error('Invalid viewport widths');
   const result = await withBrowser(resolveURL(a, spec), a, async (cdp, url, config, fixture, publicURL) => {
+    const cssBreakpoints = a['css-breakpoints']
+      ? await discoverCSSBreakpointWidths(cdp, url, widths, config, fixture, spec.actions)
+      : undefined;
+    const sampledWidths = cssBreakpoints?.widths ?? widths;
     const evidence = [];
-    const checked = await sweepLayout(widths, async width => {
+    const checked = await sweepLayout(sampledWidths, async width => {
       const snapshot = await measure(cdp, url, width, spec.selectors, config, fixture, spec.actions);
       const report = evaluateLayout(snapshot, spec.rules);
       if (report.summary.failed && evidence.length < 12 && a['evidence-dir']) {
@@ -506,10 +536,12 @@ async function check(a) {
       return report;
     }, Boolean(a.refine), config.maxSamples);
     const total = summary(checked.reports);
-    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions, ...(a['evidence-dir'] ? { evidence } : {}) };
+    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions,
+      ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}), ...(a['evidence-dir'] ? { evidence } : {}) };
   });
   const printable = [
     `Bronto Layout — ${result.url}`,
+    ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
     ...result.reports.map(r => `${r.viewport.width}px (${r.viewport.direction}): ${r.summary.passed} passed, ${r.summary.failed} failed, ${r.summary.skipped} skipped`),
     ...result.reports.flatMap(r => r.findings.filter(f => f.status === 'fail' || (a['fail-on-skip'] && f.code === 'measurement-unavailable')).map(f => `  ${r.viewport.width}px ${f.status.toUpperCase()} ${f.id}: ${f.message}`)),
     ...(result.transitions.length ? ['Observed transitions:', ...result.transitions.map(t => `  ${t.ruleId}: ${t.from} → ${t.to}, ${t.previousWidth}–${t.width}px (${t.precision})`)] : []),
@@ -578,12 +610,23 @@ async function compare(a) {
     const baselineTarget = await serveTarget(baselinePath);
     const baselineFixture = process.env.BRONTO_TEST_INLINE_FIXTURE === '1' && baselineTarget.sourcePath ? await readFile(baselineTarget.sourcePath, 'utf8') : undefined;
     try {
+      // Compare CSS breakpoints from BOTH revisions: a newly introduced
+      // breakpoint may be the source of a regression.
+      const cssBreakpoints = a['css-breakpoints']
+        ? combineCSSBreakpointSamples(widths,
+          await discoverCSSBreakpointWidths(cdp, baselineTarget.url, widths, config, baselineFixture, spec.actions),
+          await discoverCSSBreakpointWidths(cdp, candidateUrl, widths, config, fixture, spec.actions))
+        : undefined;
+      if (cssBreakpoints && cssBreakpoints.widths.length > config.maxSamples) {
+        throw new Error(`CSS breakpoint comparison has ${cssBreakpoints.widths.length} widths, exceeding --max-samples ${config.maxSamples}`);
+      }
+      const sampledWidths = cssBreakpoints?.widths ?? widths;
       // A shared browser measures both revisions with exactly the same viewport and browser engine.
       // Each sample fully navigates again to avoid stale page geometry between revisions.
       const baseSnapshots = new Map();
       const candidateSnapshots = new Map();
       const evidence = [];
-      const sweep = await sweepLayout(widths, async width => {
+      const sweep = await sweepLayout(sampledWidths, async width => {
         const baseline = evaluateLayout(await measure(cdp, baselineTarget.url, width, spec.selectors, config, baselineFixture, spec.actions), spec.rules);
         const candidateGeometry = await measure(cdp, candidateUrl, width, spec.selectors, config, fixture, spec.actions);
         const candidate = evaluateLayout(candidateGeometry, spec.rules);
@@ -610,12 +653,14 @@ async function compare(a) {
       const selectedWidths = sweep.reports.map(r => r.viewport.width);
       const comparison = compareReports(baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url, publicURL,
         selectedWidths.map(width => baseSnapshots.get(width)), selectedWidths.map(width => candidateSnapshots.get(width)));
-      return a['evidence-dir'] ? { ...comparison, evidence } : comparison;
+      return { ...comparison, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
+        ...(a['evidence-dir'] ? { evidence } : {}) };
     } finally { baselineTarget.close(); }
   });
   const important = result.changes.filter(c => c.kind !== 'unchanged');
   const printable = [
     `Bronto Layout comparison — ${result.baselineUrl} → ${result.candidateUrl}`,
+    ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
     ...important.map(c => `  ${c.width}px ${c.kind.toUpperCase()} ${c.ruleId}: ${c.baselineStatus} → ${c.candidateStatus}${c.errorDelta === undefined ? '' : `, error Δ ${c.errorDelta.toFixed(2)}${c.errorUnit}`}`),
     `Total: ${result.summary.regressions} regressions, ${result.summary.improvements} improvements, ${result.summary.unverified} unverified, ${result.summary.candidateFailures} candidate violations remaining`
   ].join('\n');
@@ -635,6 +680,8 @@ async function main() {
   if (a.help) { console.log(HELP); return; }
   if (a.version) { console.log('Bronto Layout 0.3.0'); return; }
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
+  if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
+  if (a['css-breakpoints'] && !['check', 'scan', 'compare'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   configFromArgs(a);
   if (a.command === 'init') await init(a);
   else if (a.command === 'validate') await validate(a);

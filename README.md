@@ -149,3 +149,16 @@ node bin/bronto-layout.mjs validate --spec examples/layout.json
 Use uniform-gaps to compare spacing across many CSS-matched items (including wrapped rows), without naming each item. Items are grouped into visual lanes; the rule fails on inconsistent spacing, and skips when evidence is insufficient or truncated. Set laneTolerance for near-aligned rows. Example: examples/gallery.json.
 
 Chrome sandboxing is never silently disabled by the CLI. Use --no-sandbox only in a controlled, trusted environment, not for arbitrary websites.
+
+
+### Scan at CSS media-query breakpoints
+
+A coarse viewport scan can miss a defect that exists only inside a narrow responsive range. The optional `--css-breakpoints` flag asks Chromium for CSS media-query thresholds and includes integer viewport widths immediately below, at, and above each discovered threshold:
+
+```sh
+node bin/bronto-layout.mjs scan --spec examples/breakpoint-contract.json --scan 600:900:300 --css-breakpoints --json
+```
+
+That fixture passes at the two coarse widths (600px and 900px), but fails inside the CSS media-query interval of 701–799px. The JSON output records `cssBreakpointScan.thresholds` and `cssBreakpointScan.addedWidths` so an agent can reproduce the failure precisely.
+
+`compare --css-breakpoints` discovers breakpoints in both the baseline and candidate pages and checks their combined sample widths. This is **sampling**, not a proof of correctness at every intermediate width. It does not discover JavaScript-only breakpoints, container queries, embedded cross-origin frames, or CSS unloaded at both probe widths. It requires `--scan`; narrow the range if there are too many thresholds.

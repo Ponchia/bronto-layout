@@ -5,3 +5,4 @@ export * from './contract.js';
 export * from './sweep.js';
 export * from './compare.js';
 export * from './sarif.js';
+export * from './breakpoints.js';
