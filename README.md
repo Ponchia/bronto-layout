@@ -164,6 +164,11 @@ node bin/bronto-layout.mjs check --spec examples/sense6-ar.json --locale ar
 node bin/bronto-layout.mjs check --spec examples/sense6-learn.json
 ```
 
+On GitHub, the manually triggered **Live-site CLI smoke** workflow can
+optionally execute the complete first-party batch manifest using its
+`batch` input; the older individual-route checks remain available.
+Aggregate batch reports and logs are retained as workflow artifacts.
+
 On GitHub, the manually triggered **Live-site CLI smoke** workflow checks these
 contracts and preserves JSON reports and logs as artifacts. Its optional
 css_breakpoints workflow-dispatch input additionally runs media-query-aware

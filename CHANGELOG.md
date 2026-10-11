@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add opt-in batch execution for the live-site smoke workflow and create report parent directories before writing successful CLI results.
+
+
 - Add declarative sequential CLI batches with per-job locale/viewport state, offline dry-run previews and aggregate JSON/exit codes.
 
 
