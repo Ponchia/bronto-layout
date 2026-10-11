@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font:16px system-ui;margin:0;padding:20px}.reference,.subject{width:100px;height:45px;background:#ddd}.subject{background:#badaef}button{margin:0 0 12px}</style>
+</head><body>
+<button id="toggle" onclick="document.querySelector('.subject').style.marginLeft='28px'">Change layout</button>
+<input id="amount" aria-label="Offset" value="0" oninput="document.querySelector('.subject').style.marginLeft=this.value+'px'">
+<div class="reference">Reference</div><div class="subject">Subject</div>
+</body></html>

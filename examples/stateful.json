@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "url": "stateful.html",
+  "widths": [375, 1280],
+  "actions": [
+    { "type": "wait-for", "selector": "#toggle" },
+    { "type": "click", "selector": "#toggle" }
+  ],
+  "selectors": { "reference": ".reference", "subject": ".subject" },
+  "rules": [{ "id": "horizontal-alignment", "type": "align-edge", "a": "reference", "b": "subject", "edgeA": "left", "tolerance": 1 }]
+}

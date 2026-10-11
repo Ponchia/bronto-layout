@@ -1,0 +1,59 @@
+{
+  "url": "healthy.html",
+  "widths": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "shell": ".shell",
+    "heading": ".heading",
+    "gallery": ".gallery",
+    "first": ".card:nth-child(1)",
+    "second": ".card:nth-child(2)",
+    "third": ".card:nth-child(3)",
+    "photo": ".photo"
+  },
+  "rules": [
+    {
+      "id": "no-overflow",
+      "type": "document-overflow",
+      "tolerance": 1
+    },
+    {
+      "id": "center-main",
+      "type": "centered",
+      "element": "shell",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "align-gallery",
+      "type": "align-edge",
+      "a": "heading",
+      "b": "gallery",
+      "edgeA": "right",
+      "tolerance": 2
+    },
+    {
+      "id": "equal-card-gaps",
+      "type": "equal-gaps",
+      "elements": [
+        "first",
+        "second",
+        "third"
+      ],
+      "axis": "x",
+      "minWidth": 768,
+      "tolerance": 1
+    },
+    {
+      "id": "keep-photo-ratio",
+      "type": "image-aspect",
+      "element": "photo",
+      "tolerancePercent": 1
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "url": "https://sense6.net/en/",
+  "widths": [320, 375, 768, 1280],
+  "selectors": { "body": "body" },
+  "rules": [
+    { "id": "no-horizontal-overflow", "type": "document-overflow", "tolerance": 1 },
+    { "id": "body-present", "type": "selector-count", "element": "body", "exactly": 1 }
+  ]
+}

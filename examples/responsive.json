@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "url": "responsive.html",
+  "selectors": {"reference": ".reference", "subject": ".subject"},
+  "rules": [{"id": "left-edge", "type": "align-edge", "a": "reference", "b": "subject", "edgeA": "left", "tolerance": 1}]
+}

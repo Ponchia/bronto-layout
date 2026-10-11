@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0;padding:20px;font:16px system-ui}.outside{width:130px;height:50px}</style>
+</head><body><div class="outside">Outside</div><bronto-card id="card-a"></bronto-card><bronto-card id="card-b"></bronto-card>
+<script>
+class BrontoCard extends HTMLElement {
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    const root = this.attachShadow({mode:'open'});
+    root.innerHTML = '<style>.inner{box-sizing:border-box;width:130px;height:50px;background:#dbeafe}span{display:inline}</style><div class="inner">Hello <span>shadow</span> DOM</div>';
+  }
+}
+customElements.define('bronto-card', BrontoCard);
+</script></body></html>

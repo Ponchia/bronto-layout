@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "url": "https://brontolotto.observer/",
+  "widths": [320, 375, 768, 1280],
+  "selectors": { "site": ".site", "projects": ".project-list", "header": ".site-header" },
+  "rules": [
+    { "id": "no-horizontal-overflow", "type": "document-overflow", "tolerance": 1 },
+    { "id": "site-is-centered", "type": "centered", "element": "site", "in": "viewport", "axis": "x", "tolerance": 2 },
+    { "id": "selected-projects-present", "type": "selector-count", "element": "projects", "exactly": 1 },
+    { "id": "header-within-site", "type": "contained", "element": "header", "in": "site", "tolerance": 1 }
+  ]
+}

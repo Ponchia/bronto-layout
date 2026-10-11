@@ -1,0 +1,120 @@
+# Bronto Layout — CLI-first layout contracts
+
+**A tiny, MIT-licensed foundation for semantic layout contracts.** This is a tested **v0.3 alpha**, not yet a production-ready tool. It is not yet published to npm.
+
+The thesis: a layout should be testable by the *relationships between elements*, rather than only by image-diff screenshots. A coding agent and a developer should receive the same precise, deterministic diagnosis. It must work on an ordinary site without using BrontoUI, React, Playwright, or Puppeteer.
+
+## What works today
+
+- Pure TypeScript constraint engine: align edges, center, containment, non-overlap, equal gaps, same-size, size-range, horizontal page overflow, and intrinsic image aspect ratio (with `object-fit` awareness).
+- Logical `inline-start` / `inline-end` edges that respect document RTL direction.
+- Browser-native DOM geometry extraction (`getBoundingClientRect`, `getClientRects`), with named CSS selectors and open Shadow DOM chains (`host >>> child`). No dependency on a framework.
+- Minimal Node 22+ CLI that launches installed Chromium/Chrome (including existing browser caches) using the native Chrome DevTools Protocol, **without Playwright or Puppeteer**.
+- Versioned contracts, width-specific rules, multi-viewport checks, JSON and SARIF reports, optional annotated PNG evidence, comparison of baseline and candidate pages, and nonzero exit status for CI.
+- Tests for pure geometry, browser states, RTL, responsive breakpoints, open Shadow DOM, and deliberate layout violations.
+
+TypeScript is the only development dependency. The CLI has no runtime third-party dependencies and the included `dist/` lets the examples run without compilation.
+
+## Quick start
+
+Requirements: Node.js 22+, Chrome or Chromium. In a source checkout, build once using `npm install` (which compiles the TypeScript automatically), or use a packaged copy with `dist/` included:
+
+```sh
+node bin/bronto-layout.mjs --spec examples/layout.json
+node bin/bronto-layout.mjs --spec examples/layout.json --url examples/broken.html
+```
+
+The first command should exit 0. The second should report violations and exit 1.
+
+To write machine-readable output for an AI agent or CI:
+
+```sh
+node bin/bronto-layout.mjs --spec examples/layout.json --json
+node bin/bronto-layout.mjs --spec examples/layout.json --report layout-report.json
+```
+
+To target a website with that site's own valid selectors, place rules in a new spec, then run:
+
+```sh
+node bin/bronto-layout.mjs --spec my-layout.json --url http://localhost:5173/ --widths 320,375,768,1280
+```
+
+In restricted Linux test environments, Chromium may refuse to start because user namespaces are disabled. Use `--no-sandbox` only for trusted, isolated testing; it disables an important browser security boundary.
+
+The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
+
+## Layout contract example
+
+`examples/layout.json` defines *observed relationships*, not CSS recipes:
+
+```json
+{
+  "widths": [320, 375, 768, 1280],
+  "selectors": {
+    "heading": ".heading",
+    "gallery": ".gallery",
+    "first": ".card:nth-child(1)",
+    "second": ".card:nth-child(2)",
+    "third": ".card:nth-child(3)"
+  },
+  "rules": [
+    { "id": "no-overflow", "type": "document-overflow", "tolerance": 1 },
+    { "id": "align-gallery", "type": "align-edge", "a": "heading", "b": "gallery", "edgeA": "right", "tolerance": 2 },
+    { "id": "equal-card-gaps", "type": "equal-gaps", "elements": ["first", "second", "third"], "axis": "x", "minWidth": 768 }
+  ]
+}
+```
+
+The result returns `pass`, `fail`, or `skip` for every rule; missing elements are failures rather than silently skipped tests. Each geometry failure includes the measured deviation, tolerance, and identified browser elements.
+
+## Architecture
+
+- `src/core.ts` — pure, portable TypeScript with no DOM, Node or rendering dependency. Any browser, test runner or game UI adapter can supply its rectangles.
+- `src/browser.ts` — standalone DOM measurement adapter; callable inside a normal browser tab.
+- `bin/bronto-layout.mjs` — optional Node runner using a local installed Chrome/Chromium via CDP. No browser automation framework dependency.
+- `examples/` — controlled layouts for verifying correctness and false-positive behavior.
+- `tests/` — pure geometry tests and an end-to-end browser test.
+
+No usage analytics, account, hosted service, external API or paid features.
+
+## Important limitations
+
+1. The CLI currently operates against Chrome/Chromium. The TypeScript core does not depend on it, but **cross-browser verification is future work**.
+2. The DOM adapter handles ordinary elements. Closed shadow roots, cross-origin frames, and contents rendered within canvas/WebGL require additional interfaces or host-provided geometry.
+3. A browser extension, permanent visual inspector, MCP tools, CSS source attribution, WebKit/Firefox automation, and reliable zero-config discovery **are not implemented**. Basic breakpoint refinement and locale/state setup already work.
+4. It checks *explicit user intent*. It does not claim that all reported overlaps are bugs, that it understands art direction, or that its heuristics outperform competitors.
+5. Images rendered with `object-fit: cover/contain/scale-down` preserve content proportions inside a potentially differently shaped image box; the prototype skips naive outer-box aspect ratio diagnostics for those cases.
+6. When security policy prevents even local navigation, the CLI falls back to injecting the self-contained HTML fixture. In that restricted case, external stylesheets and assets are not faithfully loaded. For real sites, use an ordinary local HTTP server/URL.
+7. This is a v0.x alpha; it has not yet been published to npm. Production-site verification with the CLI is still in progress.
+
+## What would justify a standalone Bronto Layout project?
+
+We should validate more than the ability to measure rectangles. The differentiators should be:
+
+- **Durable layout intent:** semantically meaningful, versioned contracts that remain useful across viewport sizes and content changes.
+- **Actionable diagnostics:** exact deviations, source-level clues where safe, visible overlays and before/after verification without unexplained AI guesses.
+- **Adaptive responsive coverage:** identify problematic width intervals and breakpoint boundaries rather than checking only two fixed screenshots.
+- **Accessible to agents *and* humans:** stable JSON, CLI/CI, in-browser overlay, later an optional MCP layer.
+- **Trustworthy results:** low false-positive rate, explicit intentionality/suppression rules, bounded sampling, reproducible evidence.
+
+A good first validation would use the existing tests of Sense6, plus the relatively simple personal site, followed by the intentionally intricate image layouts in Chiara's portfolio. Spatial would need a dedicated geometry adapter for its infinite canvas and should retain its own native canvas-lint ownership.
+
+**Prior art:** Galen (declarative responsive contracts), Snug (agent-oriented layout diagnostics), Responsively (open-source synchronized responsive browser + MCP), Polypane (extensive commercial browser debugging). Bronto Layout should not duplicate them just to put another name on the same functionality.
+
+## License
+
+MIT. Copyright notice and full terms in `LICENSE`.
+
+## Additional CLI commands (v0.3)
+
+```sh
+node bin/bronto-layout.mjs --help
+node bin/bronto-layout.mjs inspect --url examples/shadow.html --selector "card=#card-a >>> .inner" --json
+node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine
+node bin/bronto-layout.mjs compare --spec examples/layout.json --baseline examples/healthy.html --url examples/broken.html --json
+node bin/bronto-layout.mjs validate --spec examples/layout.json
+```
+
+`same-size` compares image or control dimensions; `size-range` checks an element's width or height against optional minimum and maximum values. Use `--fail-on-skip` to fail when a measurement is unavailable, without treating an intentionally out-of-range rule as an error. Large selectors return exact visible-match counts but bound detailed geometry to 250 elements.
+
+[Architecture and limits](docs/architecture.md) · [Validation notes](docs/validation.md) · [Contributing](CONTRIBUTING.md)

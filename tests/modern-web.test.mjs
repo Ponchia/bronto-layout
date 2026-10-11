@@ -1,0 +1,90 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { evaluateLayout } from '../dist/core.js';
+import { parseContract } from '../dist/contract.js';
+
+const cwd = path.resolve(import.meta.dirname, '..');
+const cli = path.join(cwd, 'bin/bronto-layout.mjs');
+const run = (args) => spawnSync(process.execPath, [cli, ...args], {
+  cwd, encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
+  env: { ...process.env, BRONTO_TEST_INLINE_FIXTURE: '1' }
+});
+function skipIfNoChrome(t, result) {
+  if (result.error?.code === 'ENOENT' || /Cannot find Chrome\/Chromium/.test(result.stderr || '')) {
+    t.skip('Chromium unavailable'); return true;
+  }
+  return false;
+}
+const r = (x, y, width, height) => ({ x, y, width, height });
+function fixture() {
+  return {
+    viewport: { width: 400, height: 800, direction: 'ltr' },
+    document: { width: 400, height: 800 },
+    selectors: {
+      a: [{ tag: 'img', path: '#a', rect: r(10, 10, 90, 60) }],
+      b: [{ tag: 'img', path: '#b', rect: r(120, 10, 90, 80) }],
+      many: [{ tag: 'div', path: '#one', rect: r(0, 0, 10, 10) }]
+    },
+    selectorCounts: { a: 1, b: 1, many: 400 }
+  };
+}
+test('same-size and size-range are deterministic and report actual dimensions', () => {
+  const snapshot = fixture();
+  const report = evaluateLayout(snapshot, [
+    { id: 'width-match', type: 'same-size', a: 'a', b: 'b', axis: 'width' },
+    { id: 'height-match', type: 'same-size', a: 'a', b: 'b', axis: 'height' },
+    { id: 'button-min-width', type: 'size-range', element: 'a', axis: 'width', min: 100 }
+  ]);
+  assert.deepEqual(report.findings.map(x => x.status), ['pass', 'fail', 'fail']);
+  assert.deepEqual(report.findings.map(x => x.deviation), [0, 20, 10]);
+  assert.deepEqual(report.findings[1].paths, ['#a', '#b']);
+});
+test('selector-count uses exact count even when geometry extraction is bounded', () => {
+  const report = evaluateLayout(fixture(), [{ id: 'many-elements', type: 'selector-count', element: 'many', exactly: 400 }]);
+  assert.equal(report.summary.passed, 1);
+  assert.equal(report.findings[0].measured, 400);
+});
+test('strict validation rejects malformed or ambiguous dimension rules', () => {
+  const base = {
+    schemaVersion: 1, selectors: { a: '#a', b: '#b' },
+    rules: [{ id: 'size', type: 'same-size', a: 'a', b: 'b', axis: 'width' }]
+  };
+  assert.equal(parseContract(base).rules.length, 1);
+  assert.throws(() => parseContract({ ...base, rules: [{ ...base.rules[0], axis: 'pixels' }] }), /axis must be width/);
+  assert.throws(() => parseContract({ ...base, rules: [{ id: 'range', type: 'size-range', element: 'a', axis: 'height' }] }), /specify min or max/);
+  assert.throws(() => parseContract({ ...base, rules: [{ id: 'range', type: 'size-range', element: 'a', axis: 'width', min: 200, max: 100 }] }), /min exceeds max/);
+});
+test('CLI checks real open shadow roots and returns composed DOM paths', t => {
+  const result = run(['check', '--spec', 'examples/shadow.json', '--json']);
+  if (skipIfNoChrome(t, result)) return;
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.summary.passed, 6);
+  assert.equal(data.reports[0].findings.find(x => x.id === 'all-card-elements').measured, 2);
+  assert.match(data.reports[0].findings[0].paths[1], /#card-a >>>/);
+});
+test('CLI reports exact and bounded selector matches on a large document', t => {
+  const result = run(['inspect', '--url', 'examples/large-dom.html', '--width', '375', '--selector', 'items=.item', '--json']);
+  if (skipIfNoChrome(t, result)) return;
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const snapshot = JSON.parse(result.stdout).snapshots[0];
+  assert.equal(snapshot.selectorCounts.items, 315);
+  assert.equal(snapshot.selectors.items.length, 250);
+});
+test('CLI fails fast on malformed deep selector rather than claiming no match', t => {
+  const result = run(['inspect', '--url', 'examples/shadow.html', '--selector', 'bad=#card-a >>>', '--json']);
+  if (skipIfNoChrome(t, result)) return;
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Invalid deep selector/);
+  assert.equal(result.stdout.trim(), '');
+});
+test('--fail-on-skip does not fail intentionally out-of-range rules', t => {
+  const result = run(['check', '--spec', 'examples/layout.json', '--widths', '320,375', '--fail-on-skip', '--json']);
+  if (skipIfNoChrome(t, result)) return;
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.summary.skipped, 2);
+  assert.equal(report.reports[0].findings.find(f => f.id === 'equal-card-gaps').code, 'outside-width-range');
+});

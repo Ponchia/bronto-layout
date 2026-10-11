@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "url": "shadow.html",
+  "widths": [375, 768],
+  "selectors": {
+    "outside": ".outside",
+    "card": "#card-a >>> .inner",
+    "cards": "bronto-card >>> .inner",
+    "word": "#card-b >>> span"
+  },
+  "rules": [
+    {"id":"same-width", "type":"same-size", "a":"outside", "b":"card", "axis":"width", "tolerance":1},
+    {"id":"all-card-elements", "type":"selector-count", "element":"cards", "exactly":2},
+    {"id":"card-inner-is-visible", "type":"size-range", "element":"word", "axis":"width", "min":25}
+  ]
+}

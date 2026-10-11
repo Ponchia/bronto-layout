@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Node ${{ matrix.node }} + Chromium
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Check browser availability
+        run: |
+          command -v google-chrome || command -v chromium
+      - name: Typecheck, build and run tests
+        env:
+          BRONTO_REQUIRE_CHROME: '1'
+          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_TEST_INLINE_FIXTURE: '1'
+        run: npm run check
+      - name: Validate CLI packaging
+        run: |
+          node bin/bronto-layout.mjs --version
+          node bin/bronto-layout.mjs validate --spec examples/shadow.json
+          npm pack --dry-run --json > /tmp/bronto-package-inspection.json
