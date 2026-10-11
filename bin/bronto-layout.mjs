@@ -36,6 +36,8 @@ Options:
   --height N            Viewport height (default: 900)
   --mobile              Emulate a touch/mobile browser viewport
   --locale TAG          Emulate locale and Accept-Language (e.g. ar, it-IT)
+  --color-scheme MODE   Browser color preference: light or dark
+  --reduced-motion     Emulate prefers-reduced-motion: reduce
   --scan MIN:MAX:STEP   Sample a responsive width range (maximum 200 coarse samples)
   --refine              Bisect observed state changes to one-pixel intervals
   --css-breakpoints     Add CSS media-query boundary widths to --scan
@@ -65,7 +67,8 @@ No account, network service, hosted subscription, Playwright, or Puppeteer requi
 
 const OPTIONS = {
   spec: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
-  width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' }, scan: { type: 'string' },
+  width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
+  'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
   selector: { type: 'string', multiple: true },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, timeout: { type: 'string' },
@@ -92,6 +95,7 @@ function int(value, label, min, max) {
 }
 function configFromArgs(a) {
   if (a.locale && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/i.test(a.locale)) throw new Error('--locale must be a valid language tag');
+  if (a['color-scheme'] && !['light', 'dark'].includes(a['color-scheme'])) throw new Error('--color-scheme must be light or dark');
   return {
     height: int(a.height ?? '900', '--height', 200, 10000),
     timeout: int(a.timeout ?? '15000', '--timeout', 100, 120000),
@@ -100,6 +104,8 @@ function configFromArgs(a) {
     readySelector: a['ready-selector'] ?? undefined,
     mobile: Boolean(a.mobile),
     locale: a.locale ?? undefined,
+    colorScheme: a['color-scheme'] ?? undefined,
+    reducedMotion: Boolean(a['reduced-motion']),
   };
 }
 function getWidths(a, spec) {
@@ -328,6 +334,12 @@ async function serveTarget(raw) {
     sourcePath: source, close() { server.close(); } };
 }
 async function measure(cdp, url, width, selectors, config, fixtureHTML, actions = []) {
+  // Respect CSS preference variants before navigating, so initial styles and
+  // media-query evaluation use the requested environment throughout each sample.
+  const features = [];
+  if (config.colorScheme) features.push({ name: 'prefers-color-scheme', value: config.colorScheme });
+  if (config.reducedMotion) features.push({ name: 'prefers-reduced-motion', value: 'reduce' });
+  if (features.length) await cdp.send('Emulation.setEmulatedMedia', { features });
   await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: config.height, deviceScaleFactor: config.mobile ? 2 : 1, mobile: config.mobile });
   await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: config.mobile, maxTouchPoints: 5 });
   if (config.locale) {

@@ -29,7 +29,7 @@ export interface OverflowCandidate {
   overflowX: string;
 }
 export interface LayoutSnapshot {
-  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; contentWidth?: number; contentHeight?: number; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string };
+  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; contentWidth?: number; contentHeight?: number; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string; colorScheme?: 'light' | 'dark'; reducedMotion?: boolean };
   document: { width: number; height: number };
   selectors: Record<string, ElementGeometry[]>;
   /** Exact number of visible elements, even when geometry details are bounded. */

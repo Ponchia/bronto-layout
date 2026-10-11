@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "url": "media-preferences.html",
+  "widths": [375],
+  "selectors": { "card": "#card", "alignment": "#alignment" },
+  "rules": [
+    { "id": "dark-card-width", "type": "size-range", "element": "card", "axis": "width", "min": 160, "max": 160, "tolerance": 0 },
+    { "id": "reduced-motion-alignment", "type": "align-edge", "a": "card", "b": "alignment", "edgeA": "left", "tolerance": 0 }
+  ]
+}

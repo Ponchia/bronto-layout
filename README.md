@@ -44,6 +44,23 @@ In restricted Linux test environments, Chromium may refuse to start because user
 
 The spec's `.url` is resolved relative to the spec itself; a CLI `--url` file path is resolved relative to the current directory. Chrome detection supports Chromium and Chrome on Linux/macOS; `--chrome /path/to/chrome` overrides it.
 
+## Browser CSS preference states
+
+The CLI can verify appearance-dependent layout rules without requiring source
+changes or Playwright. Pass `--color-scheme dark` for dark-mode CSS and
+`--reduced-motion` for reduced-motion CSS. The browser captures the
+*observed* preference flags in each viewport snapshot, so an agent can verify
+that the emulated state actually applied.
+
+~~~sh
+node bin/bronto-layout.mjs check --spec examples/media-preferences.json --color-scheme dark --reduced-motion
+node bin/bronto-layout.mjs inspect --url examples/media-preferences.html --selector card=#card --color-scheme dark --json
+~~~
+
+These flags are **opt-in**. They affect CSS media-query evaluation within the
+local Chromium inspection browser; they do not simulate all possible display
+profiles or operating-system accessibility settings.
+
 ## Layout contract example
 
 `examples/layout.json` defines *observed relationships*, not CSS recipes:
