@@ -104,6 +104,10 @@ contracts and preserves JSON reports and logs as artifacts. Unlike unit tests,
 these may fail when a remote site is unavailable or changes independently of
 this repository. They do **not** run on every contribution.
 
+The viewport snapshot preserves `width` for responsive breakpoints and also reports
+`contentWidth`, the space available after reserved scrollbars. Alignment and
+containment against the viewport use that usable width.
+
 Use `axis: "x"` with `contained` to check horizontal fit of content that extends
 below the viewport. Without `axis`, containment checks both directions.
 

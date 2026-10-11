@@ -50,3 +50,20 @@ test('logical alignment uses the computed direction of each element, not only th
  const report=evaluateLayout(s,[{id:'local-dir',type:'align-edge',a:'a',b:'b',edgeA:'inline-start',edgeB:'inline-start'}]);
  assert.equal(report.findings[0].deviation,10);
 });
+
+test('viewport centering uses the usable scrollport excluding reserved scrollbar space', () => {
+  const snapshot = {
+    viewport: { width: 400, contentWidth: 390, height: 800, contentHeight: 800, direction: 'ltr' },
+    document: { width: 390, height: 2000 },
+    selectors: { content: [{ path: '#content', tag: 'main', rect: { x: 55, y: 50, width: 280, height: 120 } }] }
+  };
+  const report = evaluateLayout(snapshot, [
+    { id: 'center', type: 'centered', element: 'content', in: 'viewport', axis: 'x', tolerance: 0 },
+    { id: 'no-overflow', type: 'document-overflow', tolerance: 0 },
+    { id: 'contained', type: 'contained', element: 'content', in: 'viewport', axis: 'x', tolerance: 0 }
+  ]);
+  assert.equal(report.summary.passed, 3);
+  snapshot.document.width = 397;
+  const overflow = evaluateLayout(snapshot, [{ id: 'no-overflow', type: 'document-overflow', tolerance: 0 }]);
+  assert.equal(overflow.findings[0].deviation, 7);
+});
