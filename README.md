@@ -31,6 +31,13 @@ npm link
 bronto-layout --help
 ~~~
 
+Chrome/Chromium startup is handled through native DevTools Protocol
+endpoints. When a browser exposes its debugging port before it has opened
+a debuggable page, the CLI first checks the existing tab list and then may
+create a single blank page using the loopback-only DevTools HTTP endpoint.
+A separate bounded page-target timeout tolerates slower CI startup; it does
+**not** disable Chromium sandboxing or navigate to a different website.
+
 The installed CLI uses a local Chrome/Chromium executable (Node.js 22+);
 it does not ship a browser binary. The planned npm package name is
 `@ponchia/layout`, with the executable named

@@ -136,6 +136,26 @@ Cross-origin stylesheets can deny CSSOM access. The CLI currently exposes
 the adapter through opt-in `inspect --container-queries`, not strict
 `check` contracts or automatic `--css-breakpoints` sampling.
 
+## Chromium page-target recovery
+
+The Node CLI launches a sandboxed local Chrome/Chromium browser with its own
+temporary profile. The browser process can expose a usable debugging port
+before the DevTools page list has a target, especially under CI load.
+
+The dependency-free `bin/chromium-target.mjs` helper first checks the local
+`/json/list` endpoint. After a short grace period it can issue one
+`PUT /json/new?about:blank` to create a page, then use that page for CDP.
+The page target has a separate bounded deadline from launching the debugging
+port. URLs are strictly checked against the known loopback port and
+`/devtools/page/` target path, never accepting arbitrary remote WebSockets.
+
+Unit tests include an existing-page path, an empty-list recovery path, a
+blocked create endpoint, browser exit, invalid ports, and a real loopback HTTP
+server. The installed npm tarball check confirms the module ships with the CLI.
+
+This does not retry or hide failed layout assertions. If Chrome still has no
+usable target, the CLI returns a descriptive exit 2 error.
+
 ## CLI and browser runner
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.
