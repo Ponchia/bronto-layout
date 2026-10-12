@@ -49,6 +49,48 @@ const presenceCount = (report: ViewportAudit, code: AuditFinding['code']): numbe
   findAll(report, code).reduce((value, finding) =>
     value + (Number.isInteger(finding.count) && finding.count! > 0 ? finding.count! : 1), 0);
 
+/**
+ * Compare element-level leads without treating DOM positional selectors as
+ * stable identities. A moved element can change `:nth-of-type()` without its
+ * visual defect changing. Broken image resource URLs can identify one unique
+ * persisted failure; only unique public URL pathnames are used, ignoring
+ * host differences between baseline and candidate. Duplicates/placeholder
+ * values are deliberately not match keys.
+ */
+function unmatchedElementFindings(
+  before: AuditFinding[], after: AuditFinding[],
+  code: 'broken-image' | 'possible-text-clipping'
+): { before: AuditFinding[]; after: AuditFinding[] } {
+  const oldByPath = new Map(before.map(f => [f.path, f]));
+  const newByPath = new Map(after.map(f => [f.path, f]));
+  const old = before.filter(f => !newByPath.has(f.path));
+  const fresh = after.filter(f => !oldByPath.has(f.path));
+  if (code !== 'broken-image') return { before: old, after: fresh };
+  const identity = (source?: string): string | undefined => {
+    if (typeof source !== 'string' || source.length > 300) return undefined;
+    try {
+      const url = new URL(source);
+      if (!['http:', 'https:'].includes(url.protocol) || url.pathname === '/' ||
+          url.search || url.hash || url.username || url.password) return undefined;
+      // Baseline and candidate may be on different hosts or localhost ports.
+      // The same unique public pathname is a useful resource identity lead;
+      // no pathname is authoritative when two elements share that resource.
+      return url.pathname;
+    } catch { return undefined; }
+  };
+  const countKey = (items: AuditFinding[], key: string) =>
+    items.filter(item => identity(item.source) === key).length;
+  const matched = new Set<string>();
+  for (const item of old) {
+    const key = identity(item.source);
+    if (key && countKey(old, key) === 1 && countKey(fresh, key) === 1) matched.add(key);
+  }
+  return {
+    before: old.filter(item => !matched.has(identity(item.source) ?? '')),
+    after: fresh.filter(item => !matched.has(identity(item.source) ?? ''))
+  };
+}
+
 /** Exclude incomplete or un-attributable observations rather than scoring false clean results. */
 function reasonsForIncomplete(report: ViewportAudit): string[] {
   const reasons: string[] = [];
@@ -63,7 +105,10 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
       !Number.isFinite(finding.measuredPx))) {
     reasons.push('Document overflow lacks a valid browser-measured pixel deviation');
   }
-  if (!report.summary.verified || report.coverage.truncated) {
+  // Current reports separate known frame gaps from the completeness of the
+  // supported DOM traversal. Old reports predate that separation.
+  const scopeMeasured = report.summary.supportedScopeMeasured ?? report.summary.verified;
+  if (!scopeMeasured || report.coverage.truncated) {
     reasons.push('DOM traversal did not cover all visible elements');
   }
   if (report.coverage.omittedBrokenImages > 0 || report.coverage.omittedTextClips > 0) {
@@ -130,21 +175,40 @@ export function comparePageAudits(
     });
 
     for (const code of ['broken-image','possible-text-clipping'] as const) {
-      const oldPaths = new Set(findAll(before,code).map(finding => finding.path!));
-      const newPaths = new Set(findAll(after,code).map(finding => finding.path!));
       const classification = code === 'broken-image' ? 'measured' : 'review';
-      for (const path of [...newPaths].sort()) {
-        if (oldPaths.has(path)) continue;
-        add({width,kind:classification==='measured'?'regression':'review-new',
-          code,classification,path,
-          message:'New browser-observed '+code+' at '+path});
+      const unmatched = unmatchedElementFindings(findAll(before,code), findAll(after,code), code);
+      const previous = unmatched.before;
+      const current = unmatched.after;
+      if (previous.length && current.length) {
+        // A changed DOM path is not a reliable element identity. If the count
+        // increased or decreased, that aggregate change is measurable but no
+        // specific moved element can honestly be blamed or cleared.
+        const change = current.length - previous.length;
+        if (change) add({
+          width,kind:change>0 ? classification === 'measured' ? 'regression' : 'review-new'
+            : classification === 'measured' ? 'improvement' : 'review-resolved',
+          code,classification,baselineValue:findAll(before,code).length,
+          candidateValue:findAll(after,code).length,
+          message:'Count of browser-observed '+code+' changed by '+change+
+            '; remaining DOM identities are ambiguous, so no exact element is attributed'
+        });
+        else {
+          unverified.push({width,reasons:[
+            'Cannot identify whether '+code+' moved or changed: unmatched DOM paths have equal counts and no unique persistent source'
+          ]});
+        }
+        continue;
       }
-      for (const path of [...oldPaths].sort()) {
-        if (newPaths.has(path)) continue;
-        add({width,kind:classification==='measured'?'improvement':'review-resolved',
-          code,classification,path,
-          message:'Previously observed '+code+' no longer present at '+path});
-      }
+      for (const item of current.sort((a,b)=>a.path!.localeCompare(b.path!))) add({
+        width,kind:classification==='measured'?'regression':'review-new',
+        code,classification,path:item.path,
+        message:'New browser-observed '+code+' at '+item.path
+      });
+      for (const item of previous.sort((a,b)=>a.path!.localeCompare(b.path!))) add({
+        width,kind:classification==='measured'?'improvement':'review-resolved',
+        code,classification,path:item.path,
+        message:'Previously observed '+code+' no longer present at '+item.path
+      });
     }
     for (const code of ['pending-image','embedded-frame-uninspected'] as const) {
       const oldCount = presenceCount(before,code);
@@ -161,7 +225,7 @@ export function comparePageAudits(
     sampledWidths:[...a.keys()].sort((left,right)=>left-right),
     summary:{
       viewports:a.size,measuredRegressions,measuredImprovements,reviewChanges,
-      unverifiedViewports:unverified.length,
+      unverifiedViewports:new Set(unverified.map(item => item.width)).size,
       baselineMeasuredIssues:baseline.reduce((count,report)=>count+report.summary.errors,0),
       candidateMeasuredIssues:candidate.reduce((count,report)=>count+report.summary.errors,0)
     },

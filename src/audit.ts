@@ -57,7 +57,14 @@ export interface ViewportAudit {
     limitations: string[];
   };
   findings: AuditFinding[];
-  summary: { errors: number; warnings: number; verified: boolean; coverageStatus: AuditCoverageStatus };
+  summary: {
+    errors: number; warnings: number;
+    /** No KNOWN uncovered surfaces; never a guarantee about closed roots or canvas. */
+    verified: boolean;
+    /** Top-document and open-shadow walk completed regardless of embedded frames. */
+    supportedScopeMeasured: boolean;
+    coverageStatus: AuditCoverageStatus;
+  };
 }
 
 /** Convert bounded DOM evidence and a geometry snapshot to honest conclusions. */
@@ -123,9 +130,11 @@ export function analyzePageAudit(
     summary: {
       errors: findings.filter(f => f.severity === 'error').length,
       warnings: findings.filter(f => f.severity === 'warning').length,
-      // Backward-compatible completeness for the supported traversal only.
-      // Never interpret this as proof that every page surface was inspected.
-      verified: !evidence.truncated,
+      // `verified` must NOT be true when an iframe is explicitly uninspected.
+      // Supported scope completeness is a separate fact; neither means that
+      // closed roots, CSS paint order or canvas internals were checked.
+      verified: coverageStatus === 'supported-scope-measured',
+      supportedScopeMeasured: !evidence.truncated,
       coverageStatus
     }
   };

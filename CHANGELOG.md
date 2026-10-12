@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Introduce ESLint 9 + recommended TypeScript linting as development-only dependencies; `npm run check` now enforces lint along with compilation/integration tests. Add built-in Node/V8 unit coverage thresholds for the portable core (90% lines, 85% branches, 80% functions), wired into CI. Remove stale unused helper variables/imports.
+- Correct image-aspect validation: `object-fit: none` preserves source proportions despite a differently shaped image element box, so the constraint is now marked unmeasurable (like `cover`, `contain` and `scale-down`) rather than reported as distortion.
+- Make automatic audit comparisons robust to DOM reordering: uniquely identified broken-image resources can move across DOM paths/hosts without triggering fabricated regressions or improvements. For ambiguous same-count path changes, report an unverified element identity rather than guessing; genuine net count increases remain measurable.
+- **Report-semantics clarification:** `audit` `summary.verified` is now false for a known uninspected embedded frame, even when its top-document walk completed. New `summary.supportedScopeMeasured` keeps that narrower fact explicit. Default CLI coverage policy and capture integrity still distinguish uninspected frames from truncated traversal; `--fail-on-coverage-gaps` remains opt-in.
 
 
 - Stabilize the browser layout-shift regression fixtures: schedule deliberate geometry changes after the first paint and expose an explicit readiness marker only after the following render frames. Tests wait for observed state instead of assuming a load-relative timer always fires after paint on a busy runner; no change to the production Layout Instability collector.

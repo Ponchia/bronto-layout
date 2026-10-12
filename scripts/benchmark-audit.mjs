@@ -72,7 +72,14 @@ async function main() {
     const report=document?.reports?.[0];
     const valid=(observed.status===0 || observed.status===1) &&
       document?.mode==='audit' && document?.summary?.viewports===1 &&
-      report?.width===sample.width && report?.summary?.verified===true &&
+      report?.width===sample.width &&
+      // Controlled fixtures may intentionally contain uninspected iframe
+      // interiors with review-only warnings. They are valid test captures when
+      // the supported top-level/open-shadow traversal actually completed.
+      // Do not use this predicate for whole-page real-world accuracy scoring.
+      (report?.summary?.supportedScopeMeasured === true ||
+        (report?.summary?.supportedScopeMeasured === undefined &&
+          report?.summary?.verified === true)) &&
       Array.isArray(report.findings);
     const localizationCodes=manifest.localization?.codes ?? [];
     const observedLocations=Object.fromEntries(localizationCodes.map(code => [

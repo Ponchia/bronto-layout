@@ -119,7 +119,10 @@ function runCapture() {
     const trustedFinalLocation = expectedHost === null || actualHost === expectedHost;
     const complete = trustedFinalLocation && [0, 1].includes(run.status) && report?.mode === 'audit' &&
       report?.summary?.viewports === 1 && report?.reports?.[0]?.width === sample.width &&
-      report.reports[0].summary?.verified === true && screenshot?.subarray(0, 8).equals(pngMagic) === true &&
+      (report.reports[0].summary?.supportedScopeMeasured === true ||
+        (report.reports[0].summary?.supportedScopeMeasured === undefined &&
+          report.reports[0].summary?.verified === true)) &&
+      screenshot?.subarray(0, 8).equals(pngMagic) === true &&
       (!fullPageRequested || expandedVerified);
     const auditRelative = `cases/${sample.id}/audit.json`;
     if (report) writeJSON(path.join(outputDir, auditRelative), report);
