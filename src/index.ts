@@ -50,3 +50,6 @@ export type { LayoutScenario } from './scenario.js';
 export { summarizeFrameInventory } from './frame-inventory.js';
 export type { FrameInventory, FrameInventoryEntry } from './frame-inventory.js';
 export { captureFrameInventoryWithCDP } from './frame-inspector.js';
+
+export { reviewContractProposals } from './proposal-review.js';
+export type { ProposalReviewReport, ProposalReviewResult, ProposalReviewStatus } from './proposal-review.js';

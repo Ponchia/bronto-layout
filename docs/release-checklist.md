@@ -7,7 +7,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Dependency-free Node CLI uses installed Chromium/CDP rather than bundling a browser.
 - [x] Validate the generated tarball in an isolated offline npm installation (`npm run test:package`).
 - [x] Capture only observed browser facts and preserve distinct review warnings / accepted rules.
-- [x] Preserve approved scenario flags and interactions for reproducible contract checks.
+- [x] Preserve approved scenario flags and interactions for reproducible contract checks. `review-draft` rechecks unapproved relationships on later page revisions and marks unknown geometry explicitly.
 - [x] Uniform open-Shadow DOM selector resolution for measurement, readiness and actions.
 - [x] Expose known iframe coverage gaps, with explicit strict-coverage option. Optional DOMSnapshot frame-document inventory provides bounded evidence without claiming inner-frame correctness.
 - [x] Provide `doctor`, a bounded parallel batch option and `npm run test:unit` for first-time contributors.

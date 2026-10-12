@@ -13,6 +13,7 @@ import { captureDOMGeometry } from '../dist/browser.js';
 import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
 import { suggestLayoutContracts, acceptContractProposals } from '../dist/contract-discovery.js';
+import { reviewContractProposals } from '../dist/proposal-review.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { captureFrameInventoryWithCDP } from '../dist/frame-inspector.js';
@@ -42,6 +43,7 @@ Usage:
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
   bronto-layout suggest --url URL [--selector name=CSS ...] [--actions steps.json] [--out draft.json]
+  bronto-layout review-draft --draft draft.json [--url NEW_URL] [--json]
   bronto-layout approve --draft draft.json --accept id[,id...] --out contract.json
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
   bronto-layout compare --spec layout.json --baseline URL --url URL [--scan 320:1440:80] [--refine]
@@ -69,7 +71,7 @@ Options:
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect or suggest; can be repeated
-  --draft FILE          Candidate draft for approve
+  --draft FILE          Candidate draft for review-draft or approve
   --actions FILE        Declarative JSON setup actions for suggest (saved with approved contract)
   --accept CSV          Proposal IDs chosen for approval
   --css-sources         Include matched CSS hints in inspect or failed check widths
@@ -116,7 +118,7 @@ function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['doctor', 'check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'approve'].includes(command) || positionals.length > 1) {
+  if (!['doctor', 'check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'review-draft', 'approve'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -1046,7 +1048,7 @@ async function suggest(a) {
   const draft = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     if (widths.length > config.maxSamples) throw new Error('Too many suggestion widths');
     const explicit = Boolean(a.selector?.length);
-    let selectors, groups = [], truncated = false;
+    let selectors, groups = [], truncated = false, limitReasons = [];
     if (explicit) selectors = selectorsForInspect(a);
     else {
       await measure(cdp, url, widths[0], { page: 'body' }, config, fixture, actions);
@@ -1056,6 +1058,7 @@ async function suggest(a) {
       selectors = discovered.selectors;
       groups = discovered.groupAliases;
       truncated = discovered.candidatesTruncated;
+      limitReasons = discovered.limitReasons ?? [];
     }
     const snapshots = [];
     for (const width of widths) snapshots.push(await measure(cdp, url, width, selectors, config, fixture, actions));
@@ -1065,7 +1068,7 @@ async function suggest(a) {
     return suggestLayoutContracts(publicURL, selectors, snapshots, groups, truncated, {
       ...(scenarioFromExplicitFlags(a) ? { scenario: scenarioFromExplicitFlags(a) } : {}),
       ...(a.actions ? { actions } : {})
-    });
+    }, limitReasons);
   });
   if (a.out) {
     const destination = path.resolve(a.out);
@@ -1078,6 +1081,36 @@ async function suggest(a) {
     'Review candidates and run approve --accept id[,id...] to make an explicit contract.'
   ].join('\n'));
 }
+/** Replay unapproved proposals on a later version without inventing design intent. */
+async function reviewDraft(a) {
+  if (!a.draft) throw new Error('review-draft requires --draft FILE');
+  const draft = JSON.parse(await readFile(a.draft, 'utf8'));
+  if (!draft || !Array.isArray(draft.proposals)) throw new Error('Invalid proposal draft');
+  if (draft.proposals.length) acceptContractProposals(draft, draft.proposals.map(item => item.id));
+  const target = a.url ?? draft?.url;
+  if (!target || typeof target !== 'string') throw new Error('Proposal draft has no usable URL; pass --url');
+  const result = await withBrowser(target, a, async (cdp, url, config, fixture, publicURL) => {
+    if (!Array.isArray(draft.widths) || draft.widths.length > config.maxSamples)
+      throw new Error('Proposal draft has missing or excessive viewport widths');
+    const snapshots = [];
+    for (const width of draft.widths) {
+      snapshots.push(await measure(cdp, url, width, draft.selectors ?? {},
+        config, fixture, draft.actions ?? []));
+    }
+    return reviewContractProposals(draft, publicURL, snapshots);
+  }, draft.scenario);
+  await output(a, result, [
+    'Bronto Layout proposal review — ' + result.sourceUrl + ' → ' + result.candidateUrl,
+    ...result.proposals.map(p => '  ' + p.status.toUpperCase() + ' ' + p.id +
+      ' (observed at ' + p.checkedWidths.join(', ') + 'px)'),
+    'Total: ' + result.summary.stillSatisfied + ' still satisfied, ' +
+      result.summary.changed + ' changed, ' + result.summary.unverified + ' unverified',
+    'No proposal was approved; compare only covers the originally sampled widths/state.'
+  ].join('\n'));
+  if (!result.summary.total || result.summary.unverified) process.exitCode = 2;
+  else if (result.summary.changed) process.exitCode = 1;
+}
+
 async function approve(a) {
   if (!a.draft || !a.accept || !a.out) throw new Error('approve requires --draft FILE, --accept id[,id...], and --out FILE');
   const source = path.resolve(a.draft), destination = path.resolve(a.out);
@@ -1157,12 +1190,19 @@ async function main() {
   if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
   if (a['frame-inventory'] && a.command !== 'audit') throw new Error('--frame-inventory applies only to audit');
   if (a.actions && a.command !== 'suggest') throw new Error('--actions applies only to suggest; checks replay saved contract.actions');
+  if (a.command === 'review-draft' &&
+      ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',
+        'reduced-motion','normal-motion','color-scheme','locale','height','settle',
+        'stable-for','ready-selector','css-breakpoints','layout-shifts'].some(key => a[key] !== undefined)) {
+    throw new Error('review-draft replays the original widths, scenario and actions; recreate a draft to change them');
+  }
   if (a.parallel !== undefined && a.command !== 'batch') throw new Error('--parallel applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');
   if (a.command === 'batch' && a.spec) throw new Error('batch reads contracts from its manifest; omit --spec');
   if (a.command === 'batch' && a.sarif) throw new Error('batch supports JSON reports, not SARIF');
   configFromArgs(a);
   if (a.command === 'doctor') await doctor(a);
+  else if (a.command === 'review-draft') await reviewDraft(a);
   else if (a.command === 'suggest') await suggest(a);
   else if (a.command === 'approve') await approve(a);
   else if (a.command === 'batch') await batch(a);

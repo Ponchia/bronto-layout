@@ -63,6 +63,14 @@ Example `my-state-actions.json` (declarative browser interactions, **not** JavaS
 
 Once approved, that contract saves the tested locale, media preferences, touch mode, viewport height if supplied, readiness condition and actions. `check` replays them automatically; an explicit CLI flag overrides a saved environment choice. Layout selectors, readiness selectors and action selectors support `host >>> .child` across **open** Shadow DOM. Closed roots and cross-origin frames remain inaccessible.
 
+Before approving an inferred rule—or after a meaningful redesign—recheck it against the new version without changing the draft or making it blocking:
+
+```sh
+bronto-layout review-draft --draft reports/draft.json --url http://localhost:5174/ --json
+```
+
+`still-satisfied` refers only to the same geometric relationship at the originally sampled widths/state; `changed` reports a newly failing measured relationship; `unverified` means the needed geometry is unavailable or ambiguous. Exit codes are `0`, `1` and `2` respectively (an empty draft also returns `2`). The command does not automatically approve any rule. See [contract discovery](contract-discovery.md).
+
 ## Run several routes without a shared browser session
 
 ```sh

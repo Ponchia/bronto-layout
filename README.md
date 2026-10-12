@@ -69,6 +69,15 @@ sampling coverage and requires explicit rule approval. See
 
 `suggest` can save a declared browser scenario (`--locale`, `--mobile`, `--color-scheme`, `--reduced-motion`, `--height`, `--ready-selector`, `--settle`, `--stable-for`) and a `--actions` JSON file. Accepted contracts preserve and replay that state; explicit check-time CLI flags override the stored environment. See the [quickstart](docs/quickstart.md) for the workflow.
 
+A separate `review-draft` command replays the proposed relationships on a new page revision *before* they are approved. It distinguishes still-satisfied, changed and unverified measurements at the originally sampled widths/state, retains discovery limit warnings and does not modify the draft:
+
+```sh
+bronto-layout review-draft --draft reports/proposals.json \
+  --url http://localhost:5174/ --json --report reports/review-after-edit.json
+```
+
+See [review-first contract discovery](docs/contract-discovery.md) for exact semantics and the explicit approval step.
+
 ## Independent field benchmark workflow
 
 A separate capture/label/score workflow prepares a 30-state first-party

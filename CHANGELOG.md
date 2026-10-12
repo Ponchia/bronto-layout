@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add `review-draft` to replay *unapproved* browser-observed relationships against a later revision at the same recorded widths and scenario, reporting still-satisfied/changed/unverified with distinct exit codes. No rule is approved or automatically repaired.
+- Disclose selector discovery limit reasons when the 500-element candidate limit, 20-unique-selector cap or six-repeated-group cap prevents further inspection. Review reports retain this coverage evidence.
+
+
 - Add opt-in `audit --frame-inventory` from Chromium frame-tree and DOMSnapshot evidence, with strict bounded reporting, URL sanitization, and baseline/candidate comparison coverage. A snapshot does not constitute an inner-frame layout audit.
 - Prevent independently reviewed but partially covered iframe states from inflating field benchmark true negatives or recall. Distinguish capture integrity from diagnostic coverage, including historical capture compatibility; add opt-in frame inventory to the manual allowlisted field capture workflow.
 

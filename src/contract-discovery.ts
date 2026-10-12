@@ -21,7 +21,8 @@ export interface ContractDiscoveryDraft {
   scenario?: LayoutScenario;
   actions?: LayoutAction[];
   proposals: ContractProposal[];
-  coverage: { groupAliases: string[]; candidateCount: number; truncated: boolean };
+  coverage: { groupAliases: string[]; candidateCount: number; truncated: boolean;
+    limitReasons?: Array<'candidate-limit' | 'unique-selector-limit' | 'repeated-group-limit'> };
   limitations: string[];
 }
 
@@ -31,7 +32,8 @@ export function suggestLayoutContracts(
   snapshots: readonly LayoutSnapshot[],
   groupAliases: readonly string[] = [],
   truncated = false,
-  context: Pick<LayoutContract, 'scenario' | 'actions'> = {}
+  context: Pick<LayoutContract, 'scenario' | 'actions'> = {},
+  limitReasons: ContractDiscoveryDraft['coverage']['limitReasons'] = []
 ): ContractDiscoveryDraft {
   if (!snapshots.length || snapshots.some(s => !Number.isInteger(s.viewport.width)))
     throw new Error('Suggestions require measured viewport snapshots');
@@ -119,7 +121,8 @@ export function suggestLayoutContracts(
     draftSchemaVersion: 1, url, widths, selectors: { ...selectors }, proposals,
     ...(context.scenario ? { scenario: { ...context.scenario } } : {}),
     ...(context.actions ? { actions: context.actions.map(action => ({ ...action })) } : {}),
-    coverage: { groupAliases: [...groups], candidateCount: Object.keys(selectors).length, truncated },
+    coverage: { groupAliases: [...groups], candidateCount: Object.keys(selectors).length,
+      truncated, ...(limitReasons.length ? { limitReasons: [...limitReasons] } : {}) },
     limitations: [
       'All proposals describe only observed layouts at the listed widths and states',
       'Passing geometry is not evidence of deliberate design intent',
