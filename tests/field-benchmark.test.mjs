@@ -140,3 +140,56 @@ test('allowlisted fixture capture preserves DOMSnapshot frame evidence but flags
   assert.ok(report.reports[0].findings.some(f=>f.code==='embedded-frame-uninspected'));
  } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('bounded below-fold field capture preserves image hashes and excludes tampered reviewer evidence',t=>{
+ const dir=mkdtempSync(path.join(os.tmpdir(),'bronto-field-below-fold-'));
+ const exec=args=>spawnSync(process.execPath,[runner,...args],{
+  cwd:root,encoding:'utf8',timeout:90000,
+  env:{...process.env,BRONTO_CHROME_NO_SANDBOX:'1',BRONTO_TEST_INLINE_FIXTURE:'1'}
+ });
+ try{
+  const manifest=path.join(dir,'manifest.json');
+  const captureDir=path.join(dir,'capture');
+  const labelsFile=path.join(dir,'labels.json');
+  const worksheet=path.join(dir,'review.md');
+  writeFileSync(manifest,JSON.stringify({schemaVersion:1,id:'below-fold-fixture',allowedHosts:[],
+   cases:[{id:'long-375',url:'examples/audit-long-page.html',width:375}]}));
+  const run=exec(['capture','--fixtures','--manifest',manifest,'--out',captureDir,'--full-page-evidence']);
+  if(/Cannot find Chrome\/Chromium/.test(run.stdout+run.stderr)){
+   if(process.env.BRONTO_REQUIRE_CHROME==='1')throw new Error('Chromium required in CI');
+   t.skip('Chromium unavailable');return;
+  }
+  assert.equal(run.status,0,run.stderr||run.stdout);
+  const index=JSON.parse(readFileSync(path.join(captureDir,'index.json'),'utf8'));
+  const entry=index.cases[0];
+  assert.equal(index.captureOptions.fullPageEvidence,true);
+  assert.equal(entry.complete,true);
+  assert.equal(entry.fullPageEvidenceCoverage,'rendered-document-rectangle');
+  assert.equal(entry.fullPageTruncated,false);
+  assert.ok(entry.fullPageCapturedHeight>=2820);
+  assert.equal(entry.fullPageScreenshotSha256.length,64);
+  const packet=exec(['review-packet','--captures',captureDir,'--out',worksheet,'--json']);
+  assert.equal(packet.status,0,packet.stderr||packet.stdout);
+  assert.equal(JSON.parse(packet.stdout).readyForReview,1);
+  const text=readFileSync(worksheet,'utf8');
+  assert.match(text,/Bounded below-fold image/);
+  assert.match(text,/Bounded image hash: verified/);
+  assert.doesNotMatch(text,/broken-image|possible-text-clipping/);
+  const label={...reviewed('long-375'),expectedMeasured:[],expectedReview:[]};
+  writeFileSync(labelsFile,JSON.stringify({schemaVersion:1,datasetId:index.datasetId,
+   reviewProtocol:protocol,cases:[label]}));
+  const clean=exec(['score','--captures',captureDir,'--labels',labelsFile,'--json','--assert']);
+  assert.equal(clean.status,0,clean.stderr||clean.stdout);
+  assert.equal(JSON.parse(clean.stdout).metrics.evaluatedCases,1);
+  const screenshot=path.join(captureDir,entry.fullPageScreenshotFile);
+  writeFileSync(screenshot,Buffer.concat([readFileSync(screenshot),Buffer.from('altered')]));
+  const bad=exec(['score','--captures',captureDir,'--labels',labelsFile,'--json','--assert']);
+  assert.equal(bad.status,2,bad.stderr||bad.stdout);
+  const result=JSON.parse(bad.stdout);
+  assert.equal(result.metrics.evaluatedCases,0);
+  assert.equal(result.metrics.incompleteCases,1);
+  const badPacket=exec(['review-packet','--captures',captureDir,'--out',path.join(dir,'bad-review.md'),'--json']);
+  assert.equal(badPacket.status,0,badPacket.stderr||badPacket.stdout);
+  assert.equal(JSON.parse(badPacket.stdout).readyForReview,0);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
