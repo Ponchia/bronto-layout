@@ -15,7 +15,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Verify the macOS packaging/conditional Chromium smoke workflow passes on a hosted macOS runner (PR #34 and main `58ebc70`; conditional runner smoke is not independent physical-device proof).
 - [x] Verify full Node 22/24 CI on merged `main` (run `38245817139`, `58ebc70`, success).
 - [ ] Obtain third-party review of platform behavior on a physical macOS machine, including sandboxed Chromium startup (CI is not a substitute).
-- [ ] Run representative large-DOM, 16-route and mixed-state performance tests on a stable host; publish reproducible timing methodology, not unsupported speed claims.
+- [x] Provide a repeatable, offline 16-job mixed-state and 500/5,000/20,000-element local-fixture stress profiler (`npm run profile:stress`). Synthetic stress includes an explicit incomplete-coverage control and must not be presented as production detector quality.
+- [ ] Run those performance tests on an *idle/stable* reference host with repeated trials and recorded hardware/browser environment before publishing representative speed claims.
 - [ ] Inspect license headers, generated package content, repo metadata, and registry name availability before publication.
 
 ## Independent quality evidence
