@@ -1,5 +1,16 @@
 # Validation notes
 
+## 2026-10-12: Hardening branch, measured locally (pending PR CI)
+
+- On Linux arm64, Node 24.17.0 and detected Chromium 149, `npm run check` completed **206/206 passing tests** before the final documentation/coverage-test follow-up. The browser fixtures use the explicitly documented restricted-sandbox test mode, not arbitrary internet browsing.
+- `npm run test:package` verified an isolated offline installation of the generated v0.4.0 CLI tarball.
+- `npm run benchmark:audit:locations` evaluated **33/33 controlled labeled cases**, including element attribution, with exact expected matches. These controlled fixtures are not evidence of field precision/recall.
+- The first-party capture artifact (30/30 cases) was downloaded and all screenshot/report SHA-256 hashes independently rechecked. No human labels exist yet; issue #27 stays open.
+- macOS portability workflow and PR CI must still complete before marking cross-platform release preparation validated. No npm release has been published.
+
+
+The October 11 records below are historical snapshots, **not the current test count or current release status**. Consult the latest CI run and `npm run check` before describing current validation. The public alpha still needs independent production labels and macOS browser evidence.
+
 ## 2026-10-11: Initial CLI tests
 
 - `npm run check`: 47 of 47 tests pass on Node.js 22 and locally installed Chromium.

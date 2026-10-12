@@ -1,0 +1,39 @@
+# Public alpha gate (v0.4 candidate; no publication authorized)
+
+This is a release-preparation checklist, **not** a claim of production readiness. `@ponchia/layout` has not been published to npm. Publication, a tag, version bump and public release announcement are separate decisions.
+
+## Repeatable technical gates
+
+- [x] Dependency-free Node CLI uses installed Chromium/CDP rather than bundling a browser.
+- [x] Validate the generated tarball in an isolated offline npm installation (`npm run test:package`).
+- [x] Capture only observed browser facts and preserve distinct review warnings / accepted rules.
+- [x] Preserve approved scenario flags and interactions for reproducible contract checks.
+- [x] Uniform open-Shadow DOM selector resolution for measurement, readiness and actions.
+- [x] Expose known iframe coverage gaps, with explicit strict-coverage option.
+- [x] Provide `doctor`, a bounded parallel batch option and `npm run test:unit` for first-time contributors.
+- [ ] Confirm the new macOS installation/browser smoke workflow passes on a hosted macOS runner.
+- [ ] Confirm full Node 22/24 CI after the hardening changes merge.
+- [ ] Obtain third-party review of platform behavior on a physical macOS machine, including sandboxed Chromium startup (CI is not a substitute).
+- [ ] Run representative large-DOM, 16-route and mixed-state performance tests on a stable host; publish reproducible timing methodology, not unsupported speed claims.
+- [ ] Inspect license headers, generated package content, repo metadata, and registry name availability before publication.
+
+## Independent quality evidence
+
+- [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
+- [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.
+- [x] `review-packet` command generates an independent worksheet, never auto-populating labels.
+- [ ] An independent reviewer labels all 30 captured states (including below-fold and relevant interactive content).
+- [ ] Expand to independently verified positive and negative examples outside the current first-party cohort.
+- [ ] Report per-detector precision, recall, localization accuracy and unknown/partial coverage on that labeled dataset; no claim of superiority to Snug, Galen or Polypane without the same cases.
+
+Keep screenshot artifacts private where appropriate; the existing Actions capture artifacts expire after seven days. Do not commit screenshots from authenticated/private pages. See [field benchmark](field-benchmark.md) and [issue #27](https://github.com/Ponchia/bronto-layout/issues/27).
+
+## Release operations (intentionally pending)
+
+- [ ] Independently review the release diff and close any release-blocking defects.
+- [ ] Decide on the public alpha version and changelog contents.
+- [ ] Verify npm package naming and publisher permissions in the registry.
+- [ ] Explicitly authorize and perform npm publishing, then verify install/doctor/audit from the public registry on Linux and macOS.
+- [ ] Tag the published commit and publish release notes with non-goals and known limitations.
+
+Do not switch the website/README to "production-ready" merely because CI passes.

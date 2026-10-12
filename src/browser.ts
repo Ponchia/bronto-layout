@@ -1,27 +1,16 @@
 import type { LayoutSnapshot } from './core.js';
+import { queryComposedElements } from './composed-selector.js';
 /**
- * A self-contained DOM adapter. It can be injected as a function in any Chromium tab,
+ * A browser DOM adapter. It can be injected with queryComposedElements in Chromium,
  * embedded in a site, or called by another browser runner. No framework dependency.
  * Geometry is browser truth; the adapter intentionally makes no design judgments.
  */
-export function captureDOMGeometry(selectors: Record<string, string>): LayoutSnapshot {
+export function captureDOMGeometry(
+  selectors: Record<string, string>, queryElements: (selector: string) => Element[] = queryComposedElements
+): LayoutSnapshot {
   const entries: LayoutSnapshot['selectors'] = {};
   const selectorCounts: Record<string, number> = {};
   const MAX_MEASURED_PER_ALIAS = 250;
-  /** `host-selector >>> child-selector` crosses only explicitly open shadow roots. */
-  function queryElements(selector: string): Element[] {
-    const parts = selector.split(/\s*>>>\s*/);
-    if (parts.some(part => !part.trim())) throw new Error(`Invalid deep selector: ${selector}`);
-    let roots: Array<Document | ShadowRoot> = [document];
-    let matches: Element[] = [];
-    for (let index = 0; index < parts.length; index++) {
-      matches = roots.flatMap(root => Array.from(root.querySelectorAll(parts[index])));
-      if (index < parts.length - 1) {
-        roots = matches.flatMap(element => element.shadowRoot ? [element.shadowRoot] : []);
-      }
-    }
-    return matches;
-  }
   function domPath(el: Element): string {
     const chunks: string[] = [];
     let cursor: Element | null = el;

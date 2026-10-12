@@ -1,0 +1,16 @@
+/** Browser-only composed selectors for geometry, readiness and declared actions.
+ * `host >>> descendant` traverses OPEN shadow roots only. This self-contained
+ * function can be serialized into a page's Chromium execution context.
+ */
+export function queryComposedElements(selector: string): Element[] {
+  const parts = selector.split(/\s*>>>\s*/);
+  if (parts.some(part => !part.trim())) throw new Error(`Invalid deep selector: ${selector}`);
+  let roots: Array<Document | ShadowRoot> = [document];
+  let matches: Element[] = [];
+  for (let index = 0; index < parts.length; index++) {
+    matches = roots.flatMap(root => Array.from(root.querySelectorAll(parts[index])));
+    if (index < parts.length - 1)
+      roots = matches.flatMap(element => element.shadowRoot ? [element.shadowRoot] : []);
+  }
+  return matches;
+}

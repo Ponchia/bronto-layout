@@ -54,3 +54,12 @@ test('interactive setup actions are bounded and strict',()=>{
  const tooLong=base();tooLong.actions=[{type:'pause',milliseconds:99999}];
  assert.throws(()=>parseContract(tooLong),/0..5000/);
 });
+
+test('browser scenarios are strict and reject invalid environment values',()=>{
+ const valid=base();valid.scenario={mobile:true,locale:'ar',colorScheme:'dark',reducedMotion:true,height:700,readySelector:'#host >>> button',settle:100,stableFor:400};
+ assert.deepEqual(parseContract(valid).scenario,valid.scenario);
+ for(const bad of [{lang:'ar'},{mobile:'yes'},{height:0},{stableFor:10},{locale:'?'},{readySelector:''},{settle:-1},{colorScheme:'green'}]){
+  const contract=base();contract.scenario=bad;
+  assert.throws(()=>parseContract(contract),/scenario/i);
+ }
+});

@@ -73,3 +73,25 @@ test('embedded frames explicitly disclose unknown inner layout without claiming 
   assert.equal(report.findings[0].code,'embedded-frame-uninspected');
   assert.equal(report.findings[0].count,2);
 });
+
+test('audit discloses partial scope when frames are present even if top-document traversal completed', () => {
+  const snap = {
+    viewport: {width:375,height:900,direction:'ltr'},document:{width:375,height:900},selectors:{}
+  };
+  const observations={visitedElements:3,traversalLimit:18000,truncated:false,visibleElements:3,
+    totalImages:0,unloadedImages:0,brokenImageCount:0,brokenImages:[],omittedBrokenImages:0,
+    textClipCount:0,textClips:[],omittedTextClips:0,intentionalEllipses:0,
+    visuallyHiddenTextExcluded:0,embeddedFrames:1};
+  const report=analyzePageAudit(snap, observations);
+  assert.equal(report.summary.verified,true);
+  assert.equal(report.summary.coverageStatus,'known-uninspected-content');
+  assert.equal(report.coverage.status,'known-uninspected-content');
+  assert.equal(report.coverage.scope,'top-document-and-open-shadow-roots');
+  assert.ok(report.coverage.limitations.some(line=>line.includes('Closed shadow')));
+  observations.embeddedFrames=0;
+  const complete=analyzePageAudit(snap,observations);
+  assert.equal(complete.summary.coverageStatus,'supported-scope-measured');
+  observations.truncated=true;
+  const truncated=analyzePageAudit(snap,observations);
+  assert.equal(truncated.summary.coverageStatus,'truncated');
+});

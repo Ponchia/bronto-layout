@@ -52,6 +52,17 @@ trusted isolated test environments, never recommended for unknown sites.
 Screenshots can expose personal data: capture only permitted pages and do not
 commit/share raw reports without review. The `reports/` path is gitignored.
 
+## Prepare an independent-review worksheet
+
+After downloading the captured artifacts, generate a human-readable review sheet that verifies the screenshot/report hashes without disclosing automated issue predictions as labels:
+
+```sh
+node scripts/field-benchmark.mjs review-packet \
+  --captures reports/field-2026-10-12 --out reports/field-review-worksheet.md
+```
+
+The command never invents human judgments. It leaves checkboxes blank, flags incomplete evidence, and refuses to overwrite an existing worksheet. The reviewer must visit the rendered page as well as the initial-viewport screenshot, include below-fold/interactive states and manually supply evidence and intent. The worksheet deliberately does **not** copy predictions from the CLI report to avoid anchoring the reviewer.
+
 ## Label independently
 
 Before consulting `audit.json` findings, a named human reviewer should
