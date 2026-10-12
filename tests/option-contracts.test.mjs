@@ -141,3 +141,15 @@ test('experimental sibling overlap warnings require explicit audit opt-in and ma
  assert.throws(()=>validateCommandOptions({command:'suggest','sibling-overlap-review':true}),/applies only to audit/);
 
 });
+
+
+test('zero-contract baseline screenshots may be requested without enabling full-page paired capture',()=>{
+ const baseline=argsFromCLI(['audit','--baseline','examples/audit-healthy.html',
+   '--url','examples/audit-broken.html','--evidence-dir','reports/new-pairs',
+   '--width','375','--json','--compact']);
+ assert.equal(baseline['evidence-dir'],'reports/new-pairs');
+ assert.doesNotThrow(()=>validateCommandOptions(baseline));
+ assert.throws(()=>validateCommandOptions({...baseline,'full-page-evidence':true}),
+   /full-page-evidence/);
+ assert.match(HELP,/paired baseline\/candidate PNG evidence/);
+});

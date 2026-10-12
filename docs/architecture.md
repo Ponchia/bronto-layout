@@ -292,6 +292,27 @@ The early v0.x schema may evolve; breaking changes will be documented in the cha
 - Approved `scenario` and `actions` fields in version-1 contracts reproduce the explicit environment and declarative interactive state captured during suggestion. The CLI can override the environment on demand.
 - Audit `coverage.status` indicates whether the *supported top-document/open-shadow scope* was measured, known embedded frames were uninspected, or traversal was truncated. Closed roots and paint-order remain inherently unknown.
 
+## Opt-in paired viewport comparison evidence (2026-10-12)
+
+`bin/audit-command.mjs` supports `audit --baseline OLD --url NEW
+--evidence-dir DIR` without converting screenshot differences into inferred
+design constraints. After each baseline and candidate DOM observation the
+runner saves a PNG **before navigating to the opposite version**, so paired
+images use the same declared width and independently replayed setup actions.
+Each `comparisonEvidence` record includes `{width, baseline, candidate}` with
+absolute local PNG paths, `viewport-only` coverage and SHA-256 byte digests.
+The compact and full JSON forms preserve the same provenance; without the
+flag there is no screenshot capture or additional metadata.
+
+The writer validates the PNG signature and uses exclusive file creation to
+avoid silently overwriting earlier reviewer screenshots. Missing images,
+invalid screenshot bytes or output-file conflicts fail with exit 2, never a
+false green comparison. Capture failure may leave a *partial* set of files;
+only a successfully completed JSON comparison is an attributable paired
+record. Screenshots may contain user input or confidential page details, so
+this option is deliberately local/opt-in, with no upload or image-based
+quality inference. `--full-page-evidence` is still a single-page-only mode.
+
 ## Bounded document screenshot evidence (2026-10-12)
 
 `src/bounded-screenshot.ts` is a pure CDP screenshot-clip planner from Chromium CSS layout metrics. The audit CLI captures the initial viewport normally and, only with `audit --evidence-dir ... --full-page-evidence`, writes a second PNG using `captureBeyondViewport` with a top-left clip capped at 4,096×6,000 CSS pixels / 12M CSS pixels. The report includes the measured document dimensions, captured rectangle, truncation status and source limitations. It does not alter `analyzePageAudit` or layout-contract evaluations.

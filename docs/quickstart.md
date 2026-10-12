@@ -67,6 +67,32 @@ bronto-layout check --spec reports/gallery-contract.json \
 
 Expected: the automatic audit has no strict measured problems; `review-draft` prints the observed **12px** gap deviation versus **2px** tolerance at both widths and exits 1; the final approved contract also fails on that difference. These exit codes are intentional for this exercise. No rule was silently approved. For your own page, carefully review each proposed relationship and use `approve --accept` only for behaviors you want to enforce.
 
+### Save matching screenshots while comparing revisions
+
+To inspect the two **observed** page states visually, rather than relying only
+on measured DOM evidence, opt into matching viewport captures:
+
+```sh
+bronto-layout audit --baseline examples/audit-healthy.html \
+  --url examples/audit-broken.html --widths 375,768 \
+  --evidence-dir reports/compare-evidence --json --compact
+```
+
+The comparison writes `audit-baseline-375px.png`, `audit-candidate-375px.png`,
+`audit-baseline-768px.png` and `audit-candidate-768px.png` to the selected
+local directory. Each `comparisonEvidence` JSON entry records its viewport,
+paths, `viewport-only` coverage and independently checkable SHA-256 hashes.
+The page is re-navigated before measuring each revision at each width, and any
+explicit `--actions` setup is replayed before its screenshot. Files are never
+automatically overwritten: choose a new directory for subsequent comparisons.
+
+The images **do not provide an automatic pixel-based verdict** or certify
+below-the-fold content, color/design intent, iframe internals or unmeasured
+responsive states. They may show input values or private page information,
+so do not upload/reuse evidence from authenticated sessions without review.
+Full-page evidence remains available for **single-page** audits only; combining
+`--baseline` with `--full-page-evidence` still returns an explicit error.
+
 ### Compare a warning that gets worse without becoming a blocking error
 
 To see how experimental grid spacing can become more irregular between two

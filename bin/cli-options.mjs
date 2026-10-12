@@ -60,7 +60,7 @@ Options:
   --compact             With --json: actionable findings, sampled widths, and totals
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
-  --evidence-dir DIR    Annotated check screenshots; raw audit viewport screenshots
+  --evidence-dir DIR    Check images; audit viewport images; opt-in paired baseline/candidate PNG evidence
   --full-page-evidence  Audit with --evidence-dir: bounded CSS document screenshot (not a correctness check)
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
   --fail-on-coverage-gaps  Audit: exit 2 for known uninspected content (e.g. iframes)
@@ -194,7 +194,6 @@ export function validateCommandOptions(a) {
   if (a.command === 'audit' && a.refine) throw new Error('audit does not infer contracts for --refine; use scan with a contract');
   if (a['full-page-evidence'] && (a.command !== 'audit' || a.baseline || !a['evidence-dir']))
     throw new Error('--full-page-evidence requires audit --evidence-dir DIR without --baseline');
-  if (a.command === 'audit' && a.baseline && a['evidence-dir']) throw new Error('Compared audit screenshots are not yet supported');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
