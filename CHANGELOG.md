@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Separate strict CLI parsing, command-option validation, numeric viewport parsing and approved browser scenario precedence into browser-free `bin/cli-options.mjs`. Keep the same commands/exit behavior, add direct pure tests and require the new module in isolated npm installs.
 - Add opt-in 16-route cold CLI stress profiling with a trusted local-only mixed-state batch and synthetic 500/5,000/20,000-element DOM fixtures. Measure repeatable wall-clock times while preserving expected failing contracts and explicit audit traversal truncation; no performance or accuracy claims for production pages.
 
 
