@@ -1,5 +1,11 @@
 # Validation notes
 
+## 2026-10-12: live optional grid/flex review coverage observations
+
+An allowlisted, manually dispatched first-party smoke run on disposable GitHub Actions ([run 38302974027](https://github.com/Ponchia/bronto-layout/actions/runs/38302974027)) enabled `--grid-gap-review` and `--sibling-overlap-review` together on the public personal site and Sense6 English, Arabic and Learn routes at 320/375/768/1280 CSS px (16 states). The recorded top-document audits observed **0 measured issues and 0 grid/flex warnings** in those states. This does **not** mean the pages are independently judged defect-free. The original compact report states the DOM traversal completed for all sampled top-level scopes but also explicitly omitted **one candidate grid and one candidate overlap container per width** on both Sense6 English and Arabic (8 omitted candidate observations per language across four widths).
+
+The new `summary.reviewCoverage` tells the truth about those omissions: **`known-omissions` on Sense6 English/Arabic (4 skipped grid + 4 skipped overlap candidates for each route)**; **`no-known-omissions`** on the personal site and Sense6 Learn. The omission count is for bounded candidate review, not browser DOM traversal or a known visual defect. The same DOM group may contribute to multiple detector or width counts. These are not independently human-reviewed labels and do not establish real-site precision/recall; [issue #27](https://github.com/Ponchia/bronto-layout/issues/27) remains pending. The live workflow is manual/opt-in only and the report artifacts expire after seven days.
+
 ## 2026-10-12: Optional first-party review-only layout diagnostics
 
 The manually dispatched `live-site-smoke.yml` workflow can opt into new
@@ -29,6 +35,7 @@ arbitrary external sites from a shared devbox.
 Any warnings are *candidates for independent inspection*, not evidence of
 poor design. Real-site precision/recall and the human labels in issue #27
 remain outstanding; collecting site-specific observations is not a substitute.
+
 
 
 

@@ -200,3 +200,81 @@ export function analyzePageAudit(
     }
   };
 }
+
+/** Optional heuristic inspection coverage is separate from the DOM/frame scope.
+ * A completed DOM walk can omit dense CSS grids or overlapping-child groups;
+ * zero review warnings over those omissions must not read as a clean verdict.
+ */
+export interface OptionalReviewCoverage {
+  status: 'no-known-omissions' | 'known-omissions' | 'unavailable';
+  viewports: number;
+  viewportsWithOmissions: number;
+  viewportsWithUnavailableEvidence: number;
+  omittedGridContainers: number;
+  omittedOverlapContainers: number;
+  omittedGridLeads: number;
+  omittedOverlapLeads: number;
+  /** Counts detector candidate observations; the same DOM group may repeat across widths/categories. */
+  totalOmissions: number;
+}
+
+export function summarizeOptionalReviewCoverage(
+  reports: readonly ViewportAudit[],
+  flags: { gridGapReview: boolean; siblingOverlapReview: boolean }
+): OptionalReviewCoverage {
+  let viewportsWithOmissions = 0;
+  let viewportsWithUnavailableEvidence = 0;
+  let omittedGridContainers = 0;
+  let omittedOverlapContainers = 0;
+  let omittedGridLeads = 0;
+  let omittedOverlapLeads = 0;
+  const valid = (count: unknown): count is number =>
+    Number.isSafeInteger(count) && (count as number) >= 0;
+  for (const report of reports) {
+    const evidence = report.coverage;
+    // A truncated DOM traversal necessarily leaves later review candidates
+    // unobserved, regardless of any otherwise valid collected counters.
+    let unknown = evidence.truncated === true, missing = 0;
+    if (flags.gridGapReview) {
+      // Compact audit JSON intentionally omits the raw lead arrays but keeps
+      // individual, path-attributed findings. Count those to avoid treating
+      // genuine 30-state field captures as missing metadata.
+      const reported = Array.isArray(evidence.gridGapLeads) ? evidence.gridGapLeads.length :
+        report.findings?.filter(f => f.code === 'possible-grid-gap-anomaly' &&
+          typeof f.path === 'string' && f.path.length > 0).length;
+      if (!valid(evidence.gridContainersOmitted) || !valid(evidence.gridGapCount) ||
+          !valid(reported) || evidence.gridGapCount < reported) unknown = true;
+      else {
+        const leadsOmitted = evidence.gridGapCount - reported;
+        omittedGridContainers += evidence.gridContainersOmitted;
+        omittedGridLeads += leadsOmitted;
+        missing += evidence.gridContainersOmitted + leadsOmitted;
+      }
+    }
+    if (flags.siblingOverlapReview) {
+      const reported = Array.isArray(evidence.siblingOverlapLeads) ? evidence.siblingOverlapLeads.length :
+        report.findings?.filter(f => f.code === 'possible-sibling-overlap' &&
+          typeof f.path === 'string' && f.path.length > 0).length;
+      if (!valid(evidence.overlapContainersOmitted) || !valid(evidence.siblingOverlapCount) ||
+          !valid(reported) || evidence.siblingOverlapCount < reported) unknown = true;
+      else {
+        const leadsOmitted = evidence.siblingOverlapCount - reported;
+        omittedOverlapContainers += evidence.overlapContainersOmitted;
+        omittedOverlapLeads += leadsOmitted;
+        missing += evidence.overlapContainersOmitted + leadsOmitted;
+      }
+    }
+    if (missing > 0) viewportsWithOmissions++;
+    if (unknown) viewportsWithUnavailableEvidence++;
+  }
+  const totalOmissions = omittedGridContainers + omittedOverlapContainers +
+    omittedGridLeads + omittedOverlapLeads;
+  return {
+    status: viewportsWithUnavailableEvidence ? 'unavailable' :
+      totalOmissions ? 'known-omissions' : 'no-known-omissions',
+    viewports: reports.length, viewportsWithOmissions,
+    viewportsWithUnavailableEvidence,
+    omittedGridContainers, omittedOverlapContainers,
+    omittedGridLeads, omittedOverlapLeads, totalOmissions
+  };
+}
