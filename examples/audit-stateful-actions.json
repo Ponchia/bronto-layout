@@ -1,0 +1,6 @@
+[
+  { "type": "wait-for", "selector": "#open" },
+  { "type": "click", "selector": "#open" },
+  { "type": "fill", "selector": "#comment", "value": "sensitive-demo-input-do-not-leak" },
+  { "type": "wait-for", "selector": "#panel" }
+]

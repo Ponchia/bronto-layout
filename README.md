@@ -216,6 +216,30 @@ https://www.w3.org/WAI/WCAG22/Understanding/reflow.html.
 For durable intentionality and exact relationships, use the existing
 `check --spec` layout contracts instead.
 
+### Zero-contract audits of declared interactive states
+
+The automatic `audit` and its baseline/candidate comparison now accept a
+**validated** declarative action list to inspect the layout *after* a menu opens,
+a panel expands or a form input updates. Every viewport and each baseline/candidate
+page independently replays the same actions; the original page stays unchanged
+when the flag is omitted:
+
+```sh
+bronto-layout audit --url examples/audit-stateful-broken.html \
+  --actions examples/audit-stateful-actions.json --widths 375,768 --json --compact
+bronto-layout audit --baseline examples/audit-stateful-healthy.html \
+  --url examples/audit-stateful-broken.html \
+  --actions examples/audit-stateful-actions.json --width 375 --json
+```
+
+The fixture detects two measured problems only after its panel opens: document
+horizontal overflow and a broken visible image. `--css-breakpoints` also repeats
+setup at candidate breakpoint widths. No JavaScript is allowed in the action
+file; there is no automatic login, complex drag, root-cause inference, or claim
+about uninspected iframe content. JSON reports describe action **types/counts**,
+not selectors or filled values. Keep sensitive action files out of committed
+examples and shared report artifacts. See [interactive audits](docs/quickstart.md).
+
 ## Inspect CSS container queries (opt-in)
 
 Modern components can switch layout based on the size of an ancestor CSS

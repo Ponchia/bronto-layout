@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reviewed state healthy</title>
+<style>html,body{margin:0}body{font:16px system-ui}button,input{margin:12px}#panel[hidden]{display:none}#panel{box-sizing:border-box;width:calc(100% - 16px);height:80px;background:#def;padding:8px}#panel img{width:48px;height:32px;object-fit:cover}</style>
+</head><body>
+<button id="open" onclick="document.querySelector('#panel').hidden=false">Show detail panel</button>
+<input id="comment" aria-label="Reviewer input" oninput="document.querySelector('#note').textContent=this.value">
+<div id="panel" hidden><span id="note">Waiting for input</span><img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='48'%20height='32'%3E%3Crect%20width='48'%20height='32'/%3E%3C/svg%3E" alt="Valid inline image"></div>
+</body></html>

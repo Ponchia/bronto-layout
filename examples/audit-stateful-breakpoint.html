@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interaction-only responsive regression</title>
+<style>html,body{margin:0}body{font:16px system-ui}button,input{margin:8px}#panel[hidden]{display:none}#panel{box-sizing:border-box;width:calc(100% - 16px);height:80px;background:#def;padding:8px} @media (min-width:701px) and (max-width:799px){#panel{width:calc(100vw + 44px)}}</style>
+</head><body>
+<button id="open" onclick="document.querySelector('#panel').hidden=false">Open details</button>
+<input id="comment" aria-label="Comment" oninput="document.querySelector('#note').textContent=this.value">
+<div id="panel" hidden><span id="note">Closed</span></div>
+</body></html>

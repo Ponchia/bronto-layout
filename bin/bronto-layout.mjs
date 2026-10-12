@@ -671,8 +671,8 @@ async function batch(a) {
  * are failures, while potentially intentional clipping is review-only.
  * Incomplete traversal has exit 2, never a misleading "all clear".
  */
-async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false) {
-  const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture);
+async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = []) {
+  const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture, actions);
   const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
   if (!observations || !Number.isInteger(observations.visitedElements) ||
       typeof observations.truncated !== 'boolean') {
@@ -691,7 +691,7 @@ async function captureAuditAt(cdp, url, width, config, fixture, frameInventory =
  * Before/after automatic diagnostics without introducing inferred contracts.
  * Both pages are visited at exactly the same widths in one CDP session.
  */
-async function compareAudit(a, coarseWidths) {
+async function compareAudit(a, coarseWidths, actions = []) {
   const candidatePath = resolveURL(a);
   const baselinePath = a.baseline.startsWith('http://') ||
     a.baseline.startsWith('https://') || a.baseline.startsWith('file://')
@@ -704,8 +704,8 @@ async function compareAudit(a, coarseWidths) {
       try {
         const cssBreakpoints = a['css-breakpoints']
           ? combineCSSBreakpointSamples(coarseWidths,
-            await discoverCSSBreakpointWidths(cdp, baselineTarget.url, coarseWidths, config, baselineFixture),
-            await discoverCSSBreakpointWidths(cdp, candidateUrl, coarseWidths, config, candidateFixture))
+            await discoverCSSBreakpointWidths(cdp, baselineTarget.url, coarseWidths, config, baselineFixture, actions),
+            await discoverCSSBreakpointWidths(cdp, candidateUrl, coarseWidths, config, candidateFixture, actions))
           : undefined;
         const widths = cssBreakpoints?.widths ?? coarseWidths;
         if (widths.length > config.maxSamples) {
@@ -714,8 +714,8 @@ async function compareAudit(a, coarseWidths) {
         }
         const baselineReports = [], candidateReports = [];
         for (const width of widths) {
-          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory']));
-          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory']));
+          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions));
+          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions));
         }
         const comparison = comparePageAudits(
           baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
@@ -739,6 +739,7 @@ async function compareAudit(a, coarseWidths) {
       candidateUninspectedFrames: candidate.coverage.embeddedFrames }];
   });
   result.coverageGaps = coverageGaps;
+  Object.assign(result, auditStateSummary(a, actions));
   const remaining = result.candidate.flatMap(report => report.findings
     .filter(f => f.classification === 'measured')
     .map(finding => ({width:report.viewport.width, ...finding})));
@@ -747,6 +748,7 @@ async function compareAudit(a, coarseWidths) {
     baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
     summary:result.summary,sampledWidths:result.sampledWidths,
     changes:result.changes,unverified:result.unverified,coverageGaps,
+    ...auditStateSummary(a, actions),
     ...(a['frame-inventory'] ? { frameInventories: result.candidate.map((candidate, i) => ({
       width: candidate.viewport.width, baseline: result.baseline[i].frameInventory,
       candidate: candidate.frameInventory
@@ -757,6 +759,7 @@ async function compareAudit(a, coarseWidths) {
   } : result;
   const printable = [
     'Bronto Layout zero-contract comparison — '+result.baselineUrl+' → '+result.candidateUrl,
+    ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed independently on both versions at each width; values omitted'] : []),
     ...result.changes.map(change=>
       '  '+change.width+'px '+change.kind.toUpperCase()+' '+change.code+
       (change.path?' ['+change.path+']':'')+
@@ -780,10 +783,11 @@ async function audit(a) {
   if (!a.url) throw new Error('audit requires --url URL (or a local HTML path)');
   const baseWidths = a.scan || a.width !== undefined || a.widths !== undefined
     ? getWidths(a) : [320, 375, 768, 1280];
-  if (a.baseline) return compareAudit(a, baseWidths);
+  const actions = await readExplicitActions(a);
+  if (a.baseline) return compareAudit(a, baseWidths, actions);
   const result = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     const cssBreakpoints = a['css-breakpoints']
-      ? await discoverCSSBreakpointWidths(cdp, url, baseWidths, config, fixture)
+      ? await discoverCSSBreakpointWidths(cdp, url, baseWidths, config, fixture, actions)
       : undefined;
     const widths = cssBreakpoints?.widths ?? baseWidths;
     if (widths.length > config.maxSamples) throw new Error(
@@ -794,7 +798,7 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory']);
+      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory'], actions);
       if (a['evidence-dir']) {
         const image = await cdp.send('Page.captureScreenshot', {
           format: 'png', captureBeyondViewport: false, fromSurface: true
@@ -830,12 +834,14 @@ async function audit(a) {
       visitedElements: reports.reduce((count, report) => count + report.coverage.visitedElements, 0)
     };
     return { schemaVersion: 1, mode: 'audit', url: publicURL, browser, summary,
+      ...auditStateSummary(a, actions),
       sampledWidths: widths, reports,
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}) };
   });
   const payload = a.compact ? {
     schemaVersion: result.schemaVersion, mode: 'audit', format: 'compact',
     url: result.url, browser: result.browser, summary: result.summary, sampledWidths: result.sampledWidths,
+    ...auditStateSummary(a, actions),
     reports: result.reports.map(report => ({
       width: report.viewport.width,
       direction: report.viewport.direction,
@@ -870,6 +876,7 @@ async function audit(a) {
   } : result;
   const printable = [
     'Bronto Layout zero-contract audit — ' + result.url,
+    ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed at each width; values omitted'] : []),
     ...result.reports.flatMap(report => [
       report.viewport.width + 'px (' + report.viewport.direction + '): ' +
         report.summary.errors + ' measured issues, ' + report.summary.warnings +
@@ -894,11 +901,25 @@ async function audit(a) {
 }
 
 /** Suggestions never become enforced contracts without a separate approval. */
+/** Read validated, bounded declarative state setup without executing arbitrary JS.
+ * The source file is not copied to a report; actions might include user input.
+ */
+async function readExplicitActions(a) {
+  return a.actions ? parseLayoutActions(JSON.parse(await readFile(path.resolve(a.actions), 'utf8'))) : [];
+}
+/** Report which kinds of actions were run, never typed values or selectors. */
+function auditStateSummary(a, actions) {
+  return a.actions ? { stateSetup: { actionCount: actions.length,
+    actionTypes: actions.map(action => action.type),
+    replayedAtEachWidth: true,
+    ...(a.baseline ? { replayedOnBothVersions: true } : {}) } } : {};
+}
+
 async function suggest(a) {
   if (!a.url) throw new Error('suggest requires --url URL or local HTML path');
   const widths = a.width !== undefined || a.widths !== undefined || a.scan
     ? getWidths(a) : [375, 768, 1280];
-  const actions = a.actions ? parseLayoutActions(JSON.parse(await readFile(a.actions, 'utf8'))) : [];
+  const actions = await readExplicitActions(a);
   const draft = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     if (widths.length > config.maxSamples) throw new Error('Too many suggestion widths');
     const explicit = Boolean(a.selector?.length);

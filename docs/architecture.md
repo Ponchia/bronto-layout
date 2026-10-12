@@ -120,6 +120,17 @@ The audit summarizes viewport coverage and reports bounded omissions rather
 than hiding them. It deliberately does not recurse into frame documents or
 claim to understand canvas/WebGL internals.
 
+Zero-contract `audit --actions FILE` uses the same strict action parser and
+`runAction` CDP executor as explicit contracts, with **one fresh page navigation
+per viewport**. The browser-observation adapter runs after the declared
+interactions, so visible images and document overflow refer to the requested
+state. If `audit --baseline` is set, the identical validated sequence is replayed
+separately on baseline and candidate at each width, including CSS media-query
+threshold scans. If a selector cannot be found, the entire command fails with
+exit 2 rather than comparing unrelated states. Reports contain only action
+counts and types, never filled values or raw selectors. This does not establish
+late async stability or cross-frame/closed-root coverage.
+
 `bin/bronto-layout.mjs audit` uses the existing Chromium/CDP
 runtime, responsive CSS-breakpoint scanner, JSON report handling and normal
 exit-code semantics. No additional runtime libraries, proprietary services,
