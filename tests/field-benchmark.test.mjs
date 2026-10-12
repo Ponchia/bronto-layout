@@ -4,7 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
-import { validateFieldManifest, validateFieldLabels, scoreFieldEvidence } from '../scripts/field-benchmark-core.mjs';
+import { validateFieldManifest, validateFieldLabels, validReviewDate, scoreFieldEvidence } from '../scripts/field-benchmark-core.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const runner = path.join(root, 'scripts/field-benchmark.mjs');
 const protocol = 'Review actual rendered page and screenshot before viewing any automatic detector findings.';
@@ -218,4 +218,33 @@ test('unfinished human label drafts remain pending rather than falsely clean',()
  assert.throws(()=>validateFieldLabels({...labels,cases:[
   {id:'case-pending',reviewStatus:'pending',expectedMeasured:[]}
  ]},dataset,cases.map(c=>c.id)),/pending case cannot contain/);
+});
+
+
+test('human review dates reject nonexistent calendar days instead of accepting Date.parse rollover',()=>{
+  for (const invalid of [undefined,null,0,'','2026-02-30','2026-02-29','2026-11-31',
+    '2026-04-31','2026-13-01','2026-00-14','2026-02-00','2026-1-2',
+    '2026-10-12T12:00:00Z','2026-10-12Z']) {
+    assert.equal(validReviewDate(invalid),false,'invalid '+String(invalid));
+    for (const status of ['reviewed','unreviewable']) {
+      const label={...reviewed('actual-case'),reviewStatus:status,reviewedAt:invalid};
+      if (status === 'unreviewable'){
+        delete label.expectedMeasured;delete label.expectedReview;
+      }
+      assert.throws(()=>validateFieldLabels({schemaVersion:1,datasetId:'review-dates',
+        reviewProtocol:protocol,cases:[label]},'review-dates',['actual-case']),
+        /valid YYYY-MM-DD calendar review date/,status+' '+String(invalid));
+    }
+  }
+  for(const valid of ['2024-02-29','2026-10-12','2000-02-29','2026-12-31','2027-01-01']){
+    assert.equal(validReviewDate(valid),true,'valid '+valid);
+    for(const status of ['reviewed','unreviewable']){
+      const label={...reviewed('actual-case'),reviewStatus:status,reviewedAt:valid};
+      if(status==='unreviewable'){
+        delete label.expectedMeasured;delete label.expectedReview;
+      }
+      assert.doesNotThrow(()=>validateFieldLabels({schemaVersion:1,datasetId:'review-dates',
+        reviewProtocol:protocol,cases:[label]},'review-dates',['actual-case']));
+    }
+  }
 });

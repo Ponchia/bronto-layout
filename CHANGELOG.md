@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- Tighten independent human-review label validation: `reviewedAt` must be a *real* ISO `YYYY-MM-DD` calendar date. Node's `Date.parse` silently normalizes impossible dates such as 2026-02-30; these are now refused for both `reviewed` and `unreviewable` declarations, while valid leap days remain supported. This validates record structure only, not the authenticity of human review.
 - Add opt-in `audit --sibling-overlap-review`, a bounded Flex/Grid direct-sibling rectangle intersection analyzer that skips common intentional overlap patterns. Findings include both child paths, are always nonblocking review warnings, and support conservative before/after review changes without inventing CSS causes or real-world accuracy claims.
+
 - Add opt-in `doctor --verify-launch` to open and close a temporary blank Chromium/CDP session rather than assuming executable detection proves startup. Explicit sandbox bypass remains separately disclosed, and no external site is opened; default version-only doctor behavior is unchanged.
 
 - Harden the offline npm tarball release gate with a second independent **ordinary** installation (lifecycle scripts enabled), exercising the CLI version, contract validation and public TypeScript API without source dependencies. Clarify that independent field-review scripts and benchmark manifests require a source checkout and are deliberately omitted from the installable CLI tarball.
@@ -10,6 +12,7 @@
 - Prevent data loss when importing a partial independent-review JSON draft: validate all incoming records before applying any, replace only named cases and preserve in-progress controls for every omitted case. Browser regression tests verify the merged export remains schema-valid, including the complete 30-state field capture.
 
 - Compare the measured magnitude of persistent, same-path **review-only** text-clipping and experimental grid-gap leads between baseline and candidate. Report `review-worsened` / `review-improved` with original and candidate CSS-pixel values above a 2px jitter floor, never a strict measured regression. Missing numeric evidence is unverified rather than silently unchanged.
+
 - Add opt-in offline `field-benchmark review-console` for independent human review of hash-verified screenshots. A source-hash CSP protects local JavaScript for explicitly choosing statuses, validating attestations, and importing/exporting label JSON; no audit predictions, invented negative labels, uploads or persistent browser storage. Keep the original script-free gallery unchanged; manual capture artifacts provide both.
 
 
