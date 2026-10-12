@@ -45,6 +45,8 @@ try {
     assert.ok(!file.startsWith('src/'), 'Uncompiled source unexpectedly shipped: ' + file);
     assert.ok(!file.startsWith('tests/'), 'Unit tests unexpectedly shipped: ' + file);
     assert.ok(!file.startsWith('node_modules/'), 'Development dependencies unexpectedly shipped');
+    assert.ok(!file.startsWith('benchmarks/'), 'Contributor-only field benchmarks unexpectedly shipped');
+    assert.ok(!file.startsWith('scripts/'), 'Contributor-only development scripts unexpectedly shipped');
   }
   const consumer = path.join(temp, 'consumer');
   await mkdir(consumer);
@@ -76,6 +78,34 @@ try {
     rules: [{ id: 'presence', type: 'selector-count', element: 'element', exactly: 1 }]
   }).rules.length, 1);
 
+  // npm consumers normally DO NOT pass --ignore-scripts. Verify that the
+  // published tarball installs in the ordinary mode too, with the lifecycle
+  // setting explicitly enabled. Stay offline and exclude development deps.
+  // This is a separate consumer directory so a prior no-scripts install can
+  // never mask a lifecycle or packaging incompatibility.
+  const ordinaryConsumer = path.join(temp, 'consumer-ordinary');
+  await mkdir(ordinaryConsumer);
+  run(npm, [
+    'install', '--offline', '--ignore-scripts=false', '--omit=dev',
+    '--no-audit', '--no-fund', '--no-package-lock', '--prefix', ordinaryConsumer, archive
+  ]);
+  const ordinaryInstall = path.join(ordinaryConsumer, 'node_modules', '@ponchia', 'layout');
+  const ordinaryPkg = JSON.parse(await readFile(path.join(ordinaryInstall, 'package.json'), 'utf8'));
+  assert.equal(ordinaryPkg.version, pkg.version);
+  assert.deepEqual(ordinaryPkg.dependencies ?? {}, {}, 'Ordinary install unexpectedly requires runtime dependencies');
+  const ordinaryBinary = process.platform === 'win32'
+    ? path.join(ordinaryConsumer, 'node_modules', '.bin', 'bronto-layout.cmd')
+    : path.join(ordinaryConsumer, 'node_modules', '.bin', 'bronto-layout');
+  assert.ok(existsSync(ordinaryBinary), 'Ordinary npm install did not expose the CLI executable');
+  assert.equal(run(ordinaryBinary, ['--version'], { cwd: ordinaryConsumer }).trim(),
+    'Bronto Layout ' + pkg.version);
+  const ordinarySpec = path.join(ordinaryInstall, 'examples', 'layout.json');
+  assert.equal(JSON.parse(run(ordinaryBinary,
+    ['validate', '--spec', ordinarySpec, '--json'], { cwd: ordinaryConsumer })).valid, true);
+  const ordinaryAPI = await import(pathToFileURL(path.join(ordinaryInstall, 'dist', 'index.js')).href);
+  assert.equal(typeof ordinaryAPI.evaluateLayout, 'function');
+  assert.equal(typeof ordinaryAPI.parseContract, 'function');
+
   if (process.env.BRONTO_REQUIRE_CHROME === '1') {
     const browserArgs = [
       'check', '--spec', sourceSpec, '--url', path.join(installed, 'examples', 'healthy.html'),
@@ -103,7 +133,7 @@ try {
   }
 
   print('Packed ' + packed.filename + ': ' + packedFiles.size + ' files, ' +
-    packed.size + ' bytes; isolated installed CLI, exports and examples verified');
+    packed.size + ' bytes; script-disabled and normal offline consumer installs, CLI, exports and examples verified');
 } finally {
   await rm(temp, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 });
 }

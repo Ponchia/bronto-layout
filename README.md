@@ -49,8 +49,10 @@ it does not ship a browser binary. The planned npm package name is
 `@ponchia/layout`, with the executable named
 `bronto-layout`. The normal browser sandbox stays enabled.
 
-A clean-room npm install of a generated tarball is tested in CI on Node 22
-and 24, including the installed CLI's browser checks against bundled
+Two clean-room offline npm tarball installs are tested in CI on Node 22 and
+24: with lifecycle scripts deliberately disabled and with the ordinary npm
+lifecycle behavior explicitly enabled. Both verify the installed CLI and
+compiled public API; sandbox-controlled browser checks run against bundled
 trusted fixtures. **Preparing a publishable package does not imply that
 it has been published to the npm registry.**
 
@@ -85,6 +87,14 @@ See [review-first contract discovery](docs/contract-discovery.md) for exact sema
 For reviewers needing below-the-fold visual context, the opt-in `audit --evidence-dir DIR --full-page-evidence` and manual field-capture `full_page_evidence=true` workflow store an additional size-bounded document screenshot. The capture is explicitly marked truncated for long/wide pages, hashes are verified, and automatic detectors never infer a design failure from the image. [Details and size limits](docs/field-benchmark.md).
 
 ## Independent field benchmark workflow
+
+**Source-checkout tools, not packaged CLI commands:** the `scripts/` and
+`benchmarks/` directories and GitHub Actions field-capture workflow belong to
+this repository's developer/research harness. They are **not** included in the
+installable `@ponchia/layout` tarball, which ships the `bronto-layout` CLI,
+compiled TypeScript modules, bundled examples, documentation and license. To
+run the independent-review commands below, work from a source clone using
+`npm ci`; installing only the npm tarball is not sufficient for those scripts.
 
 A separate capture/label/score workflow prepares a 30-state first-party
 production-site cohort. It stores hashed raw Chromium audit reports and
