@@ -412,3 +412,9 @@ and coverage flags, not action input values.
 This adds no automatic judgment of visual intent and does not expand iframe,
 closed-shadow-root, canvas or cross-browser support. `failOnCoverageGaps`
 turns a known iframe omission into an unverified job (`exit 2`).
+
+## Offline paired-evidence verification
+
+`bin/audit-evidence-verify.mjs` implements `bronto-layout verify-evidence --comparison FILE --evidence-dir DIR` without invoking Chromium or loading a URL. It validates the `audit-compare` v1 sample/paired-width schema (at most 200), strict baseline/candidate PNG basename patterns and SHA-256 metadata. On a copied bundle, original absolute paths are *never* followed; only exact canonical filenames in the explicitly selected evidence directory are read. Evidence must be a regular, non-symlink image of at most 32 MiB and have PNG signature/IHDR before SHA-256 is checked. Missing/tampered/unsafe images are not passing observations; absent verified bytes are not classified as clean layouts.
+
+The result reports only image *integrity*, not image decoding, screenshot authorship, visual regression, layout intent, DOM completeness, website correctness or independent field ground truth. The report itself is the trust root; modified report hashes can falsely legitimize modified images, so share it through a trusted channel. Global CLI error reporting also protects the original `--comparison` file from accidental overwrites by `--report` when any verification step fails.

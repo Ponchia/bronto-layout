@@ -87,8 +87,27 @@ side-by-side local contact sheet. The rendered PNG previews are grouped by
 viewport width; the gallery contains no source URLs, detector predictions,
 automated judgments or network/analytics code. JSON metadata also includes
 `comparisonGallery.file`, and the HTML Content Security Policy blocks scripts
-and remote connections. The gallery does not rehash files on opening—verify
-byte digests with the JSON report when consuming copied evidence.
+and remote connections. The gallery does not rehash files on opening. Before using screenshots
+copied from another machine, verify the bytes against the saved comparison
+report with the **offline verifier**:
+
+```sh
+bronto-layout verify-evidence \
+  --comparison reports/audit-comparison.json \
+  --evidence-dir reports/compare-evidence --json
+```
+
+The `--comparison` file is the JSON produced by `audit --baseline ... --json`
+(or written with `--report`). The evidence directory contains the paired PNGs.
+No browser/network is opened. A missing image, altered SHA-256, symlink, or
+invalid PNG signature gives `status: unsafe` and exit `2`; clean evidence gives
+`verified` and exit `0`. Original absolute image paths in the report are only
+provenance: files are located by validated canonical names in the selected
+directory, allowing a copied review bundle to be verified. The supplied JSON
+report itself must be trusted; this step does **not** prove visual correctness,
+image semantics, browser authorship, or independent human accuracy labels.
+Never use `--report` to overwrite the input `--comparison` file.
+
 
 The page is re-navigated before measuring each revision at each width, and any
 explicit `--actions` setup is replayed before its screenshot. Files are never

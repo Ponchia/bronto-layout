@@ -120,6 +120,24 @@ remote requests, user labels or automatic visual-diff inference. The saved
 `comparisonGallery` metadata points directly to this local HTML file. Browser
 integration checks verify both PNGs actually render and its columns are styled.
 
+To independently check **copied or relocated** PNG evidence against a trusted
+comparison report, use the offline CLI verifier (no Chromium or network):
+
+```sh
+bronto-layout verify-evidence \
+  --comparison reports/audit-comparison.json \
+  --evidence-dir reports/compare-evidence --json
+```
+
+The command checks canonical filenames, bounded PNG headers, the file integrity
+SHA-256 hashes, rejects missing/tampered/symlinked files, and returns exit `2`
+when evidence is unsafe. The original report may contain old absolute machine
+paths; the verifier never opens them and instead uses the local directory you
+explicitly selected. SHA-256 proves equality to **that report's claimed bytes**,
+not their authorship, browser-state correctness, visual intent, or real-site
+precision/recall. No human labels are created. [Instructions](docs/quickstart.md).
+
+
 Below-the-fold paired captures are not supported; `--full-page-evidence` remains
 for the **single-page** audit only. See [paired comparison evidence](docs/quickstart.md).
 
