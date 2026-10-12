@@ -7,7 +7,7 @@ import { widthRange } from '../dist/sweep.js';
 export const HELP = `Bronto Layout — browser-native spatial contracts
 
 Usage:
-  bronto-layout doctor [--json] [--chrome PATH]
+  bronto-layout doctor [--verify-launch] [--json] [--chrome PATH]
   bronto-layout check --spec layout.json [--url URL] [--json|--sarif] [--report FILE]
   bronto-layout audit --url URL [--actions steps.json] [--widths 320,375,768,1280] [--json --compact]
   bronto-layout audit --baseline URL --url URL [--json --compact]
@@ -53,6 +53,7 @@ Options:
   --settle MS           Additional fixed delay for rendering (default: 0)
   --stable-for MS       Require selected DOM geometry unchanged for 100..5000ms
   --timeout MS          Navigation and CDP operation timeout (default: 15000)
+  --verify-launch      Doctor: opt-in real Chromium/CDP startup of an isolated blank tab
   --chrome PATH         Chrome/Chromium executable (autodetected otherwise)
   --no-sandbox          Explicitly disable Chromium sandbox (unsafe on untrusted URLs)
   --json                Machine-readable JSON to stdout
@@ -83,7 +84,7 @@ const OPTIONS = {
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' }, 'dom-limit': { type: 'string' },
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
-  chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
+  chrome: { type: 'string' }, 'verify-launch': { type: 'boolean' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
   'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' }, 'grid-gap-review': { type: 'boolean' }, 'full-page-evidence': { type: 'boolean' },
   out: { type: 'string' }, draft: { type: 'string' }, actions: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
@@ -199,6 +200,9 @@ export function validateCommandOptions(a) {
   if (a['frame-inventory'] && a.command !== 'audit') throw new Error('--frame-inventory applies only to audit');
   if (a['dom-limit'] !== undefined && a.command !== 'audit') throw new Error('--dom-limit applies only to audit');
   if (a['grid-gap-review'] && a.command !== 'audit') throw new Error('--grid-gap-review applies only to audit');
+  if (a['verify-launch'] && a.command !== 'doctor') throw new Error('--verify-launch applies only to doctor');
+  if (a.command === 'doctor' && a['no-sandbox'] && !a['verify-launch'])
+    throw new Error('doctor --no-sandbox requires --verify-launch to avoid a misleading detection-only result');
   if (a.actions && !['suggest', 'audit'].includes(a.command)) throw new Error('--actions applies only to suggest or audit; checks replay saved contract.actions');
   if (a.command === 'review-draft' &&
       ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',

@@ -16,6 +16,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Uniform open-Shadow DOM selector resolution for measurement, readiness and actions.
 - [x] Expose known iframe coverage gaps, with explicit strict-coverage option. Optional DOMSnapshot frame-document inventory provides bounded evidence without claiming inner-frame correctness.
 - [x] Provide `doctor`, a bounded parallel batch option and `npm run test:unit` for first-time contributors.
+- [x] Add an opt-in `doctor --verify-launch` that exercises an isolated local Chromium/CDP session instead of assuming `chrome --version` proves startup. Test successful and unsuccessful launches, disclosing explicit sandbox bypass; **physical Mac verification remains pending**.
 - [x] Verify the macOS packaging/conditional Chromium smoke workflow passes on a hosted macOS runner (PR #34 and main `58ebc70`; conditional runner smoke is not independent physical-device proof).
 - [x] Verify full Node 22/24 CI on merged `main` (run `38245817139`, `58ebc70`, success).
 - [ ] Obtain third-party review of platform behavior on a physical macOS machine, including sandboxed Chromium startup (CI is not a substitute).

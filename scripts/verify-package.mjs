@@ -107,6 +107,21 @@ try {
   assert.equal(typeof ordinaryAPI.parseContract, 'function');
 
   if (process.env.BRONTO_REQUIRE_CHROME === '1') {
+    // The installed public CLI, not the source checkout, must genuinely start
+    // Chromium and exchange a CDP command through its isolated blank tab.
+    // Browser sandbox disabling remains an explicit fixture-only CI override.
+    const launchArgs = ['doctor', '--verify-launch', '--json'];
+    if (process.env.BRONTO_CHROME_NO_SANDBOX === '1') launchArgs.push('--no-sandbox');
+    const launched = JSON.parse(run(ordinaryBinary, launchArgs, {
+      cwd: ordinaryConsumer, timeout: 90000
+    }));
+    assert.equal(launched.mode, 'doctor');
+    assert.equal(launched.status, 'launch-verified');
+    assert.equal(launched.browser.launch.attempted, true);
+    assert.equal(launched.browser.launch.connected, true);
+    assert.equal(launched.browser.launch.page, 'about:blank');
+    assert.equal(launched.browser.launch.sandboxBypassRequested,
+      process.env.BRONTO_CHROME_NO_SANDBOX === '1');
     const browserArgs = [
       'check', '--spec', sourceSpec, '--url', path.join(installed, 'examples', 'healthy.html'),
       '--width', '375', '--json'

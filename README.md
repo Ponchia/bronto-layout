@@ -56,6 +56,8 @@ compiled public API; sandbox-controlled browser checks run against bundled
 trusted fixtures. **Preparing a publishable package does not imply that
 it has been published to the npm registry.**
 
+`doctor --verify-launch` is an additional **opt-in** preflight: launch an isolated `about:blank` Chromium profile, verify its local CDP connection, and cleanly close the browser. Its JSON output distinguishes executable detection from successful startup and discloses explicit sandbox-bypass requests. A normal `doctor` invocation continues to check the executable version without starting a browser. Run `doctor --verify-launch --json` on your own Mac/Linux machine to verify that local startup actually works; it does not guarantee site permissions, network or kernel sandbox isolation. See [first-run instructions](docs/quickstart.md).
+
 **New in the hardening work:** `doctor` offers a non-invasive install preflight; `--fail-on-coverage-gaps` rejects known partial iframe inspections; `batch --parallel 2` runs independent browser profiles concurrently when resources allow. These features do not establish universal browser coverage or performance gains on arbitrary sites.
 
 ## Review-first contract suggestions (experimental)

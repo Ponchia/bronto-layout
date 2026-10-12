@@ -292,3 +292,21 @@ The opt-in `audit --grid-gap-review` and opt-in before/after review comparison n
 `field-benchmark.mjs review-console` reuses the same integrity-verified index rows as the script-free `review-gallery`; its renderer in `scripts/field-review-console.mjs` never reads audit predictions or invents ground truth. Only an offline, source-hash-locked inline script handles inputs and direct user-triggered JSON downloads/imports. A restrictive CSP blocks remote connections, third-party scripts, frames and forms. The generated page does not store labels in a browser account, send requests, or auto-promote pending records. The exported JSON uses the existing `validateFieldLabels` protocol, including positive codes only after an explicit reviewer choice and attestations. DOM mutations, imported metadata and user notes use properties rather than `innerHTML`; untrusted site metadata is escaped and URL tokens are removed. Real Chromium tests exercise an actual local JSON file download and import. Partial imports are validated transactionally and update only their named case IDs; omitted cases retain unsaved form values, selected warnings and attestations. Full imports deliberately replace all cases. The console shows how many records were replaced, preventing silent loss of unrelated reviewer work.
 
 The reporter still marks known frame interiors uninspected, and field scoring excludes them from whole-page precision/recall. Hash integrity establishes file provenance, not that every design problem was discovered. Keep the original no-JavaScript contact sheet as the highest-restriction review alternative.
+
+## Optional browser startup preflight (`doctor --verify-launch`)
+
+Ordinary `doctor` checks only the Node version and Chromium executable's
+`--version` result, without starting a process. The opt-in `--verify-launch`
+uses `startBrowser` to open **only** a fresh isolated `about:blank` page,
+confirm a real Chrome DevTools Protocol `Runtime.evaluate` request and close
+the process and temporary profile. The doctor returns `launch-verified` only
+when the browser started and the CDP probe responded; otherwise it records a
+launch failure as `needs-attention` with exit code 2. The optional
+`--no-sandbox` flag or explicit fixture-only CI environment override is
+disclosed as `sandboxBypassRequested` rather than being misrepresented as a
+verified secure browser sandbox. No external site is loaded by this check.
+
+A working about:blank CDP probe does not establish real-site navigation,
+network access, authentication, page quality, isolation effectiveness or
+independent physical-device parity. For that, test the installed CLI on a
+trusted development site and independently inspect the result.
