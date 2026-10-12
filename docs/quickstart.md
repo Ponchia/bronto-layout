@@ -20,6 +20,28 @@ bronto-layout doctor --verify-launch --json
 
 This launches an isolated temporary Chromium profile, checks an active CDP connection to `about:blank`, then shuts down and cleans up. Success returns `status: "launch-verified"` and `browser.launch.connected: true`; failure returns `needs-attention` (exit 2) with a launch reason. The record states whether a sandbox bypass was **requested**, not whether operating-system isolation was independently established. Without the `--no-sandbox` flag or explicit test environment override, no bypass is requested. Do not use `--no-sandbox` for arbitrary public websites: CI only uses it with trusted local fixtures on disposable runners. This preflight does **not** prove site navigation, authentication, page geometry quality or physical macOS compatibility until run on an actual machine.
 
+## Enable autocomplete for your contract (optional)
+
+For JSON-aware editors, start with the schema-tagged
+[`examples/schema-enabled-layout.json`](../examples/schema-enabled-layout.json)
+or [`examples/schema-enabled-batch.json`](../examples/schema-enabled-batch.json).
+They reference the publicly hosted schema files from this repository.
+Standalone `--actions` arrays cannot contain a `$schema` key; associate
+[`layout-actions.schema.json`](../schemas/layout-actions.schema.json)
+with action files through your editor's JSON schema settings instead. To
+avoid editor network requests, change `$schema` to a **relative file path**
+to `schemas/layout-contract.schema.json` or `schemas/batch-manifest.schema.json`
+in your local project. Bronto Layout never downloads these references or uses
+them to run a website; its versioned strict parsers remain the final check.
+
+```sh
+bronto-layout validate --spec examples/schema-enabled-layout.json --json
+bronto-layout batch --manifest examples/schema-enabled-batch.json --dry-run --json
+```
+
+Auto-completion covers accepted rules and options, not whether a selector
+actually matches a page. See [the schema files](../schemas/) and README.
+
 ## Inspect a page without writing a contract
 
 ```sh

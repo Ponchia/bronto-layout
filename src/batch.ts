@@ -46,6 +46,8 @@ export interface AuditBatchJob extends BatchJobBase {
 export type BatchJob = CheckBatchJob | AuditBatchJob;
 
 export interface BatchManifest {
+  /** Optional editor hint, ignored during batch execution and never fetched. */
+  $schema?: string;
   schemaVersion: 1;
   jobs: BatchJob[];
 }
@@ -63,8 +65,11 @@ const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/i;
  */
 export function parseBatchManifest(value: unknown): BatchManifest {
   if (!object(value) || value.schemaVersion !== 1 ||
-      Object.keys(value).some(key => !['schemaVersion', 'jobs'].includes(key))) {
+      Object.keys(value).some(key => !['$schema', 'schemaVersion', 'jobs'].includes(key))) {
     throw new Error('Batch manifest must have schemaVersion 1 and jobs only');
+  }
+  if (value.$schema !== undefined && (!nonEmpty(value.$schema) || value.$schema.length > 1024)) {
+    throw new Error('Batch $schema must be a nonempty editor reference (maximum 1024 characters)');
   }
   if (!Array.isArray(value.jobs) || value.jobs.length < 1 || value.jobs.length > 16) {
     throw new Error('Batch manifest needs 1 to 16 jobs');

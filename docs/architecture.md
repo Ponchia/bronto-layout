@@ -424,3 +424,24 @@ The result reports only image *integrity*, not image decoding, screenshot author
 `src/audit.ts` exports `summarizeOptionalReviewCoverage`. It counts separately the candidate grid/flex containers and individual review leads omitted from **explicitly requested** heuristic checks. `audit` returns an additive `summary.reviewCoverage` object only when those review modes are active, while `audit --baseline` exposes `reviewCoverage.baseline` and `.candidate`. Values distinguish `known-omissions`, `unavailable` and `no-known-omissions`; the last status merely means this bounded collector reported no gaps, **not** that all visual defects are absent. Raw full reports and compact reports are accepted: compact `coverage` omits lead arrays but retains path-attributed findings, so the summary calculates omitted leads without calling those observations unavailable. Missing or inconsistent requested counts produce `unavailable`, not a false clean result.
 
 Existing `summary.verified`/`supportedScopeMeasured` and `coverage.status` continue to describe the supported DOM/frame inspection, independently of experimental grid/flex review. Experimental omission counts do **not** change exit code 0/1/2 or imply automatic design intent. Strict before/after comparison still refuses ambiguous partial heuristic coverage using its existing `unverifiedViewports` policy.
+
+## Public JSON Schema editor hints (2026-10-12)
+
+`schemas/layout-contract.schema.json`, `schemas/batch-manifest.schema.json`
+and `schemas/layout-actions.schema.json` are Draft 2020-12 **development/editor metadata**, shipped in the npm package
+and available as JSON exports. They describe the 14 strict v1 contract rule
+shapes, bounded declarative actions and both `check` and `audit` batch job
+modes. The strict runtime parsers optionally accept a bounded `$schema` string
+and **never fetch, evaluate or execute its target**. JS/TS runtime behavior is
+unchanged by the editor hint. Repository tests use Ajv (devDependency only)
+to compile both schemas and check their alignment with every bundled contract
+and manifest, plus invalid examples. The installed CLI still has zero
+third-party runtime dependencies.
+
+Limitations are deliberate: JSON Schema cannot fully validate references from
+rule aliases to dynamic keys in `selectors`, compare two numeric rule fields
+(e.g. `min <= max`) or resolve referenced files/URLs in a batch. The pure
+`parseContract` and `parseBatchManifest` functions remain authoritative,
+followed by `validate` or `batch --dry-run` for file and scenario validation.
+Do not advertise editor schema validation as Chromium measurement, whole-page
+correctness or human visual intent.

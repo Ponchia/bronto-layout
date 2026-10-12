@@ -27,6 +27,32 @@ The second check is intentionally expected to exit 1. Browser integration tests 
 
 See [Architecture](docs/architecture.md) and [Validation](docs/validation.md).
 
+## Keep public contract and batch schemas in sync
+
+The versioned JSON editor schemas are **source-tree artifacts**, not runtime
+validators. A change to the accepted shape of any layout rule, batch job,
+scenario or declarative action must update the corresponding static schema:
+
+- [`schemas/layout-contract.schema.json`](schemas/layout-contract.schema.json) —
+  the 14 rule types, selector aliases, actions, scenarios and viewport samples.
+- [`schemas/batch-manifest.schema.json`](schemas/batch-manifest.schema.json) —
+  finite `check`/`audit` job modes and their distinct allowed fields.
+- [`schemas/layout-actions.schema.json`](schemas/layout-actions.schema.json) —
+  standalone `--actions` arrays; keep this schema's five action variants and
+  selector bounds identical to the contract schema action definitions.
+
+Use `npm run test:unit` to run the Ajv Draft 2020-12 parity tests against the
+actual TypeScript parsers and all bundled valid examples. Add both accepted and
+rejected fixture cases, and test every new rule or field with a real Chromium
+integration. Run `npm run test:package` to confirm the schema files and exports
+exist in both isolated offline consumer installations. Ajv is **dev-only**;
+no DOM inspection, browser or production command should require it.
+
+An optional `$schema` property enables editor autocomplete. It is ignored as
+an instruction by the CLI, which never fetches the schema URL. Parser-side
+selector alias resolution and cross-field numeric validation remain the final
+authority, as JSON Schema does not prove those relationships.
+
 ## Fast development loop
 
 Use `npm run test:unit` for pure TypeScript/Node tests without launching a browser. The full `npm run check` and package test are still required before proposing a merge. Use `npm run profile:cli -- --runs 2` for **trusted local fixture** cold-process timings; do not interpret them as real-world diagnostic quality or browser-reuse measurements. See [release checklist](docs/release-checklist.md).

@@ -1,0 +1,960 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/layout-contract.schema.json",
+  "title": "Bronto Layout v1 contract",
+  "description": "Editor hints and schema-level validation for declarative layout contracts. Run bronto-layout validate for referential alias and cross-field semantic checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "url": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "widths": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 200,
+        "maximum": 10000
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "selectors": {
+      "type": "object",
+      "description": "Named selector aliases. viewport is reserved. Aliases used in rules are checked by the CLI.",
+      "patternProperties": {
+        "^(?!viewport$).*\\S.*$": {
+          "$ref": "#/$defs/selector"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "layout-stability layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "layout-stability"
+              },
+              "maxScore": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "maxScore"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "document-overflow layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "document-overflow"
+              }
+            },
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "align-edge layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "align-edge"
+              },
+              "a": {
+                "$ref": "#/$defs/selector"
+              },
+              "b": {
+                "$ref": "#/$defs/selector"
+              },
+              "edgeA": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "right",
+                  "top",
+                  "bottom",
+                  "center-x",
+                  "center-y",
+                  "inline-start",
+                  "inline-end"
+                ]
+              },
+              "edgeB": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "right",
+                  "top",
+                  "bottom",
+                  "center-x",
+                  "center-y",
+                  "inline-start",
+                  "inline-end"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "a",
+              "b",
+              "edgeA"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "centered layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "centered"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "in": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element",
+              "in",
+              "axis"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "contained layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "contained"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "in": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y",
+                  "both"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element",
+              "in"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "non-overlapping layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "non-overlapping"
+              },
+              "a": {
+                "$ref": "#/$defs/selector"
+              },
+              "b": {
+                "$ref": "#/$defs/selector"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "a",
+              "b"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "equal-gaps layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "equal-gaps"
+              },
+              "elements": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/selector"
+                },
+                "minItems": 3,
+                "uniqueItems": true
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "elements",
+              "axis"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "uniform-gaps layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "uniform-gaps"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y"
+                ]
+              },
+              "laneTolerance": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element",
+              "axis"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "image-aspect layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "image-aspect"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "tolerancePercent": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "gap-range layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "gap-range"
+              },
+              "a": {
+                "$ref": "#/$defs/selector"
+              },
+              "b": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y"
+                ]
+              },
+              "min": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "a",
+              "b",
+              "axis"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "same-size layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "same-size"
+              },
+              "a": {
+                "$ref": "#/$defs/selector"
+              },
+              "b": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "width",
+                  "height",
+                  "both"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "a",
+              "b",
+              "axis"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "size-range layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "size-range"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "width",
+                  "height"
+                ]
+              },
+              "min": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element",
+              "axis"
+            ],
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "min"
+                ]
+              },
+              {
+                "required": [
+                  "max"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "description": "selector-count layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "selector-count"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "min": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "exactly": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element"
+            ],
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "exactly"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "min"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "max"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "anyOf": [
+                  {
+                    "required": [
+                      "min"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "max"
+                    ]
+                  }
+                ],
+                "not": {
+                  "required": [
+                    "exactly"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "description": "no-clipping layout relationship; CSS selector references must match aliases in selectors (checked by CLI)",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "maxWidth": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 10000
+              },
+              "type": {
+                "const": "no-clipping"
+              },
+              "element": {
+                "$ref": "#/$defs/selector"
+              },
+              "axis": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "y",
+                  "both"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "element"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "scenario": {
+      "$ref": "#/$defs/scenario"
+    }
+  },
+  "required": [
+    "selectors",
+    "rules"
+  ],
+  "$defs": {
+    "selector": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "actionSelector": {
+      "type": "string",
+      "maxLength": 2000,
+      "pattern": "\\S"
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "click"
+            },
+            "selector": {
+              "$ref": "#/$defs/actionSelector"
+            }
+          },
+          "required": [
+            "type",
+            "selector"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "fill"
+            },
+            "selector": {
+              "$ref": "#/$defs/actionSelector"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 10000
+            }
+          },
+          "required": [
+            "type",
+            "selector",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "wait-for"
+            },
+            "selector": {
+              "$ref": "#/$defs/actionSelector"
+            }
+          },
+          "required": [
+            "type",
+            "selector"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "scroll-into-view"
+            },
+            "selector": {
+              "$ref": "#/$defs/actionSelector"
+            }
+          },
+          "required": [
+            "type",
+            "selector"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "pause"
+            },
+            "milliseconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "type",
+            "milliseconds"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mobile": {
+          "type": "boolean"
+        },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8}){0,3}$"
+        },
+        "colorScheme": {
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "reducedMotion": {
+          "type": "boolean"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 10000
+        },
+        "readySelector": {
+          "type": "string",
+          "pattern": "\\S",
+          "maxLength": 2000
+        },
+        "settle": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000
+        },
+        "stableFor": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        }
+      }
+    }
+  }
+}

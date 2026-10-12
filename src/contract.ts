@@ -3,6 +3,8 @@ import { parseLayoutActions, type LayoutAction } from './actions.js';
 import { parseLayoutScenario, type LayoutScenario } from './scenario.js';
 
 export interface LayoutContract {
+  /** Optional editor hint; parsed locally and never fetched by the runtime. */
+  $schema?: string;
   schemaVersion?: 1;
   url?: string;
   widths?: number[];
@@ -28,8 +30,9 @@ export function validWidth(width: unknown): width is number { return Number.isIn
 function requireThat(ok: boolean, message: string): asserts ok { if (!ok) throw new Error(`Invalid layout contract: ${message}`); }
 export function parseContract(input: unknown): LayoutContract {
   requireThat(record(input), 'expected a JSON object');
-  const allowedContractFields = new Set(['schemaVersion', 'url', 'widths', 'selectors', 'rules', 'actions', 'scenario']);
+  const allowedContractFields = new Set(['$schema', 'schemaVersion', 'url', 'widths', 'selectors', 'rules', 'actions', 'scenario']);
   for (const name of Object.keys(input)) requireThat(allowedContractFields.has(name), `unknown top-level field ${name}`);
+  requireThat(input.$schema === undefined || (string(input.$schema) && input.$schema.length <= 1024), '$schema must be a nonempty editor schema reference (at most 1024 characters)');
   requireThat(input.schemaVersion === undefined || input.schemaVersion === 1, 'schemaVersion must be 1');
   requireThat(input.url === undefined || string(input.url), 'url must be a non-empty string');
   requireThat(record(input.selectors), 'selectors must be an object mapping aliases to CSS selectors');

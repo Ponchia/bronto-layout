@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "ajv": "^8.20.0",
     "eslint": "^9.39.5",
     "globals": "^16.5.0",
     "typescript": "^5.8.3",
@@ -78,7 +79,10 @@
     "./selector-discovery": {
       "types": "./dist/selector-discovery.d.ts",
       "default": "./dist/selector-discovery.js"
-    }
+    },
+    "./schemas/layout-contract.schema.json": "./schemas/layout-contract.schema.json",
+    "./schemas/batch-manifest.schema.json": "./schemas/batch-manifest.schema.json",
+    "./schemas/layout-actions.schema.json": "./schemas/layout-actions.schema.json"
   },
   "files": [
     "bin",
@@ -86,7 +90,8 @@
     "README.md",
     "LICENSE",
     "examples",
-    "docs"
+    "docs",
+    "schemas"
   ],
   "publishConfig": {
     "access": "public"
