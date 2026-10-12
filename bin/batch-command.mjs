@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseBatchManifest } from '../dist/batch.js';
 import { parseContract } from '../dist/contract.js';
+import { parseLayoutActions } from '../dist/actions.js';
 import { int, configFromArgs, getWidths } from './cli-options.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -22,19 +23,43 @@ export function createBatchCommand({ output }) {
     const parallel = int(a.parallel ?? '1', '--parallel', 1, 4);
     const manifestFile = path.resolve(a.manifest);
     const manifest = parseBatchManifest(JSON.parse(await readFile(manifestFile, 'utf8')));
-    // Validate every referenced contract before launching any browser.
+    // Validate ALL referenced contracts and declarative action files before
+    // launching a browser. A failed input must never allow half a suite to run.
     const baseDirectory = path.dirname(manifestFile);
+    const targetURL = raw => /^https?:\/\//.test(raw) || /^file:\/\//.test(raw)
+      ? raw : path.resolve(baseDirectory, raw);
     const jobs = await Promise.all(manifest.jobs.map(async job => {
+      const mode = job.mode ?? 'check';
+      if (mode === 'audit') {
+        const actionsFile = job.actions ? path.resolve(baseDirectory, job.actions) : null;
+        const actions = actionsFile
+          ? parseLayoutActions(JSON.parse(await readFile(actionsFile, 'utf8'))) : [];
+        return { ...job, mode, absoluteSpec: null, absoluteTarget: targetURL(job.url),
+          contractURL: null, approvedScenario: {}, actionsFile, actionCount: actions.length };
+      }
       const spec = path.resolve(baseDirectory, job.spec);
       const contract = parseContract(JSON.parse(await readFile(spec, 'utf8')));
-      return { ...job, absoluteSpec: spec, contractURL: contract.url, approvedScenario: contract.scenario ?? {} };
+      return { ...job, mode, absoluteSpec: spec, absoluteTarget: job.url ? targetURL(job.url) : null,
+        contractURL: contract.url, approvedScenario: contract.scenario ?? {} };
     }));
+    if (jobs.some(job => job.mode === 'audit') && a['stable-for'] !== undefined) {
+      throw new Error('Batch audit cannot use --stable-for without named selectors; remove it from the batch');
+    }
+    if (jobs.some(job => job.mode === 'audit') && a['fail-on-skip']) {
+      throw new Error('Batch audit has no contract skips; remove --fail-on-skip');
+    }
     if (a['dry-run']) {
       const data = {
         schemaVersion: 1, mode: 'batch-plan', manifest: manifestFile,
         total: jobs.length, parallel,
-        jobs: jobs.map(job => ({ id: job.id, spec: job.absoluteSpec,
+        jobs: jobs.map(job => ({ id: job.id, mode: job.mode, spec: job.absoluteSpec,
           target: job.url ?? job.contractURL ?? null,
+          ...(job.mode === 'audit' ? { stateSetup: {actionCount:job.actionCount},
+            auditOptions:{gridGapReview:Boolean(job.gridGapReview),
+              siblingOverlapReview:Boolean(job.siblingOverlapReview),
+              frameInventory:Boolean(job.frameInventory),
+              failOnCoverageGaps:Boolean(job.failOnCoverageGaps),
+              domLimit:job.domLimit ?? 18000} } : {}),
           widths: job.widths ?? null, scan: job.scan ?? null,
           cssBreakpoints: Boolean(job.cssBreakpoints),
           locale: job.locale ?? a.locale ?? job.approvedScenario.locale ?? null,
@@ -51,10 +76,19 @@ export function createBatchCommand({ output }) {
     }
     const outcomes = new Array(jobs.length);
     async function runJob(job) {
-      const argv = [cliPath, 'check', '--spec', job.absoluteSpec, '--json'];
+      const argv = job.mode === 'audit'
+        ? [cliPath, 'audit', '--url', job.absoluteTarget, '--json']
+        : [cliPath, 'check', '--spec', job.absoluteSpec, '--json'];
       if (a.compact) argv.push('--compact');
-      if (job.url) argv.push('--url', /^https?:\/\//.test(job.url) || /^file:\/\//.test(job.url)
-        ? job.url : path.resolve(baseDirectory, job.url));
+      if (job.mode === 'check' && job.absoluteTarget) argv.push('--url', job.absoluteTarget);
+      if (job.mode === 'audit') {
+        if (job.actionsFile) argv.push('--actions', job.actionsFile);
+        if (job.gridGapReview) argv.push('--grid-gap-review');
+        if (job.siblingOverlapReview) argv.push('--sibling-overlap-review');
+        if (job.frameInventory) argv.push('--frame-inventory');
+        if (job.failOnCoverageGaps) argv.push('--fail-on-coverage-gaps');
+        if (job.domLimit !== undefined) argv.push('--dom-limit', String(job.domLimit));
+      }
       if (job.widths) argv.push('--widths', job.widths.join(','));
       if (job.scan) argv.push('--scan', job.scan);
       if (job.cssBreakpoints) argv.push('--css-breakpoints');
@@ -76,7 +110,7 @@ export function createBatchCommand({ output }) {
         if (value !== undefined) argv.push('--' + option, value);
       }
       if (a['no-sandbox']) argv.push('--no-sandbox');
-      if (a['fail-on-skip']) argv.push('--fail-on-skip');
+      if (job.mode === 'check' && a['fail-on-skip']) argv.push('--fail-on-skip');
       if (a['evidence-dir']) argv.push('--evidence-dir', path.join(a['evidence-dir'], job.id));
       // Run each check with Node argv, never a shell or a manifest-provided command.
       const runtime = configFromArgs(a);
@@ -96,11 +130,12 @@ export function createBatchCommand({ output }) {
       }
       let report;
       try { report = JSON.parse(child.stdout); } catch { report = null; }
-      const exitCode = (child.status === 0 || child.status === 1) && report?.mode === 'check'
+      const exitCode = (child.status === 0 || child.status === 1) && report?.mode === job.mode
         ? child.status : 2;
-      const status = exitCode === 2 ? 'error' : exitCode === 1 ? 'violations' : 'pass';
+      const status = exitCode === 2 ? 'error' : exitCode === 1 ?
+        job.mode === 'audit' ? 'measured-issues' : 'violations' : 'pass';
       return {
-        id: job.id, status, exitCode,
+        id: job.id, mode: job.mode, status, exitCode,
         ...(report ? { result: report } : {
           result: { schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
             error: { code: 'BATCH_JOB_ERROR', message: child.error?.message || child.stderr?.trim() ||
@@ -122,22 +157,34 @@ export function createBatchCommand({ output }) {
       total: outcomes.length,
       passed: outcomes.filter(j => j.status === 'pass').length,
       violations: outcomes.filter(j => j.status === 'violations').length,
+      auditJobsWithIssues: outcomes.filter(j => j.status === 'measured-issues').length,
       errors: outcomes.filter(j => j.status === 'error').length,
       checksPassed: outcomes.reduce((n, j) => n + (j.result?.summary?.passed ?? 0), 0),
-      checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0)
+      checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0),
+      /** Audit findings are not contract assertions, so never mix their counts. */
+      auditMeasuredIssues: outcomes.reduce((n,j) => n + (j.mode === 'audit' ?
+        j.result?.summary?.measuredIssues ?? 0 : 0),0),
+      auditReviewWarnings: outcomes.reduce((n,j) => n + (j.mode === 'audit' ?
+        j.result?.summary?.reviewWarnings ?? 0 : 0),0),
+      auditIncompleteViewports: outcomes.reduce((n,j) => n + (j.mode === 'audit' ?
+        (j.result?.summary?.incompleteViewports ?? 0) : 0),0)
     };
     const result = { schemaVersion: 1, mode: 'batch', manifest: manifestFile, parallel,
       ...(a.compact ? { format: 'compact' } : {}), summary: summaryData, jobs: outcomes };
     const printable = [
       'Bronto Layout batch — ' + manifestFile,
-      ...outcomes.map(j => '  ' + j.id + ': ' + j.status.toUpperCase() +
-        ' (exit ' + j.exitCode + ', ' + (j.result?.summary?.failed ?? 0) + ' failed checks)'),
+      ...outcomes.map(j => '  ' + j.id + ' [' + j.mode + ']: ' + j.status.toUpperCase() +
+        ' (exit ' + j.exitCode + ', ' + (j.mode === 'audit'
+          ? (j.result?.summary?.measuredIssues ?? 0) + ' measured issue(s), ' +
+            (j.result?.summary?.reviewWarnings ?? 0) + ' review warning(s)'
+          : (j.result?.summary?.failed ?? 0) + ' failed checks') + ')'),
       'Total: ' + summaryData.passed + ' passed, ' + summaryData.violations +
-        ' with violations, ' + summaryData.errors + ' errors'
+        ' with approved-contract violations, ' + summaryData.auditJobsWithIssues +
+        ' audit jobs with measured issues, ' + summaryData.errors + ' errors'
     ].join('\n');
     await output(a, result, printable);
     if (summaryData.errors) process.exitCode = 2;
-    else if (summaryData.violations) process.exitCode = 1;
+    else if (summaryData.violations || summaryData.auditJobsWithIssues) process.exitCode = 1;
   }
 
   return batch;

@@ -390,3 +390,25 @@ A working about:blank CDP probe does not establish real-site navigation,
 network access, authentication, page quality, isolation effectiveness or
 independent physical-device parity. For that, test the installed CLI on a
 trusted development site and independently inspect the result.
+
+## Finite zero-contract audit batches (2026-10-12)
+
+`src/batch.ts` retains the v1 default `check` job requiring a versioned `spec`,
+while accepting explicitly declared `mode: "audit"` jobs without specs and with
+a required `url`. Audit-only options are validated strictly: DOM traversal
+limits, review-only grid/flex diagnostics, frame inventory, strict known-frame
+coverage, and bounded declarative `actions` file paths. All referenced check
+contracts and audit action files are parsed before Chromium is launched.
+`bin/batch-command.mjs` dispatches to the installed CLI entrypoint through
+`execFile(process.execPath, argv)` and never through a shell. It preserves
+1–4 isolated Chromium processes, manifest order, bounded child timeouts,
+and truthful 0/1/2 exit semantics. Audit error observations use a distinct
+`measured-issues` job status, unlike `violations` for rejected explicit contracts.
+The aggregate summary never conflates explicit contract assertion counts with
+observed automatic audit issue counts.
+`--dry-run` reports the intended per-job modes, widths, state setup *counts*
+and coverage flags, not action input values.
+
+This adds no automatic judgment of visual intent and does not expand iframe,
+closed-shadow-root, canvas or cross-browser support. `failOnCoverageGaps`
+turns a known iframe omission into an unverified job (`exit 2`).

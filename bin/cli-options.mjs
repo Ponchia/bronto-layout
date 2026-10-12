@@ -20,10 +20,11 @@ Usage:
   bronto-layout compare --spec layout.json --baseline URL --url URL [--scan 320:1440:80] [--refine]
   bronto-layout validate --spec layout.json [--json]
   bronto-layout batch --manifest batch.json [--json --compact] [--parallel 2] [--dry-run]
+  bronto-layout batch --manifest batch-audit.json [--json --compact] [--parallel 2]
 
 Options:
   --spec FILE           Versioned layout contract (JSON; not needed for audit)
-  --manifest FILE       Batch jobs referencing individual layout contracts
+  --manifest FILE       Finite batch: legacy contract checks or explicit zero-contract audit jobs
   --dry-run             Validate and preview a batch without opening a browser
   --parallel N          Batch only: 1..4 independent Chromium jobs (default 1)
   --url URL|FILE        Target website, local HTML fixture, or development server
