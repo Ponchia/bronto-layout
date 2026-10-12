@@ -1,5 +1,12 @@
 # Independent real-world layout benchmark — capture and labeling protocol
 
+**Source checkout required:** `scripts/field-benchmark.mjs`,
+`benchmarks/field-sites.v0.1.json`, and the associated capture/reviewer
+workflow are developer/research tools. The installable npm package intentionally
+omits the `scripts/` and `benchmarks/` directories. Clone the source repository
+before following the commands below; installing just the CLI tarball is
+insufficient for these workflows.
+
 The controlled fixtures in `benchmarks/audit-controlled-*.json` are useful
 regression tests but are **not** independent evidence of production accuracy.
 This workflow separates a live browser capture from human ground truth so
