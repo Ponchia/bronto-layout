@@ -101,3 +101,18 @@ test('invalid baseline locations and unsupported combinations return JSON error 
   assert.equal(unrelated.status,2);
   assert.match(JSON.parse(unrelated.stdout).error.message,/only to compare or audit/);
 });
+
+test('adding a healthy image before an existing failed image does not produce a false regression',t=>{
+  const r=run(['audit','--baseline','examples/audit-reordered-baseline.html',
+    '--url','examples/audit-reordered-candidate.html','--width','375','--settle','200',
+    '--json','--compact']);
+  if(noChrome(t,r))return;
+  assert.equal(r.status,0,r.stderr||r.stdout);
+  const result=JSON.parse(r.stdout);
+  assert.equal(result.summary.baselineMeasuredIssues,1);
+  assert.equal(result.summary.candidateMeasuredIssues,1);
+  assert.equal(result.summary.measuredRegressions,0);
+  assert.equal(result.summary.measuredImprovements,0);
+  assert.equal(result.summary.unverifiedViewports,0);
+  assert.deepEqual(result.changes,[]);
+});

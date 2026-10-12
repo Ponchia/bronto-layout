@@ -83,7 +83,8 @@ test('audit discloses partial scope when frames are present even if top-document
     textClipCount:0,textClips:[],omittedTextClips:0,intentionalEllipses:0,
     visuallyHiddenTextExcluded:0,embeddedFrames:1};
   const report=analyzePageAudit(snap, observations);
-  assert.equal(report.summary.verified,true);
+  assert.equal(report.summary.verified,false, 'known uninspected frames cannot be verified');
+  assert.equal(report.summary.supportedScopeMeasured,true, 'the top-document traversal still succeeded');
   assert.equal(report.summary.coverageStatus,'known-uninspected-content');
   assert.equal(report.coverage.status,'known-uninspected-content');
   assert.equal(report.coverage.scope,'top-document-and-open-shadow-roots');
@@ -91,7 +92,11 @@ test('audit discloses partial scope when frames are present even if top-document
   observations.embeddedFrames=0;
   const complete=analyzePageAudit(snap,observations);
   assert.equal(complete.summary.coverageStatus,'supported-scope-measured');
+  assert.equal(complete.summary.verified,true);
+  assert.equal(complete.summary.supportedScopeMeasured,true);
   observations.truncated=true;
   const truncated=analyzePageAudit(snap,observations);
   assert.equal(truncated.summary.coverageStatus,'truncated');
+  assert.equal(truncated.summary.verified,false);
+  assert.equal(truncated.summary.supportedScopeMeasured,false);
 });

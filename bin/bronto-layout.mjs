@@ -987,7 +987,7 @@ async function audit(a) {
       viewports: reports.length,
       measuredIssues: reports.reduce((count, report) => count + report.summary.errors, 0),
       reviewWarnings: reports.reduce((count, report) => count + report.summary.warnings, 0),
-      incompleteViewports: reports.filter(report => !report.summary.verified).length,
+      incompleteViewports: reports.filter(report => !report.summary.supportedScopeMeasured).length,
       partialViewports: reports.filter(report => report.coverage.status !== 'supported-scope-measured').length,
       visitedElements: reports.reduce((count, report) => count + report.coverage.visitedElements, 0)
     };

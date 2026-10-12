@@ -184,6 +184,8 @@ bronto-layout audit --url http://localhost:5173/ --width 375 --frame-inventory -
 bronto-layout audit --baseline http://localhost:5173/ --url http://localhost:5174/ --frame-inventory --json
 ```
 
+The audit report distinguishes `summary.supportedScopeMeasured` (top-document/open-shadow traversal completed) from `summary.verified` (no *known* incomplete surfaces). When an iframe is present, `verified` is **false** even if `supportedScopeMeasured` is true; `coverage.status` remains `known-uninspected-content`. Neither boolean certifies closed shadow roots, painted pixels or visual intent. Do not treat `errors: 0` as whole-page correctness.
+
 A captured frame document is **not** proof that its images, visual clipping or responsive layout are correct. The automatic auditor still flags iframe interiors as uninspected, and `--fail-on-coverage-gaps` still returns exit 2 when such coverage is known to be missing. Different origins, out-of-process frames, closed roots and nested rendering can remain inaccessible. Snapshot collection is extra browser work, so this mode is opt-in. Frame URLs strip credentials, query strings and fragments. See [frame evidence and validation](docs/field-benchmark.md).
 
 Unlike named-selector `check` and `inspect` commands, automatic `audit` does not yet accept `--stable-for`: without explicitly selected child elements, a geometrically quiet body box cannot certify that its contents stopped moving.

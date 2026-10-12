@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Correct image-aspect validation: `object-fit: none` preserves source proportions despite a differently shaped image element box, so the constraint is now marked unmeasurable (like `cover`, `contain` and `scale-down`) rather than reported as distortion.
+- Make automatic audit comparisons robust to DOM reordering: uniquely identified broken-image resources can move across DOM paths/hosts without triggering fabricated regressions or improvements. For ambiguous same-count path changes, report an unverified element identity rather than guessing; genuine net count increases remain measurable.
+- **Report-semantics clarification:** `audit` `summary.verified` is now false for a known uninspected embedded frame, even when its top-document walk completed. New `summary.supportedScopeMeasured` keeps that narrower fact explicit. Default CLI coverage policy and capture integrity still distinguish uninspected frames from truncated traversal; `--fail-on-coverage-gaps` remains opt-in.
+
+
 - Stabilize the browser layout-shift regression fixtures: schedule deliberate geometry changes after the first paint and expose an explicit readiness marker only after the following render frames. Tests wait for observed state instead of assuming a load-relative timer always fires after paint on a busy runner; no change to the production Layout Instability collector.
 
 - Add static offline `field-benchmark review-gallery`, giving independent reviewers a grouped screenshot contact sheet without detector predictions or generated labels. Hash checks reject tampered/non-PNG images; manual capture artifacts include the gallery and blank review worksheet by default.

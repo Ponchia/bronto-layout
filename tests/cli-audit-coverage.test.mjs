@@ -21,6 +21,9 @@ test('partial iframe coverage is visible and strict audit may exit unverified',t
   assert.equal(permissive.status,0,permissive.stderr || permissive.stdout);
   const payload=JSON.parse(permissive.stdout);
   assert.equal(payload.summary.partialViewports,1);
+  assert.equal(payload.summary.incompleteViewports,0, 'top-level traversal still completed');
+  assert.equal(payload.reports[0].summary.verified,false, 'uninspected frame cannot be marked verified');
+  assert.equal(payload.reports[0].summary.supportedScopeMeasured,true);
   assert.equal(payload.reports[0].coverage.status,'known-uninspected-content');
   assert.equal(payload.reports[0].coverage.scope,'top-document-and-open-shadow-roots');
   assert.ok(payload.reports[0].coverage.embeddedFrames>0);

@@ -67,3 +67,19 @@ test('viewport centering uses the usable scrollport excluding reserved scrollbar
   const overflow = evaluateLayout(snapshot, [{ id: 'no-overflow', type: 'document-overflow', tolerance: 0 }]);
   assert.equal(overflow.findings[0].deviation, 7);
 });
+
+
+test('object-fit none preserves intrinsic image aspect even in differently shaped cropped element boxes',()=>{
+  const base={viewport:{width:375,height:900,direction:'ltr'},document:{width:375,height:900},
+    selectors:{image:[{path:'#photo',tag:'img',rect:{x:12,y:10,width:160,height:160},
+      naturalSize:{width:240,height:120},objectFit:'none'}]},selectorCounts:{image:1}};
+  const rule=[{id:'photo-not-stretched',type:'image-aspect',element:'image'}];
+  const ignored=evaluateLayout(base,rule).findings[0];
+  assert.equal(ignored.status,'skip');
+  assert.equal(ignored.code,'measurement-unavailable');
+  assert.match(ignored.message,/object-fit: none/);
+  const fill=structuredClone(base); fill.selectors.image[0].objectFit='fill';
+  const failed=evaluateLayout(fill,rule).findings[0];
+  assert.equal(failed.status,'fail');
+  assert.equal(failed.deviation,50);
+});

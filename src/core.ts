@@ -294,7 +294,7 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
     } else if (rule.type === 'image-aspect') {
       if (missingOrAmbiguous(rule.element)) continue;
       const el = reference(s, rule.element)!;
-      if (['contain', 'cover', 'scale-down'].includes(el.objectFit ?? '')) {
+      if (['contain', 'cover', 'scale-down', 'none'].includes(el.objectFit ?? '')) {
         report({ id: rule.id, type: rule.type, status: 'skip', code: 'measurement-unavailable', message: `Image uses object-fit: ${el.objectFit}; outer box aspect ratio does not measure content distortion`, paths: [el.path] });
         continue;
       }
