@@ -37,6 +37,7 @@ import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layo
 import { HELP, argsFromCLI, int, withApprovedScenario, scenarioFromExplicitFlags,
   configFromArgs, getWidths, validateCommandOptions } from './cli-options.mjs';
 
+
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 /** Resolve the very same open-shadow selector syntax in every browser operation. */
 function geometryExpression(selectors) {
@@ -671,9 +672,9 @@ async function batch(a) {
  * are failures, while potentially intentional clipping is review-only.
  * Incomplete traversal has exit 2, never a misleading "all clear".
  */
-async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = []) {
+async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = [], gridGapReview = false) {
   const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture, actions);
-  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')(' + config.auditDOMLimit + ')');
+  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')(' + config.auditDOMLimit + ', ' + Boolean(gridGapReview) + ')');
   if (!observations || !Number.isInteger(observations.visitedElements) ||
       typeof observations.truncated !== 'boolean') {
     throw new Error('Browser did not return usable DOM audit observations');
@@ -714,8 +715,8 @@ async function compareAudit(a, coarseWidths, actions = []) {
         }
         const baselineReports = [], candidateReports = [];
         for (const width of widths) {
-          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions));
-          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions));
+          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions, a['grid-gap-review']));
+          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions, a['grid-gap-review']));
         }
         const comparison = comparePageAudits(
           baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
@@ -798,7 +799,7 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory'], actions);
+      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory'], actions, a['grid-gap-review']);
       if (a['evidence-dir']) {
         const image = await cdp.send('Page.captureScreenshot', {
           format: 'png', captureBeyondViewport: false, fromSurface: true
@@ -860,7 +861,9 @@ async function audit(a) {
         textClipCount: report.coverage.textClipCount,
         omittedTextClips: report.coverage.omittedTextClips,
         intentionalEllipses: report.coverage.intentionalEllipses,
-        visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded
+        visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded,
+        ...(a['grid-gap-review'] ? {gridContainersInspected:report.coverage.gridContainersInspected,
+          gridContainersOmitted:report.coverage.gridContainersOmitted,gridGapCount:report.coverage.gridGapCount} : {})
       },
       findings: report.findings,
       ...(report.screenshot ? { screenshot: report.screenshot } : {}),

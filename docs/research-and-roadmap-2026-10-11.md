@@ -79,6 +79,8 @@ thresholds empirically; an estimated boundary is a sampling lead, not a
 guarantee of correctness at all intermediate widths.
 
 Consider nested scroll-container diagnostics and deliberate reflow tests.
+An experimental, opt-in CSS grid `column-gap` anomaly review lead now exists; it does not cover general flexbox, arbitrary layout sibling spacing or infer intent. Keep it nonblocking until human-labeled positives and negative controls demonstrate its precision/recall.
+
 Occlusion/overlap should initially be review leads with suppression rules,
 not strict automatic errors.
 

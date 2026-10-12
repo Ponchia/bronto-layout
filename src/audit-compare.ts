@@ -59,7 +59,7 @@ const presenceCount = (report: ViewportAudit, code: AuditFinding['code']): numbe
  */
 function unmatchedElementFindings(
   before: AuditFinding[], after: AuditFinding[],
-  code: 'broken-image' | 'possible-text-clipping'
+  code: 'broken-image' | 'possible-text-clipping' | 'possible-grid-gap-anomaly'
 ): { before: AuditFinding[]; after: AuditFinding[] } {
   const oldByPath = new Map(before.map(f => [f.path, f]));
   const newByPath = new Map(after.map(f => [f.path, f]));
@@ -96,7 +96,7 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
   const reasons: string[] = [];
   const supported = new Set([
     'document-horizontal-overflow', 'broken-image', 'possible-text-clipping',
-    'pending-image', 'embedded-frame-uninspected'
+    'pending-image', 'embedded-frame-uninspected', 'possible-grid-gap-anomaly'
   ]);
   if (report.findings.some(finding => !supported.has(finding.code))) {
     reasons.push('Encountered a new detector that has no defined comparison semantics');
@@ -114,7 +114,10 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
   if (report.coverage.omittedBrokenImages > 0 || report.coverage.omittedTextClips > 0) {
     reasons.push('Browser diagnostics omitted affected DOM elements due to output limits');
   }
-  for (const code of ['broken-image','possible-text-clipping']) {
+  if ((report.coverage.gridContainersOmitted ?? 0) > 0) {
+    reasons.push('Opt-in grid-gap review omitted candidate containers due to bounded inspection limits');
+  }
+  for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly']) {
     const findings = report.findings.filter(finding => finding.code === code);
     const paths = findings.map(finding => finding.path);
     if (paths.some(path => typeof path !== 'string' || !path.trim())) {
@@ -174,7 +177,7 @@ export function comparePageAudits(
       message:'Observed document-wide horizontal overflow improved by '+(-delta).toFixed(2)+' CSS px'
     });
 
-    for (const code of ['broken-image','possible-text-clipping'] as const) {
+    for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly'] as const) {
       const classification = code === 'broken-image' ? 'measured' : 'review';
       const unmatched = unmatchedElementFindings(findAll(before,code), findAll(after,code), code);
       const previous = unmatched.before;

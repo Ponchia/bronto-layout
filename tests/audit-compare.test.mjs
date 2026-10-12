@@ -183,3 +183,11 @@ test('unsupported page interiors remain explicitly partial without claiming scop
   assert.equal(r.summary.reviewChanges,1);
   assert.equal(r.summary.measuredRegressions,0);
 });
+
+test('partially omitted opt-in grid candidate sampling cannot certify an automatic comparison',()=>{
+ const baseline=page(375,[],{coverage:{gridContainersInspected:1,gridContainersOmitted:0}});
+ const candidate=page(375,[],{coverage:{gridContainersInspected:120,gridContainersOmitted:1}});
+ const result=compare(baseline,candidate);
+ assert.equal(result.summary.unverifiedViewports,1);
+ assert.match(result.unverified[0].reasons.join(' '),/grid-gap review omitted candidate/);
+});

@@ -135,6 +135,14 @@ bronto-layout review-draft --draft reports/draft.json --url http://localhost:517
 
 `still-satisfied` refers only to the same geometric relationship at the originally sampled widths/state; `changed` reports a newly failing measured relationship; `unverified` means the needed geometry is unavailable or ambiguous. Exit codes are `0`, `1` and `2` respectively (an empty draft also returns `2`). The command does not automatically approve any rule. See [contract discovery](contract-discovery.md).
 
+To get a **nonblocking** hint about irregular CSS Grid spacing before authoring any contract, try:
+
+```sh
+bronto-layout audit --url examples/gallery-broken.html --width 375 --grid-gap-review
+```
+
+It reports the observed **16px/28px** gaps versus the declared 16px CSS column gap as a *review-only warning*. Unlike an accepted contract this is not a violation and it does not establish whether the offset was intentional. The experimental analyzer is off by default and never makes the page fail CI.
+
 ## Run several routes without a shared browser session
 
 ```sh

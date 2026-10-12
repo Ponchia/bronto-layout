@@ -11,6 +11,14 @@ export interface ImageLead {
   width: number;
   height: number;
 }
+export interface GridGapLead {
+  /** Identifier of the observed GRID CONTAINER, not an attributed faulty child. */
+  path: string;
+  expectedGapPx: number;
+  observedGapsPx: number[];
+  maxDeviationPx: number;
+  itemCount: number;
+}
 export interface TextClipLead {
   path: string;
   overflowPx: number;
@@ -34,11 +42,17 @@ export interface PageAuditObservations {
   intentionalEllipses: number;
   visuallyHiddenTextExcluded: number;
   embeddedFrames: number;
+  /** Optional, explicitly requested GRID-only review lead, never a strict defect. */
+  gridGapCount?: number;
+  gridGapLeads?: GridGapLead[];
+  gridContainersInspected?: number;
+  gridContainersOmitted?: number;
 }
+
 export type AuditCoverageStatus = 'supported-scope-measured' | 'known-uninspected-content' | 'truncated';
 export type AuditClassification = 'measured' | 'review';
 export interface AuditFinding {
-  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected';
+  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected' | 'possible-grid-gap-anomaly';
   classification: AuditClassification;
   severity: 'error' | 'warning';
   message: string;
@@ -103,6 +117,18 @@ export function analyzePageAudit(
     count: evidence.textClipCount - evidence.textClips.length,
     message: evidence.omittedTextClips + ' additional possible clipped-text elements omitted'
   });
+  for (const lead of evidence.gridGapLeads ?? []) findings.push({
+    code: 'possible-grid-gap-anomaly', classification: 'review', severity: 'warning',
+    path: lead.path, measuredPx: Number(lead.maxDeviationPx.toFixed(2)),
+    message: 'Observed grid child gaps ' + lead.observedGapsPx.map(x => x.toFixed(1)).join(', ') +
+      'px versus declared column-gap ' + lead.expectedGapPx.toFixed(1) +
+      'px across ' + lead.itemCount + ' similarly sized items; verify intentional transforms and placement'
+  });
+  if ((evidence.gridGapCount ?? 0) > (evidence.gridGapLeads?.length ?? 0)) findings.push({
+    code: 'possible-grid-gap-anomaly', classification: 'review', severity: 'warning',
+    count: (evidence.gridGapCount ?? 0) - (evidence.gridGapLeads?.length ?? 0),
+    message: 'Additional potential grid gap anomalies omitted from the bounded review list'
+  });
   if (evidence.embeddedFrames > 0) findings.push({
     code: 'embedded-frame-uninspected', classification: 'review', severity: 'warning',
     count: evidence.embeddedFrames,
@@ -123,7 +149,8 @@ export function analyzePageAudit(
         'Embedded frame documents are not traversed',
         'Closed shadow roots cannot be inspected or counted reliably',
         'Canvas/WebGL and visual paint-order relationships are not analyzed',
-        'Only the measured viewport and navigation state are observed'
+        'Only the measured viewport and navigation state are observed',
+        ...(evidence.gridContainersOmitted ? ['Grid gap review omitted ' + evidence.gridContainersOmitted + ' candidate containers due to bounded inspection limits'] : [])
       ]
     },
     findings,

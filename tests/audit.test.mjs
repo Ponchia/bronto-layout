@@ -100,3 +100,18 @@ test('audit discloses partial scope when frames are present even if top-document
   assert.equal(truncated.summary.verified,false);
   assert.equal(truncated.summary.supportedScopeMeasured,false);
 });
+
+test('an irregular CSS-grid spacing lead remains nonblocking review evidence',()=>{
+ const observations=obs();
+ observations.gridGapCount=1;
+ observations.gridGapLeads=[{path:'#gallery',expectedGapPx:16,observedGapsPx:[16,28],
+   maxDeviationPx:12,itemCount:3}];
+ observations.gridContainersInspected=1;observations.gridContainersOmitted=0;
+ const report=analyzePageAudit(snap(),observations);
+ assert.equal(report.summary.errors,0);
+ assert.equal(report.summary.warnings,1);
+ assert.equal(report.summary.verified,true);
+ assert.equal(report.findings[0].code,'possible-grid-gap-anomaly');
+ assert.equal(report.findings[0].classification,'review');
+ assert.equal(report.findings[0].measuredPx,12);
+});

@@ -1,10 +1,10 @@
-import type { PageAuditObservations, ImageLead, TextClipLead } from './audit.js';
+import type { PageAuditObservations, ImageLead, TextClipLead, GridGapLead } from './audit.js';
 
 /**
  * Browser-native, self-contained DOM walk. Must remain closure-free so the CLI
  * can inject the function source into any Chromium tab.
  */
-export function capturePageAuditObservations(maxElements = 18000): PageAuditObservations {
+export function capturePageAuditObservations(maxElements = 18000, includeGridGapReview = false): PageAuditObservations {
   // DOM enumeration is potentially expensive on large/virtualized apps. Leave
   // the conservative 18k default in place; higher bounds require explicit CLI
   // opt-in and never imply that uninspected page surfaces are correct.
@@ -15,6 +15,11 @@ export function capturePageAuditObservations(maxElements = 18000): PageAuditObse
   const stack: Element[] = [document.documentElement];
   const brokenImages: ImageLead[] = [];
   const textClips: TextClipLead[] = [];
+  const gridGapLeads: GridGapLead[] = [];
+  let gridGapCount = 0;
+  let gridContainersInspected = 0;
+  let gridContainersOmitted = 0;
+  const MAX_GRID_CANDIDATES = 120;
   let visitedElements = 0;
   let visibleElements = 0;
   let totalImages = 0;
@@ -84,6 +89,56 @@ export function capturePageAuditObservations(maxElements = 18000): PageAuditObse
     if (!(rect.width > 0 && rect.height > 0) || !el.getClientRects().length) continue;
     visibleElements++;
     if (el.tagName === 'IFRAME' || el.tagName === 'FRAME') embeddedFrames++;
+    // Optional, conservative, bounded review of directly declared CSS grid
+    // column gaps. Not an automatic design verdict: intentional transforms,
+    // spans, dense placement, etc. are not reliably inferable from rectangles.
+    if (includeGridGapReview && style.display === 'grid' && el.children.length >= 3) {
+      if (gridContainersInspected >= MAX_GRID_CANDIDATES) gridContainersOmitted++;
+      else {
+        gridContainersInspected++;
+        const justified = ['space-between', 'space-around', 'space-evenly'];
+        const declared = Number.parseFloat(style.columnGap);
+        if (el.children.length > 80) gridContainersOmitted++;
+        else if (Number.isFinite(declared) && declared >= 0 &&
+            !justified.includes(style.justifyContent)) {
+          const cells: Array<{ x: number; y: number; right: number; width: number; height: number }> = [];
+          for (const child of Array.from(el.children)) {
+            const cs = getComputedStyle(child);
+            if (cs.display === 'none' || cs.visibility === 'hidden' ||
+                cs.position === 'absolute' || cs.position === 'fixed') continue;
+            const r = child.getBoundingClientRect();
+            if (r.width >= 8 && r.height >= 8) cells.push({
+              x:r.x, y:r.y, right:r.right, width:r.width, height:r.height
+            });
+          }
+          const rows: typeof cells[] = [];
+          for (const cell of cells) {
+            let row = rows.find(items => items.length > 0 &&
+              Math.abs(items[0].y - cell.y) <= 2 &&
+              Math.abs(items[0].height - cell.height) <= 2 &&
+              Math.abs(items[0].width - cell.width) <= 2);
+            if (!row) { row = []; rows.push(row); }
+            row.push(cell);
+          }
+          for (const row of rows) {
+            if (row.length < 3) continue;
+            row.sort((a,b)=>a.x-b.x);
+            const gaps = row.slice(1).map((item,i)=>item.x-row[i].right);
+            if (gaps.some(g=>g < -0.5)) continue; // overlap requires separate review semantics
+            const maxDiff = Math.max(...gaps.map(g=>Math.abs(g-declared)));
+            const range = Math.max(...gaps)-Math.min(...gaps);
+            if (maxDiff <= Math.max(5, declared * .25) || range <= 6) continue;
+            gridGapCount++;
+            if (gridGapLeads.length < MAX_LEADS) gridGapLeads.push({
+              path:pathFor(el), expectedGapPx:declared,
+              observedGapsPx:gaps.slice(0,20).map(x=>Number(x.toFixed(2))),
+              maxDeviationPx:maxDiff, itemCount:row.length
+            });
+            break; // one review lead per grid container, not a flood per row
+          }
+        }
+      }
+    }
     if (el instanceof HTMLImageElement) {
       const src = el.getAttribute('src') || el.getAttribute('srcset') || el.currentSrc;
       if (src) {
@@ -128,6 +183,9 @@ export function capturePageAuditObservations(maxElements = 18000): PageAuditObse
     omittedBrokenImages: Math.max(0, brokenImageCount - brokenImages.length),
     textClipCount, textClips,
     omittedTextClips: Math.max(0, textClipCount - textClips.length),
-    intentionalEllipses, visuallyHiddenTextExcluded, embeddedFrames
+    intentionalEllipses, visuallyHiddenTextExcluded, embeddedFrames,
+    ...(includeGridGapReview ? {
+      gridGapCount, gridGapLeads, gridContainersInspected, gridContainersOmitted
+    } : {})
   };
 }
