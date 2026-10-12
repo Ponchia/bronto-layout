@@ -2,6 +2,8 @@
 import type { LayoutRule, LayoutSnapshot } from './core.js';
 import { evaluateLayout } from './core.js';
 import { parseContract, type LayoutContract } from './contract.js';
+import type { LayoutAction } from './actions.js';
+import type { LayoutScenario } from './scenario.js';
 
 export interface ContractProposal {
   id: string;
@@ -16,6 +18,8 @@ export interface ContractDiscoveryDraft {
   url: string;
   widths: number[];
   selectors: Record<string, string>;
+  scenario?: LayoutScenario;
+  actions?: LayoutAction[];
   proposals: ContractProposal[];
   coverage: { groupAliases: string[]; candidateCount: number; truncated: boolean };
   limitations: string[];
@@ -26,7 +30,8 @@ export function suggestLayoutContracts(
   selectors: Record<string, string>,
   snapshots: readonly LayoutSnapshot[],
   groupAliases: readonly string[] = [],
-  truncated = false
+  truncated = false,
+  context: Pick<LayoutContract, 'scenario' | 'actions'> = {}
 ): ContractDiscoveryDraft {
   if (!snapshots.length || snapshots.some(s => !Number.isInteger(s.viewport.width)))
     throw new Error('Suggestions require measured viewport snapshots');
@@ -112,6 +117,8 @@ export function suggestLayoutContracts(
   }
   return {
     draftSchemaVersion: 1, url, widths, selectors: { ...selectors }, proposals,
+    ...(context.scenario ? { scenario: { ...context.scenario } } : {}),
+    ...(context.actions ? { actions: context.actions.map(action => ({ ...action })) } : {}),
     coverage: { groupAliases: [...groups], candidateCount: Object.keys(selectors).length, truncated },
     limitations: [
       'All proposals describe only observed layouts at the listed widths and states',
@@ -155,5 +162,7 @@ export function acceptContractProposals(input: unknown, ids: readonly string[]):
   const selected = Object.fromEntries(Object.entries(draft.selectors)
     .filter(([alias]) => referenced.has(alias)));
   return parseContract({ schemaVersion: 1, url: draft.url, widths: draft.widths,
-    selectors: selected, rules });
+    selectors: selected, rules,
+    ...(draft.scenario !== undefined ? { scenario: draft.scenario } : {}),
+    ...(draft.actions !== undefined ? { actions: draft.actions } : {}) });
 }

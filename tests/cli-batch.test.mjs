@@ -74,3 +74,19 @@ test('invalid manifests fail before launching any batch browser jobs', () => {
   assert.equal(error.mode, 'error');
   assert.match(error.error.message, /omit --spec/);
 });
+
+test('opt-in parallel batch preserves manifest ordering, isolated results, and failure exit codes', t => {
+ const r=run(['batch','--manifest','examples/batch.json','--parallel','2','--json','--compact']);
+ if (skipMissingChrome(t,r)) return;
+ assert.equal(r.status,1,r.stderr||r.stdout);
+ const payload=JSON.parse(r.stdout);
+ assert.equal(payload.parallel,2);
+ assert.deepEqual(payload.jobs.map(j=>j.id),['healthy-gallery','broken-gallery']);
+ assert.deepEqual(payload.jobs.map(j=>j.status),['pass','violations']);
+ assert.equal(payload.summary.errors,0);
+});
+test('batch refuses excessive concurrency before starting a child browser', () => {
+ const r=run(['batch','--manifest','examples/batch.json','--parallel','99','--json']);
+ assert.equal(r.status,2);
+ assert.match(JSON.parse(r.stdout).error.message,/parallel/);
+});

@@ -35,6 +35,7 @@ export interface PageAuditObservations {
   visuallyHiddenTextExcluded: number;
   embeddedFrames: number;
 }
+export type AuditCoverageStatus = 'supported-scope-measured' | 'known-uninspected-content' | 'truncated';
 export type AuditClassification = 'measured' | 'review';
 export interface AuditFinding {
   code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected';
@@ -50,9 +51,13 @@ export interface AuditFinding {
 }
 export interface ViewportAudit {
   viewport: LayoutSnapshot['viewport'];
-  coverage: PageAuditObservations;
+  coverage: PageAuditObservations & {
+    scope: 'top-document-and-open-shadow-roots';
+    status: AuditCoverageStatus;
+    limitations: string[];
+  };
   findings: AuditFinding[];
-  summary: { errors: number; warnings: number; verified: boolean };
+  summary: { errors: number; warnings: number; verified: boolean; coverageStatus: AuditCoverageStatus };
 }
 
 /** Convert bounded DOM evidence and a geometry snapshot to honest conclusions. */
@@ -101,14 +106,27 @@ export function analyzePageAudit(
     count: evidence.unloadedImages,
     message: evidence.unloadedImages + ' visible image(s) had not finished loading during the inspection'
   });
+  const coverageStatus: AuditCoverageStatus = evidence.truncated ? 'truncated'
+    : evidence.embeddedFrames > 0 ? 'known-uninspected-content' : 'supported-scope-measured';
   return {
     viewport: snapshot.viewport,
-    coverage: evidence,
+    coverage: { ...evidence,
+      scope: 'top-document-and-open-shadow-roots', status: coverageStatus,
+      limitations: [
+        'Embedded frame documents are not traversed',
+        'Closed shadow roots cannot be inspected or counted reliably',
+        'Canvas/WebGL and visual paint-order relationships are not analyzed',
+        'Only the measured viewport and navigation state are observed'
+      ]
+    },
     findings,
     summary: {
       errors: findings.filter(f => f.severity === 'error').length,
       warnings: findings.filter(f => f.severity === 'warning').length,
-      verified: !evidence.truncated
+      // Backward-compatible completeness for the supported traversal only.
+      // Never interpret this as proof that every page surface was inspected.
+      verified: !evidence.truncated,
+      coverageStatus
     }
   };
 }

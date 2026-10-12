@@ -1,0 +1,32 @@
+name: macOS portability smoke
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install compiler and dependencies
+        run: npm ci --ignore-scripts
+      - name: Pure contracts, reports, and CLI manifest tests
+        run: npm run test:unit
+      - name: Pack and install into a separate npm consumer
+        run: npm run test:package
+      - name: Sandboxed local Chromium smoke when Chrome is installed
+        shell: bash
+        run: |
+          if [ -x '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' ] || \
+             [ -x '/Applications/Chromium.app/Contents/MacOS/Chromium' ]; then
+            BRONTO_REQUIRE_CHROME=1 npm run test:package
+          else
+            echo 'No installed macOS Chrome; packaging is tested, but browser parity remains unverified.'
+          fi

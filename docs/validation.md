@@ -1,5 +1,7 @@
 # Validation notes
 
+The October 11 records below are historical snapshots, **not the current test count or current release status**. Consult the latest CI run and `npm run check` before describing current validation. The public alpha still needs independent production labels and macOS browser evidence.
+
 ## 2026-10-11: Initial CLI tests
 
 - `npm run check`: 47 of 47 tests pass on Node.js 22 and locally installed Chromium.

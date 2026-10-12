@@ -26,3 +26,7 @@ The second check is intentionally expected to exit 1. Browser integration tests 
 - Make reports useful for humans and agents without inventing source locations or root causes.
 
 See [Architecture](docs/architecture.md) and [Validation](docs/validation.md).
+
+## Fast development loop
+
+Use `npm run test:unit` for pure TypeScript/Node tests without launching a browser. The full `npm run check` and package test are still required before proposing a merge. Use `npm run profile:cli -- --runs 2` for **trusted local fixture** cold-process timings; do not interpret them as real-world diagnostic quality or browser-reuse measurements. See [release checklist](docs/release-checklist.md).

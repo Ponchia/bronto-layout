@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body><layout-shadow id="host"></layout-shadow><script>
+customElements.define('layout-shadow', class extends HTMLElement {
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    const root = this.attachShadow({mode:'open'});
+    root.innerHTML = '<button id="change">Change</button><input id="value" aria-label="Value"><div class="subject" style="width:100px;height:40px">Subject</div>';
+    const subject = root.querySelector('.subject');
+    root.querySelector('#change').addEventListener('click', () => { subject.style.width = '120px'; });
+    root.querySelector('#value').addEventListener('input', event => { if (event.target.value === 'expand') subject.style.width = '160px'; });
+  }
+});
+</script></body></html>

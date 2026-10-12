@@ -4,7 +4,7 @@
 
 `@ponchia/layout` deliberately separates measurements from claims about intended layout:
 
-1. `src/browser.ts`: capture one browser truth snapshot using DOM APIs. A selector can cross an **open** Shadow DOM boundary with `host >>> child`. Closed shadow roots are not inspectable. The adapter sends up to 250 geometry records per alias, while reporting the full count of visible matches.
+1. `src/browser.ts`: capture one browser truth snapshot using DOM APIs. `src/composed-selector.ts` supplies the same deep selector resolution for geometry, readiness and declared actions. A selector can cross an **open** Shadow DOM boundary with `host >>> child`. Closed shadow roots are not inspectable. The adapter sends up to 250 geometry records per alias, while reporting the full count of visible matches.
 2. `src/core.ts`: evaluate declared constraints against geometries, returning explicit pass/fail/skip results. Only caller-approved constraints become definitive failures.
 3. `src/contract.ts`: validate versioned JSON contracts and fail closed on unsupported fields or references.
 4. `src/sweep.ts`: sample viewport widths, with optional refinement when statuses differ between sampled widths. It cannot prove absence of narrow failures between unchanged endpoints.
@@ -203,3 +203,13 @@ A command can execute explicit declarative actions to reach an application state
 - `--fail-on-skip` treats **measurement-unavailable** skips as failures, but not explicitly out-of-width-range rules.
 
 The early v0.x schema may evolve; breaking changes will be documented in the changelog.
+
+## CLI runtime decomposition (2026-10-12)
+
+- `bin/chrome-detect.mjs` discovers an installed browser without downloading or launching it (`doctor` also reads its version).
+- `bin/cdp-client.mjs` handles bounded DevTools WebSocket requests and events.
+- `bin/chromium-session.mjs` owns the child process, isolated temporary profile, page-target recovery and cleanup.
+- `bin/bronto-layout.mjs` retains command orchestration and reports; further command-handler extraction should be measured and regression-tested rather than rewritten speculatively.
+- Batch jobs remain isolated subprocesses, with optional 1..4 worker concurrency and serial execution as the default. Browser startup is **not** reused across independent jobs; cookies and localStorage are intentionally kept separate.
+- Approved `scenario` and `actions` fields in version-1 contracts reproduce the explicit environment and declarative interactive state captured during suggestion. The CLI can override the environment on demand.
+- Audit `coverage.status` indicates whether the *supported top-document/open-shadow scope* was measured, known embedded frames were uninspected, or traversal was truncated. Closed roots and paint-order remain inherently unknown.

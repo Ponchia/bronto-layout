@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /** Bronto Layout CLI: intentionally independent from Playwright, Puppeteer and UI frameworks. */
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import os from 'node:os';
+import { spawnSync, execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
-import { findChromiumPageTarget } from './chromium-target.mjs';
-import { parseArgs as parseNodeArgs } from 'node:util';
+import { chromeExecutable } from './chrome-detect.mjs';
+import { startBrowser } from './chromium-session.mjs';
+import { parseArgs as parseNodeArgs, promisify } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
+import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
 import { suggestLayoutContracts, acceptContractProposals } from '../dist/contract-discovery.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
@@ -17,6 +18,7 @@ import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { parseContract, validWidth } from '../dist/contract.js';
+import { parseLayoutActions } from '../dist/actions.js';
 import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
 import { toSarif } from '../dist/sarif.js';
@@ -32,37 +34,42 @@ import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layo
 const HELP = `Bronto Layout — browser-native spatial contracts
 
 Usage:
+  bronto-layout doctor [--json] [--chrome PATH]
   bronto-layout check --spec layout.json [--url URL] [--json|--sarif] [--report FILE]
   bronto-layout audit --url URL [--widths 320,375,768,1280] [--json --compact]
   bronto-layout audit --baseline URL --url URL [--json --compact]
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
-  bronto-layout suggest --url URL [--selector name=CSS ...] [--out draft.json]
+  bronto-layout suggest --url URL [--selector name=CSS ...] [--actions steps.json] [--out draft.json]
   bronto-layout approve --draft draft.json --accept id[,id...] --out contract.json
   bronto-layout scan --spec layout.json --scan 320:1440:80 [--refine] [--json]
   bronto-layout compare --spec layout.json --baseline URL --url URL [--scan 320:1440:80] [--refine]
   bronto-layout validate --spec layout.json [--json]
-  bronto-layout batch --manifest batch.json [--json --compact] [--dry-run]
+  bronto-layout batch --manifest batch.json [--json --compact] [--parallel 2] [--dry-run]
 
 Options:
   --spec FILE           Versioned layout contract (JSON; not needed for audit)
   --manifest FILE       Batch jobs referencing individual layout contracts
   --dry-run             Validate and preview a batch without opening a browser
+  --parallel N          Batch only: 1..4 independent Chromium jobs (default 1)
   --url URL|FILE        Target website, local HTML fixture, or development server
   --baseline URL|FILE   Original website or fixture for compare or audit
   --widths CSV          Widths to check: 320,375,768,1280
   --width N             Single viewport width (for inspect or check)
   --height N            Viewport height (default: 900)
-  --mobile              Emulate a touch/mobile browser viewport
+  --mobile              Emulate a touch/mobile browser viewport (suggest saves this)
+  --desktop             Explicitly disable a saved mobile scenario
   --locale TAG          Emulate locale and Accept-Language (e.g. ar, it-IT)
   --color-scheme MODE   Browser color preference: light or dark
   --reduced-motion     Emulate prefers-reduced-motion: reduce
+  --normal-motion      Explicitly disable a saved reduced-motion scenario
   --scan MIN:MAX:STEP   Sample a responsive width range (maximum 200 coarse samples)
   --refine              Bisect observed state changes to one-pixel intervals
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect or suggest; can be repeated
   --draft FILE          Candidate draft for approve
+  --actions FILE        Declarative JSON setup actions for suggest (saved with approved contract)
   --accept CSV          Proposal IDs chosen for approval
   --css-sources         Include matched CSS hints in inspect or failed check widths
   --container-queries   Inspect CSS @container conditions and observed container sizes
@@ -79,6 +86,7 @@ Options:
   --report FILE         Write machine-readable JSON or SARIF report to disk
   --evidence-dir DIR    Annotated check screenshots; raw audit viewport screenshots
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
+  --fail-on-coverage-gaps  Audit: exit 2 for known uninspected content (e.g. iframes)
   --out FILE            Output path for init (default: bronto-layout.json)
   --force               Overwrite an existing file with init
   --help                Show this help
@@ -91,22 +99,22 @@ No account, network service, hosted subscription, Playwright, or Puppeteer requi
 `;
 
 const OPTIONS = {
-  spec: { type: 'string' }, manifest: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
-  width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, locale: { type: 'string' },
-  'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, scan: { type: 'string' },
+  spec: { type: 'string' }, manifest: { type: 'string' }, parallel: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
+  width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, desktop: { type: 'boolean' }, locale: { type: 'string' },
+  'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, 'normal-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
-  'evidence-dir': { type: 'string' },
-  out: { type: 'string' }, draft: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
+  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' },
+  out: { type: 'string' }, draft: { type: 'string' }, actions: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
 function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'approve'].includes(command) || positionals.length > 1) {
+  if (!['doctor', 'check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'approve'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -118,7 +126,40 @@ function int(value, label, min, max) {
   }
   return number;
 }
+/** Explicit CLI overrides win; absent flags inherit the approved contract scenario. */
+function withApprovedScenario(a, scenario) {
+  if (!scenario) return a;
+  const inherited = {
+    ...(scenario.mobile !== undefined ? { mobile: scenario.mobile } : {}),
+    ...(scenario.reducedMotion !== undefined ? { 'reduced-motion': scenario.reducedMotion } : {}),
+    ...(scenario.colorScheme !== undefined ? { 'color-scheme': scenario.colorScheme } : {}),
+    ...(scenario.locale !== undefined ? { locale: scenario.locale } : {}),
+    ...(scenario.height !== undefined ? { height: String(scenario.height) } : {}),
+    ...(scenario.readySelector !== undefined ? { 'ready-selector': scenario.readySelector } : {}),
+    ...(scenario.settle !== undefined ? { settle: String(scenario.settle) } : {}),
+    ...(scenario.stableFor !== undefined ? { 'stable-for': String(scenario.stableFor) } : {})
+  };
+  const merged = { ...inherited, ...a };
+  if (a.desktop) merged.mobile = false;
+  if (a['normal-motion']) merged['reduced-motion'] = false;
+  return merged;
+}
+function scenarioFromExplicitFlags(a) {
+  const scenario = {
+    ...(a.mobile !== undefined || a.desktop ? { mobile: !a.desktop } : {}),
+    ...(a['reduced-motion'] !== undefined || a['normal-motion'] ? { reducedMotion: !a['normal-motion'] } : {}),
+    ...(a['color-scheme'] !== undefined ? { colorScheme: a['color-scheme'] } : {}),
+    ...(a.locale !== undefined ? { locale: a.locale } : {}),
+    ...(a.height !== undefined ? { height: Number(a.height) } : {}),
+    ...(a['ready-selector'] !== undefined ? { readySelector: a['ready-selector'] } : {}),
+    ...(a.settle !== undefined ? { settle: Number(a.settle) } : {}),
+    ...(a['stable-for'] !== undefined ? { stableFor: Number(a['stable-for']) } : {})
+  };
+  return Object.keys(scenario).length ? scenario : undefined;
+}
 function configFromArgs(a) {
+  if (a.mobile && a.desktop) throw new Error('--mobile and --desktop cannot be combined');
+  if (a['reduced-motion'] && a['normal-motion']) throw new Error('--reduced-motion and --normal-motion cannot be combined');
   if (a.locale && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/i.test(a.locale)) throw new Error('--locale must be a valid language tag');
   if (a['color-scheme'] && !['light', 'dark'].includes(a['color-scheme'])) throw new Error('--color-scheme must be light or dark');
   const timeout = int(a.timeout ?? '15000', '--timeout', 100, 120000);
@@ -131,10 +172,10 @@ function configFromArgs(a) {
     stableFor,
     maxSamples: int(a['max-samples'] ?? '200', '--max-samples', 1, 2000),
     readySelector: a['ready-selector'] ?? undefined,
-    mobile: Boolean(a.mobile),
+    mobile: Boolean(a.mobile && !a.desktop),
     locale: a.locale ?? undefined,
     colorScheme: a['color-scheme'] ?? undefined,
-    reducedMotion: Boolean(a['reduced-motion']),
+    reducedMotion: Boolean(a['reduced-motion'] && !a['normal-motion']),
     collectShifts: Boolean(a['layout-shifts']),
   };
 }
@@ -153,197 +194,18 @@ function getWidths(a, spec) {
   return spec?.widths ?? [1280];
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-function chromeExecutable(custom) {
-  if (custom) {
-    if (!existsSync(custom)) throw new Error(`Chrome executable does not exist: ${custom}`);
-    return custom;
-  }
-  const candidates = [
-    process.env.CHROME_PATH, process.env.CHROME_EXECUTABLE,
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome',
-    '/opt/google/chrome/chrome', '/snap/bin/chromium',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    ...(process.platform === 'win32' ? [
-      path.join(process.env.PROGRAMFILES ?? 'C:\\Program Files', 'Google/Chrome/Application/chrome.exe'),
-      path.join(process.env['PROGRAMFILES(X86)'] ?? 'C:\\Program Files (x86)', 'Google/Chrome/Application/chrome.exe'),
-      path.join(process.env.LOCALAPPDATA ?? '', 'Google/Chrome/Application/chrome.exe')
-    ] : [])
-  ];
-  // Reuse *installed* browser binaries without requiring Playwright/Puppeteer as dependencies.
-  // Cache probing is a convenience only: command-line --chrome always takes precedence.
-  const architectureVariants = process.platform === 'linux'
-    ? process.arch === 'arm64' ? ['chrome-linux-arm64/chrome'] : ['chrome-linux64/chrome', 'chrome-linux/chrome']
-    : process.platform === 'darwin'
-      ? process.arch === 'arm64' ? ['chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium']
-        : ['chrome-mac/Chromium.app/Contents/MacOS/Chromium']
-      : ['chrome-win64/chrome.exe'];
-  const caches = [
-    { root: path.join(os.homedir(), '.cache/ms-playwright'), pattern: /^chromium-\d+$/,
-      variants: architectureVariants },
-    { root: path.join(os.homedir(), '.cache/puppeteer/chrome'), pattern: /^(linux|mac|mac_arm|win64|win32)-/,
-      variants: process.platform === 'linux' ? (process.arch === 'arm64' ? [] : ['chrome-linux64/chrome'])
-        : process.platform === 'darwin' ? ['chrome-mac/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing']
-        : ['chrome-win64/chrome.exe'] }
-  ];
-  for (const cache of caches) {
-    let versions = [];
-    try { versions = readdirSync(cache.root).filter(name => cache.pattern.test(name)).sort().reverse(); }
-    catch { /* Optional cache not installed. */ }
-    for (const version of versions) for (const variant of cache.variants) candidates.push(path.join(cache.root, version, variant));
-  }
-  for (const candidate of candidates) if (candidate && existsSync(candidate)) return candidate;
-  for (const name of ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable', 'chrome']) {
-    const p = spawnSync(process.platform === 'win32' ? 'where' : 'which', [name], { encoding: 'utf8' });
-    if (p.status === 0) return p.stdout.trim().split(/\r?\n/)[0];
-  }
-  throw new Error('Cannot find Chrome/Chromium. Install a browser locally or pass --chrome PATH. Existing Chromium browser caches are also supported.');
+/** Resolve the very same open-shadow selector syntax in every browser operation. */
+function geometryExpression(selectors) {
+  return `(${captureDOMGeometry.toString()})(${JSON.stringify(selectors)}, (${queryComposedElements.toString()}))`;
 }
-class CDP {
-  constructor(url, timeout) {
-    this.seq = 0;
-    this.timeout = timeout;
-    this.pending = new Map();
-    this.listeners = new Map();
-    this.ready = new Promise((resolve, reject) => {
-      this.socket = new WebSocket(url);
-      this.socket.onopen = resolve;
-      this.socket.onerror = () => reject(new Error('CDP WebSocket connection failed'));
-      this.socket.onmessage = event => {
-        const data = JSON.parse(event.data);
-        if (!data.id) {
-          for (const listener of this.listeners.get(data.method) ?? []) listener(data.params ?? {});
-          return;
-        }
-        const req = this.pending.get(data.id);
-        if (!req) return;
-        this.pending.delete(data.id);
-        clearTimeout(req.timer);
-        if (data.error) req.reject(new Error(`${req.method}: ${data.error.message}`));
-        else req.resolve(data.result);
-      };
-      this.socket.onclose = () => {
-        for (const req of this.pending.values()) { clearTimeout(req.timer); req.reject(new Error('CDP connection closed')); }
-        this.pending.clear();
-      };
-    });
-  }
-  listen(method, callback) {
-    const listeners = this.listeners.get(method) ?? new Set();
-    listeners.add(callback); this.listeners.set(method, listeners);
-    return () => { listeners.delete(callback); if (!listeners.size) this.listeners.delete(method); };
-  }
-  event(method, timeout = this.timeout) {
-    let cancel;
-    const promise = new Promise((resolve, reject) => {
-      let unlisten;
-      const timer = setTimeout(() => { unlisten?.(); reject(new Error(`Timed out waiting for ${method} after ${timeout}ms`)); }, timeout);
-      unlisten = this.listen(method, payload => { clearTimeout(timer); unlisten(); resolve(payload); });
-      cancel = () => { clearTimeout(timer); unlisten(); };
-    });
-    return { promise, cancel };
-  }
-  async send(method, params = {}) {
-    await this.ready;
-    const id = ++this.seq;
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`Timed out running ${method} after ${this.timeout}ms`)); }, this.timeout);
-      this.pending.set(id, { resolve, reject, method, timer });
-      this.socket.send(JSON.stringify({ id, method, params }));
-    });
-  }
-  async eval(expression) {
-    const value = await this.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-    if (value.exceptionDetails) {
-      const details = value.exceptionDetails;
-      throw new Error(details.exception?.description ?? details.text ?? 'Browser script failed');
-    }
-    return value.result?.value;
-  }
-  close() { this.socket.close(); }
-}
-async function startBrowser(chrome, timeout, noSandbox = false) {
-  const profile = await mkdtemp(path.join(os.tmpdir(), 'bronto-layout-'));
-  const child = spawn(chrome, [
-    '--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
-    '--disable-background-networking', '--disable-dev-shm-usage',
-    '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
-    ...(noSandbox ? ['--no-sandbox'] : []),
-  ], { stdio: ['ignore', 'ignore', 'pipe'] });
-  let startupDiagnostics = '';
-  child.stderr?.on('data', data => { startupDiagnostics = (startupDiagnostics + data.toString()).slice(-8192); });
-  let closed = false;
-  let launchError;
-  child.once('error', error => { launchError = error; });
-  const stop = async () => {
-    if (closed) return;
-    closed = true;
-    // Chrome may still be writing its profile when SIGTERM is delivered.
-    // Wait for the process to exit before deleting it, or removal can race
-    // with an active browser and fail with ENOTEMPTY.
-    const hasExited = () => child.exitCode !== null || child.signalCode !== null;
-    const waitForClose = async (timeout) => {
-      if (hasExited()) return;
-      await Promise.race([
-        new Promise(resolve => child.once('close', resolve)),
-        pause(timeout),
-      ]);
-    };
-    if (!hasExited()) {
-      child.kill('SIGTERM');
-      await waitForClose(1500);
-    }
-    if (!hasExited()) {
-      child.kill('SIGKILL');
-      await waitForClose(1500);
-    }
-    await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 150 });
-  };
-  try {
-    let port;
-    // Browser launch can be slower than CDP operations under shared CI load.
-    const startupTimeout = Math.max(timeout, 30000);
-    const deadline = Date.now() + startupTimeout;
-    while (Date.now() < deadline) {
-      if (launchError) throw new Error(`Chrome failed to launch: ${launchError.message}`);
-      if (child.exitCode !== null || child.signalCode !== null) {
-        const detail = startupDiagnostics.trim().slice(-1200);
-        throw new Error(`Chrome exited before debugging started (${child.exitCode ?? child.signalCode})${detail ? `: ${detail}` : ''}`);
-      }
-      try {
-        const data = await readFile(path.join(profile, 'DevToolsActivePort'), 'utf8');
-        port = Number(data.trim().split(/\r?\n/)[0]);
-        if (port > 0) break;
-      } catch { /* Chrome still starting. */ }
-      await pause(50);
-    }
-    if (!port) {
-      const detail = startupDiagnostics.trim().slice(-1200);
-      throw new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
-        (detail ? ': ' + detail : ''));
-    }
-    // Independent page-target grace period: Chromium may publish its
-    // debugging port before opening a usable tab on a heavily loaded runner.
-    const pageDeadlineMs = Math.max(12000, Math.min(timeout, 30000));
-    const { page } = await findChromiumPageTarget(port, {
-      timeoutMs: pageDeadlineMs,
-      isAlive: () => child.exitCode === null && child.signalCode === null
-    });
-    const cdp = new CDP(page.webSocketDebuggerUrl, timeout);
-    await cdp.send('Page.enable');
-    await cdp.send('Runtime.enable');
-    await cdp.send('Network.enable');
-    return { cdp, async close() { cdp.close(); await stop(); } };
-  } catch (error) { await stop(); throw error; }
-}
+
 /**
  * Opt-in geometry quiet window. Repeatedly compare with the geometry at the
  * start of the current quiet period, so slow cumulative drift is not missed.
  * A bounded snapshot cannot establish that all matching elements are stable.
  */
 async function waitForStableGeometry(cdp, selectors, initial, stableForMs, timeoutMs) {
-  const sample = () => cdp.eval('(' + captureDOMGeometry.toString() + ')(' + JSON.stringify(selectors) + ')');
+  const sample = () => cdp.eval(geometryExpression(selectors));
   const rejectPartial = snapshot => {
     const truncated = truncatedGeometryAliases(snapshot);
     if (truncated.length) throw new Error(
@@ -433,11 +295,13 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
     throw error;
   } finally { unlisten(); }
   const readySelector = JSON.stringify(config.readySelector ?? '');
+  const resolveSelector = queryComposedElements.toString();
   await cdp.eval(`(async () => {
     const readySelector = ${readySelector};
+    const find = (${resolveSelector});
     if (readySelector) {
       const deadline = performance.now() + ${config.timeout};
-      while (!document.querySelector(readySelector)) {
+      while (!find(readySelector).length) {
         if (performance.now() >= deadline) throw new Error('Ready selector not found: ' + readySelector);
         await new Promise(r => setTimeout(r, 50));
       }
@@ -448,7 +312,7 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
     return true;
   })()`);
   for (const action of actions) await runAction(cdp, action, config.timeout);
-  let snapshot = await cdp.eval(`(${captureDOMGeometry.toString()})(${JSON.stringify(selectors)})`);
+  let snapshot = await cdp.eval(geometryExpression(selectors));
   if (!snapshot?.viewport) throw new Error('Browser did not return a layout snapshot');
   if (config.stableFor) snapshot = await waitForStableGeometry(cdp, selectors, snapshot, config.stableFor, config.timeout);
   if (config.collectShifts) {
@@ -460,12 +324,14 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
 /** Execute only explicitly declared browser actions; no arbitrary JS from the contract. */
 async function runAction(cdp, action, timeout) {
   const args = JSON.stringify(action);
+  const resolveSelector = queryComposedElements.toString();
   await cdp.eval(`(async () => {
     const action = ${args};
+    const find = (${resolveSelector});
     if (action.type === 'pause') { await new Promise(r => setTimeout(r, action.milliseconds)); return; }
     const deadline = performance.now() + ${timeout};
     let element;
-    while (!(element = document.querySelector(action.selector))) {
+    while (!(element = find(action.selector)[0])) {
       if (performance.now() >= deadline) throw new Error('Action element not found: ' + action.selector);
       await new Promise(r => setTimeout(r, 50));
     }
@@ -487,8 +353,8 @@ function resolveURL(a, spec) {
   if (/^https?:\/\//.test(raw) || /^file:\/\//.test(raw)) return raw;
   return path.resolve(a.url ? process.cwd() : path.dirname(path.resolve(a.spec)), raw);
 }
-async function withBrowser(url, a, execute) {
-  const config = configFromArgs(a);
+async function withBrowser(url, a, execute, scenario) {
+  const config = configFromArgs(withApprovedScenario(a, scenario));
   const target = await serveTarget(url);
   let browser;
   try {
@@ -656,7 +522,7 @@ async function check(a) {
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
       ...(a['css-sources'] ? { cssSourceLeads, omittedCSSSourceWidths } : {}),
       ...(a['evidence-dir'] ? { evidence } : {}) };
-  });
+  }, spec.scenario);
   const printable = [
     `Bronto Layout — ${result.url}`,
     ...(result.cssBreakpointScan ? [`CSS thresholds: ${result.cssBreakpointScan.thresholds.join(', ') || 'none'}; additional widths: ${result.cssBreakpointScan.addedWidths.join(', ') || 'none'}`] : []),
@@ -822,7 +688,7 @@ async function compare(a) {
       return { ...comparison, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
         ...(a['evidence-dir'] ? { evidence } : {}) };
     } finally { baselineTarget.close(); }
-  });
+  }, spec.scenario);
   const important = result.changes.filter(c => c.kind !== 'unchanged');
   const printable = [
     `Bronto Layout comparison — ${result.baselineUrl} → ${result.candidateUrl}`,
@@ -833,7 +699,9 @@ async function compare(a) {
   await output(a, a.compact ? compactCompareReport(result) : result, printable, toSarif(result.candidateUrl, result.candidate, result));
   if (result.summary.regressions || (a['fail-on-skip'] && (result.summary.unverified || hasUnmeasuredRules(result.candidate)))) process.exitCode = 1;
 }
+const execFileAsync = promisify(execFile);
 async function batch(a) {
+  const parallel = int(a.parallel ?? '1', '--parallel', 1, 4);
   const manifestFile = path.resolve(a.manifest);
   const manifest = parseBatchManifest(JSON.parse(await readFile(manifestFile, 'utf8')));
   // Validate every referenced contract before launching any browser.
@@ -841,28 +709,30 @@ async function batch(a) {
   const jobs = await Promise.all(manifest.jobs.map(async job => {
     const spec = path.resolve(baseDirectory, job.spec);
     const contract = parseContract(JSON.parse(await readFile(spec, 'utf8')));
-    return { ...job, absoluteSpec: spec, contractURL: contract.url };
+    return { ...job, absoluteSpec: spec, contractURL: contract.url, approvedScenario: contract.scenario ?? {} };
   }));
   if (a['dry-run']) {
     const data = {
       schemaVersion: 1, mode: 'batch-plan', manifest: manifestFile,
-      total: jobs.length,
+      total: jobs.length, parallel,
       jobs: jobs.map(job => ({ id: job.id, spec: job.absoluteSpec,
         target: job.url ?? job.contractURL ?? null,
         widths: job.widths ?? null, scan: job.scan ?? null,
         cssBreakpoints: Boolean(job.cssBreakpoints),
-        locale: job.locale ?? a.locale ?? null,
-        colorScheme: job.colorScheme ?? a['color-scheme'] ?? null,
-        reducedMotion: Boolean(job.reducedMotion ?? a['reduced-motion']),
-        mobile: Boolean(job.mobile ?? a.mobile),
+        locale: job.locale ?? a.locale ?? job.approvedScenario.locale ?? null,
+        colorScheme: job.colorScheme ?? a['color-scheme'] ?? job.approvedScenario.colorScheme ?? null,
+        reducedMotion: Boolean(job.reducedMotion ?? (a['normal-motion'] ? false : a['reduced-motion']) ?? job.approvedScenario.reducedMotion),
+        mobile: Boolean(job.mobile ?? (a.desktop ? false : a.mobile) ?? job.approvedScenario.mobile),
         layoutShifts: Boolean(job.layoutShifts ?? a['layout-shifts']),
-        stableFor: job.stableFor ?? a['stable-for'] ?? null }))
+        stableFor: job.stableFor ?? a['stable-for'] ?? job.approvedScenario.stableFor ?? null,
+        readySelector: a['ready-selector'] ?? job.approvedScenario.readySelector ?? null,
+        height: a.height ?? job.approvedScenario.height ?? null }))
     };
     await output(a, data, 'Validated ' + jobs.length + ' batch jobs without opening Chromium');
     return;
   }
-  const outcomes = [];
-  for (const job of jobs) {
+  const outcomes = new Array(jobs.length);
+  async function runJob(job) {
     const argv = [fileURLToPath(import.meta.url), 'check', '--spec', job.absoluteSpec, '--json'];
     if (a.compact) argv.push('--compact');
     if (job.url) argv.push('--url', /^https?:\/\//.test(job.url) || /^file:\/\//.test(job.url)
@@ -877,8 +747,12 @@ async function batch(a) {
     if (locale) argv.push('--locale', locale);
     const scheme = job.colorScheme ?? a['color-scheme'];
     if (scheme) argv.push('--color-scheme', scheme);
-    if (job.reducedMotion ?? a['reduced-motion']) argv.push('--reduced-motion');
-    if (job.mobile ?? a.mobile) argv.push('--mobile');
+    if (job.reducedMotion === false) argv.push('--normal-motion');
+    else if (job.reducedMotion ?? (a['reduced-motion'] && !a['normal-motion'])) argv.push('--reduced-motion');
+    else if (a['normal-motion']) argv.push('--normal-motion');
+    if (job.mobile === false) argv.push('--desktop');
+    else if (job.mobile ?? (a.mobile && !a.desktop)) argv.push('--mobile');
+    else if (a.desktop) argv.push('--desktop');
     for (const [option, value] of [['ready-selector', a['ready-selector']], ['height', a.height], ['timeout', a.timeout],
       ['settle', a.settle], ['chrome', a.chrome]]) {
       if (value !== undefined) argv.push('--' + option, value);
@@ -890,23 +764,42 @@ async function batch(a) {
     const runtime = configFromArgs(a);
     const sampleCount = job.scan ? getWidths({ scan: job.scan }).length + 24 : (job.widths?.length ?? 4);
     const timeout = Math.min(600000, Math.max(90000, runtime.timeout * (sampleCount + 3)));
-    const child = spawnSync(process.execPath, argv, {
-      cwd: process.cwd(), encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024, env: process.env
-    });
+    // Each job gets its own isolated Chromium profile; no cookies or JS state
+    // leak between concurrently executed sites. Child argv is never a shell.
+    let child;
+    try {
+      const result = await execFileAsync(process.execPath, argv, {
+        cwd: process.cwd(), encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024, env: process.env
+      });
+      child = { status: 0, stdout: result.stdout, stderr: result.stderr };
+    } catch (error) {
+      child = { status: typeof error.code === 'number' ? error.code : 2,
+        stdout: error.stdout ?? '', stderr: error.stderr ?? '', error };
+    }
     let report;
     try { report = JSON.parse(child.stdout); } catch { report = null; }
     const exitCode = (child.status === 0 || child.status === 1) && report?.mode === 'check'
       ? child.status : 2;
     const status = exitCode === 2 ? 'error' : exitCode === 1 ? 'violations' : 'pass';
-    outcomes.push({
+    return {
       id: job.id, status, exitCode,
       ...(report ? { result: report } : {
         result: { schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
           error: { code: 'BATCH_JOB_ERROR', message: child.error?.message || child.stderr?.trim() ||
             'Job exited without a readable JSON report' } }
       })
-    });
+    };
   }
+  // A bounded worker pool preserves manifest order while enabling explicit
+  // parallelism on machines with enough CPU/memory. Default remains serial.
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(parallel, jobs.length) }, async () => {
+    for (;;) {
+      const index = next++;
+      if (index >= jobs.length) break;
+      outcomes[index] = await runJob(jobs[index]);
+    }
+  }));
   const summaryData = {
     total: outcomes.length,
     passed: outcomes.filter(j => j.status === 'pass').length,
@@ -915,7 +808,7 @@ async function batch(a) {
     checksPassed: outcomes.reduce((n, j) => n + (j.result?.summary?.passed ?? 0), 0),
     checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0)
   };
-  const result = { schemaVersion: 1, mode: 'batch', manifest: manifestFile,
+  const result = { schemaVersion: 1, mode: 'batch', manifest: manifestFile, parallel,
     ...(a.compact ? { format: 'compact' } : {}), summary: summaryData, jobs: outcomes };
   const printable = [
     'Bronto Layout batch — ' + manifestFile,
@@ -989,6 +882,18 @@ async function compareAudit(a, coarseWidths) {
         };
       } finally { baselineTarget.close(); }
     });
+  const beforeByWidth = new Map(result.baseline.map(report => [report.viewport.width, report]));
+  const coverageGaps = result.candidate.flatMap(candidate => {
+    const baseline = beforeByWidth.get(candidate.viewport.width);
+    if (baseline?.coverage.status === 'supported-scope-measured' &&
+        candidate.coverage.status === 'supported-scope-measured') return [];
+    return [{ width: candidate.viewport.width,
+      baselineStatus: baseline?.coverage.status ?? 'unknown',
+      candidateStatus: candidate.coverage.status,
+      baselineUninspectedFrames: baseline?.coverage.embeddedFrames ?? 0,
+      candidateUninspectedFrames: candidate.coverage.embeddedFrames }];
+  });
+  result.coverageGaps = coverageGaps;
   const remaining = result.candidate.flatMap(report => report.findings
     .filter(f => f.classification === 'measured')
     .map(finding => ({width:report.viewport.width, ...finding})));
@@ -996,7 +901,7 @@ async function compareAudit(a, coarseWidths) {
     schemaVersion:result.schemaVersion,mode:'audit-compare',format:'compact',
     baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
     summary:result.summary,sampledWidths:result.sampledWidths,
-    changes:result.changes,unverified:result.unverified,
+    changes:result.changes,unverified:result.unverified,coverageGaps,
     remainingMeasuredIssues:remaining.slice(0,100),
     omittedRemainingMeasuredIssues:Math.max(0,remaining.length-100),
     ...(result.cssBreakpointScan ? { cssBreakpointScan:result.cssBreakpointScan } : {})
@@ -1008,6 +913,7 @@ async function compareAudit(a, coarseWidths) {
       (change.path?' ['+change.path+']':'')+
       ': '+change.message),
     ...result.unverified.map(item=>item.width+'px UNVERIFIED: '+item.reasons.join('; ')),
+    ...coverageGaps.map(item=>item.width+'px COVERAGE: baseline '+item.baselineStatus+', candidate '+item.candidateStatus+'; inspect known gaps'),
     'Total: '+result.summary.measuredRegressions+' measured regressions, '+
       result.summary.measuredImprovements+' improvements, '+
       result.summary.reviewChanges+' review changes and '+
@@ -1016,6 +922,7 @@ async function compareAudit(a, coarseWidths) {
   ].join('\n');
   await output(a, payload, printable);
   if (result.summary.unverifiedViewports) process.exitCode=2;
+  else if (a['fail-on-coverage-gaps'] && [...result.baseline,...result.candidate].some(r => r.coverage.status !== 'supported-scope-measured')) process.exitCode=2;
   else if (result.summary.measuredRegressions) process.exitCode=1;
 }
 
@@ -1057,6 +964,7 @@ async function audit(a) {
       measuredIssues: reports.reduce((count, report) => count + report.summary.errors, 0),
       reviewWarnings: reports.reduce((count, report) => count + report.summary.warnings, 0),
       incompleteViewports: reports.filter(report => !report.summary.verified).length,
+      partialViewports: reports.filter(report => report.coverage.status !== 'supported-scope-measured').length,
       visitedElements: reports.reduce((count, report) => count + report.coverage.visitedElements, 0)
     };
     return { schemaVersion: 1, mode: 'audit', url: publicURL, browser, summary,
@@ -1073,6 +981,9 @@ async function audit(a) {
       coverage: {
         visitedElements: report.coverage.visitedElements,
         truncated: report.coverage.truncated,
+        scope: report.coverage.scope,
+        status: report.coverage.status,
+        limitations: report.coverage.limitations,
         embeddedFrames: report.coverage.embeddedFrames,
         totalImages: report.coverage.totalImages,
         brokenImageCount: report.coverage.brokenImageCount,
@@ -1099,7 +1010,8 @@ async function audit(a) {
       report.viewport.width + 'px (' + report.viewport.direction + '): ' +
         report.summary.errors + ' measured issues, ' + report.summary.warnings +
         ' review warnings; ' + report.coverage.visitedElements + ' DOM elements traversed' +
-        (report.coverage.truncated ? ' (INCOMPLETE)' : ''),
+        (report.coverage.status === 'truncated' ? ' (TRUNCATED)' :
+          report.coverage.status === 'known-uninspected-content' ? ' (PARTIAL COVERAGE)' : ''),
       ...report.findings.map(finding =>
         '  ' + finding.severity.toUpperCase() + ' ' + finding.code + ': ' + finding.message +
           (finding.path ? ' [' + finding.path + ']' : ''))
@@ -1111,6 +1023,7 @@ async function audit(a) {
   ].join('\n');
   await output(a, payload, printable);
   if (result.summary.incompleteViewports) process.exitCode = 2;
+  else if (a['fail-on-coverage-gaps'] && result.summary.partialViewports) process.exitCode = 2;
   else if (result.summary.measuredIssues) process.exitCode = 1;
 }
 
@@ -1119,13 +1032,14 @@ async function suggest(a) {
   if (!a.url) throw new Error('suggest requires --url URL or local HTML path');
   const widths = a.width !== undefined || a.widths !== undefined || a.scan
     ? getWidths(a) : [375, 768, 1280];
+  const actions = a.actions ? parseLayoutActions(JSON.parse(await readFile(a.actions, 'utf8'))) : [];
   const draft = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     if (widths.length > config.maxSamples) throw new Error('Too many suggestion widths');
     const explicit = Boolean(a.selector?.length);
     let selectors, groups = [], truncated = false;
     if (explicit) selectors = selectorsForInspect(a);
     else {
-      await measure(cdp, url, widths[0], { page: 'body' }, config, fixture);
+      await measure(cdp, url, widths[0], { page: 'body' }, config, fixture, actions);
       const discovered = await cdp.eval('(' + discoverPageSelectors.toString() + ')()');
       if (!discovered?.selectors || typeof discovered.candidatesTruncated !== 'boolean')
         throw new Error('Selector discovery unavailable');
@@ -1134,11 +1048,14 @@ async function suggest(a) {
       truncated = discovered.candidatesTruncated;
     }
     const snapshots = [];
-    for (const width of widths) snapshots.push(await measure(cdp, url, width, selectors, config, fixture));
+    for (const width of widths) snapshots.push(await measure(cdp, url, width, selectors, config, fixture, actions));
     if (explicit) groups = Object.keys(selectors).filter(alias => snapshots.every(snapshot =>
       (snapshot.selectorCounts?.[alias] ?? 0) >= 3 &&
       snapshot.selectorCounts[alias] === snapshot.selectors[alias]?.length));
-    return suggestLayoutContracts(publicURL, selectors, snapshots, groups, truncated);
+    return suggestLayoutContracts(publicURL, selectors, snapshots, groups, truncated, {
+      ...(scenarioFromExplicitFlags(a) ? { scenario: scenarioFromExplicitFlags(a) } : {}),
+      ...(a.actions ? { actions } : {})
+    });
   });
   if (a.out) {
     const destination = path.resolve(a.out);
@@ -1162,6 +1079,40 @@ async function approve(a) {
   await output(a, { mode: 'approve', file: destination, acceptedIds: ids, contract },
     'Approved ' + ids.length + ' reviewed rule(s): ' + destination + '. Run validate and check for current results.');
 }
+/** A safe installation preflight: detection only, not a sandbox/network guarantee. */
+async function doctor(a) {
+  const nodeMajor = Number(process.versions.node.split('.')[0]);
+  const nodeSupported = nodeMajor >= 22;
+  let browser;
+  try {
+    const executable = chromeExecutable(a.chrome);
+    const checked = spawnSync(executable, ['--version'], { encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 64 });
+    if (checked.error || checked.status !== 0) {
+      browser = { detected: false, path: executable, reason: checked.error?.message || checked.stderr?.trim() || 'Browser --version failed' };
+    } else {
+      browser = { detected: true, path: executable, version: checked.stdout.trim() || checked.stderr.trim() };
+    }
+  } catch (error) {
+    browser = { detected: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+  const status = nodeSupported && browser.detected ? 'detected' : 'needs-attention';
+  const data = { schemaVersion: 1, mode: 'doctor', status,
+    node: { version: process.versions.node, supported: nodeSupported },
+    platform: process.platform, architecture: process.arch, browser,
+    limitations: [
+      'The executable was checked with --version only; Chrome was not launched',
+      'Browser sandbox, network and site permissions remain unverified',
+      'Bronto Layout currently supports Chromium-family browsers through CDP'
+    ] };
+  await output(a, data, [
+    'Bronto Layout preflight — ' + status,
+    '  Node ' + data.node.version + (nodeSupported ? ' (supported)' : ' (requires >=22)'),
+    '  Chromium: ' + (browser.detected ? browser.version + ' at ' + browser.path : browser.reason),
+    '  Note: preflight does not launch the browser or verify sandbox support'
+  ].join('\n'));
+  if (status !== 'detected') process.exitCode = 2;
+}
+
 async function validate(a) {
   if (!a.spec) throw new Error('validate requires --spec FILE');
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
@@ -1193,11 +1144,15 @@ async function main() {
   if (a.command === 'audit' && a.baseline && a['evidence-dir']) throw new Error('Compared audit screenshots are not yet supported');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
+  if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
+  if (a.actions && a.command !== 'suggest') throw new Error('--actions applies only to suggest; checks replay saved contract.actions');
+  if (a.parallel !== undefined && a.command !== 'batch') throw new Error('--parallel applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');
   if (a.command === 'batch' && a.spec) throw new Error('batch reads contracts from its manifest; omit --spec');
   if (a.command === 'batch' && a.sarif) throw new Error('batch supports JSON reports, not SARIF');
   configFromArgs(a);
-  if (a.command === 'suggest') await suggest(a);
+  if (a.command === 'doctor') await doctor(a);
+  else if (a.command === 'suggest') await suggest(a);
   else if (a.command === 'approve') await approve(a);
   else if (a.command === 'batch') await batch(a);
   else if (a.command === 'init') await init(a);

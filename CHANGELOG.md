@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Unify explicitly open Shadow DOM selector resolution for measurements, readiness and browser actions, with regression fixtures.
+- Preserve reviewed browser scenarios and declarative actions from `suggest` into `approve` / `check`, including explicit desktop and normal-motion overrides.
+- Report the supported audit scope and known iframe coverage gaps; add opt-in `audit --fail-on-coverage-gaps` (exit 2 when evidence is incomplete).
+- Extract browser discovery, CDP transport and session ownership from the CLI; add an install `doctor` command.
+- Add opt-in independent-process `batch --parallel 1..4`, cold-process profiling and the fast browser-free test suite. Performance is host-dependent and not yet established for real websites.
+- Add a hash-verified `field-benchmark.mjs review-packet` generator; it intentionally leaves all human labels pending.
+- Add public-alpha checklist, 10-minute onboarding, and macOS portability/packaging CI (publication still pending).
+
 - Add review-first `suggest` and `approve` CLI commands to draft browser-observed semantic layout contracts, with bounded selector discovery, width-scoped repeated gaps and explicit human acceptance.
 - Add a separate real-website benchmark pipeline with an allowlisted 30-state first-party capture manifest, initial-viewport screenshots, content-hash provenance, human-only labeling and missing-evidence-aware scoring.
 - Permit opt-in raw audit screenshots without treating screenshot contents as automatic detector results.

@@ -35,8 +35,8 @@ try {
   assert.ok(existsSync(archive), 'npm did not write its tarball');
   const packedFiles = new Set(packed.files.map(file => file.path));
   const required = [
-    'bin/bronto-layout.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
-    'dist/browser.js', 'dist/contract.js', 'dist/audit.js', 'dist/audit-browser.js',
+    'bin/bronto-layout.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
+    'dist/browser.js', 'dist/contract.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html', 'examples/layout.json',
     'examples/healthy.html', 'README.md', 'LICENSE', 'package.json'
   ];
@@ -62,6 +62,8 @@ try {
     : path.join(consumer, 'node_modules', '.bin', 'bronto-layout');
   assert.ok(existsSync(binary), 'npm did not install the CLI executable');
   const version = run(binary, ['--version'], { cwd: consumer }).trim();
+  const help = run(binary, ['--help'], { cwd: consumer });
+  assert.match(help, /doctor/);
   assert.equal(version, 'Bronto Layout ' + pkg.version);
   const sourceSpec = path.join(installed, 'examples', 'layout.json');
   const validated = JSON.parse(run(binary, ['validate', '--spec', sourceSpec, '--json'], { cwd: consumer }));

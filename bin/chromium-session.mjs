@@ -1,0 +1,83 @@
+/** Owns an isolated Chrome profile, CDP connection, and reliable process cleanup. */
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { CDP } from './cdp-client.mjs';
+import { findChromiumPageTarget } from './chromium-target.mjs';
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+export async function startBrowser(chrome, timeout, noSandbox = false) {
+  const profile = await mkdtemp(path.join(os.tmpdir(), 'bronto-layout-'));
+  const child = spawn(chrome, [
+    '--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
+    '--disable-background-networking', '--disable-dev-shm-usage',
+    '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
+    ...(noSandbox ? ['--no-sandbox'] : []),
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  let startupDiagnostics = '';
+  child.stderr?.on('data', data => { startupDiagnostics = (startupDiagnostics + data.toString()).slice(-8192); });
+  let closed = false;
+  let launchError;
+  child.once('error', error => { launchError = error; });
+  const stop = async () => {
+    if (closed) return;
+    closed = true;
+    // Chrome may still be writing its profile when SIGTERM is delivered.
+    // Wait for the process to exit before deleting it, or removal can race
+    // with an active browser and fail with ENOTEMPTY.
+    const hasExited = () => child.exitCode !== null || child.signalCode !== null;
+    const waitForClose = async (timeout) => {
+      if (hasExited()) return;
+      await Promise.race([
+        new Promise(resolve => child.once('close', resolve)),
+        pause(timeout),
+      ]);
+    };
+    if (!hasExited()) {
+      child.kill('SIGTERM');
+      await waitForClose(1500);
+    }
+    if (!hasExited()) {
+      child.kill('SIGKILL');
+      await waitForClose(1500);
+    }
+    await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 150 });
+  };
+  try {
+    let port;
+    // Browser launch can be slower than CDP operations under shared CI load.
+    const startupTimeout = Math.max(timeout, 30000);
+    const deadline = Date.now() + startupTimeout;
+    while (Date.now() < deadline) {
+      if (launchError) throw new Error(`Chrome failed to launch: ${launchError.message}`);
+      if (child.exitCode !== null || child.signalCode !== null) {
+        const detail = startupDiagnostics.trim().slice(-1200);
+        throw new Error(`Chrome exited before debugging started (${child.exitCode ?? child.signalCode})${detail ? `: ${detail}` : ''}`);
+      }
+      try {
+        const data = await readFile(path.join(profile, 'DevToolsActivePort'), 'utf8');
+        port = Number(data.trim().split(/\r?\n/)[0]);
+        if (port > 0) break;
+      } catch { /* Chrome still starting. */ }
+      await pause(50);
+    }
+    if (!port) {
+      const detail = startupDiagnostics.trim().slice(-1200);
+      throw new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
+        (detail ? ': ' + detail : ''));
+    }
+    // Independent page-target grace period: Chromium may publish its
+    // debugging port before opening a usable tab on a heavily loaded runner.
+    const pageDeadlineMs = Math.max(12000, Math.min(timeout, 30000));
+    const { page } = await findChromiumPageTarget(port, {
+      timeoutMs: pageDeadlineMs,
+      isAlive: () => child.exitCode === null && child.signalCode === null
+    });
+    const cdp = new CDP(page.webSocketDebuggerUrl, timeout);
+    await cdp.send('Page.enable');
+    await cdp.send('Runtime.enable');
+    await cdp.send('Network.enable');
+    return { cdp, async close() { cdp.close(); await stop(); } };
+  } catch (error) { await stop(); throw error; }
+}

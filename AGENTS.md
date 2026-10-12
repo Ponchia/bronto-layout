@@ -8,3 +8,7 @@
 - Preserve the documented exit code policy: 0 success or no verified regression, 1 violation or regression, 2 invalid input/runtime error.
 - Do not invent source file positions in SARIF or CSS root causes without evidence. Never hide missing selectors as passing checks.
 - New commands must provide structured JSON and have at least one integration test. Do not add MCP integration until the CLI is validated against real websites.
+
+- When working on the CLI, keep `bin/cdp-client.mjs`, `bin/chrome-detect.mjs` and `bin/chromium-session.mjs` independent and dependency-free.
+- `npm run test:unit` is a fast, browser-free developer subset; it does not replace `npm run check`, controlled fixture benchmarks or package installation tests.
+- Discovery proposals must carry only observed evidence and explicitly configured state; never auto-approve a rule or synthesize independent human labels.

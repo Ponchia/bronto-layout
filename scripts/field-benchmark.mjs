@@ -35,6 +35,7 @@ Usage:
   node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json
   node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id]
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
+  node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
 Captures are not ground-truth labels. Scores exclude unreviewed/unavailable states.`;
 }
@@ -123,6 +124,64 @@ function runCapture() {
     complete: entries.filter(x => x.complete).length, index: path.join(outputDir, 'index.json') }, null, 2) + '\n');
   if (entries.some(row => !row.complete)) process.exitCode = 2;
 }
+/** Generate an unbiased HUMAN review worksheet: never seed expected labels from tool output. */
+function runReviewPacket() {
+  const dirName = opt('--captures');
+  const outName = opt('--out');
+  if (!dirName || !outName) throw new Error('review-packet requires --captures and --out');
+  const captures = path.resolve(dirName);
+  const destination = path.resolve(outName);
+  if (existsSync(destination)) throw new Error('Review packet already exists; do not overwrite human notes');
+  const index = readJSON(path.join(captures, 'index.json'));
+  if (index.schemaVersion !== 1 || !Array.isArray(index.cases) ||
+      typeof index.datasetId !== 'string') throw new Error('Invalid capture index');
+  const items = index.cases.map(entry => {
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(entry.id)) throw new Error('Invalid capture case id');
+    let screenshotVerified = false, reportVerified = false;
+    if (entry.screenshotFile && entry.screenshotSha256) {
+      const screenshot = ensureInside(captures, entry.screenshotFile);
+      screenshotVerified = existsSync(screenshot) && sha(readFileSync(screenshot)) === entry.screenshotSha256;
+    }
+    if (entry.auditFile && entry.auditSha256) {
+      const report = ensureInside(captures, entry.auditFile);
+      reportVerified = existsSync(report) && sha(readFileSync(report)) === entry.auditSha256;
+    }
+    return { id: entry.id, url: entry.url, width: entry.width, locale: entry.locale ?? null,
+      screenshotFile: entry.screenshotFile ?? null,
+      screenshotVerified, reportVerified, captureComplete: entry.complete === true,
+      readyForReview: entry.complete === true && screenshotVerified && reportVerified };
+  });
+  const lines = [
+    '# Independent layout review — ' + index.datasetId, '',
+    'This worksheet is **not** ground truth and contains **no generated defect labels**.',
+    'Independently inspect the screenshot **and rendered page**, including below-fold/interactive states,',
+    'before reading `audit.json` or Bronto Layout findings. Record intentional exceptions and unreviewable cases.', '',
+    'Capture revision: `' + String(index.sourceCommit ?? 'unknown') + '`',
+    'Capture time: `' + String(index.capturedAt ?? 'unknown') + '`',
+    'Captured: ' + items.length + '; evidence verified for review: ' + items.filter(x=>x.readyForReview).length, '',
+    'After review, enter **human-origin** case labels using `benchmarks/field-labels.template.json` and',
+    '`docs/field-benchmark.md`; score them separately with `field-benchmark.mjs score`.', ''
+  ];
+  for (const item of items) {
+    lines.push('## ' + item.id, '',
+      '- Site: `' + String(item.url) + '`',
+      '- Observed width: ' + item.width + ' CSS px' + (item.locale ? '; locale `' + item.locale + '`' : ''),
+      '- Screenshot (relative to capture directory): `' + (item.screenshotFile ?? '(missing)') + '`',
+      '- Evidence integrity: **' + (item.readyForReview ? 'verified' : 'INCOMPLETE / UNSAFE TO SCORE') + '**',
+      '- [ ] Independently review actual rendered viewport, scroll area and relevant interaction states',
+      '- [ ] Record positive defects, known intentional exceptions and element locations',
+      '- [ ] Record limitations or mark unreviewable; do not infer clean from tool silence',
+      '- [ ] Record reviewer identity, review date and rationale in separate labels file', '');
+  }
+  mkdirSync(path.dirname(destination), {recursive:true});
+  writeFileSync(destination, lines.join('\n'), {flag:'wx'});
+  const result = {schemaVersion:1,mode:'field-review-packet',datasetId:index.datasetId,
+    output:destination, total:items.length, readyForReview:items.filter(x=>x.readyForReview).length,
+    pendingHumanLabels:items.length, cases:items};
+  if (has('--json')) console.log(JSON.stringify(result,null,2));
+  else console.log('Created independent-review worksheet for '+items.length+' cases ('+result.readyForReview+' verified); no labels inferred: '+destination);
+}
+
 function runScore() {
   const captures = path.resolve(opt('--captures'));
   const labelPath = opt('--labels');
@@ -166,7 +225,8 @@ try {
     console.log(`Valid field benchmark: ${result.id}, ${result.cases.length} cases; no labels inferred`);
   } else if (action === 'capture') runCapture();
   else if (action === 'score') runScore();
-  else throw new Error('Choose validate, capture, or score. Run --help.');
+  else if (action === 'review-packet') runReviewPacket();
+  else throw new Error('Choose validate, capture, review-packet or score. Run --help.');
 } catch (error) {
   console.error('Field benchmark: ' + (error?.message || String(error)));
   process.exitCode = 2;

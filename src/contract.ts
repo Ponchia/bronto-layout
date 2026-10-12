@@ -1,11 +1,13 @@
 import type { Edge, LayoutRule } from './core.js';
-import type { LayoutAction } from './actions.js';
+import { parseLayoutActions, type LayoutAction } from './actions.js';
+import { parseLayoutScenario, type LayoutScenario } from './scenario.js';
 
 export interface LayoutContract {
   schemaVersion?: 1;
   url?: string;
   widths?: number[];
   actions?: LayoutAction[];
+  scenario?: LayoutScenario;
   selectors: Record<string, string>;
   rules: LayoutRule[];
 }
@@ -26,7 +28,7 @@ export function validWidth(width: unknown): width is number { return Number.isIn
 function requireThat(ok: boolean, message: string): asserts ok { if (!ok) throw new Error(`Invalid layout contract: ${message}`); }
 export function parseContract(input: unknown): LayoutContract {
   requireThat(record(input), 'expected a JSON object');
-  const allowedContractFields = new Set(['schemaVersion', 'url', 'widths', 'selectors', 'rules', 'actions']);
+  const allowedContractFields = new Set(['schemaVersion', 'url', 'widths', 'selectors', 'rules', 'actions', 'scenario']);
   for (const name of Object.keys(input)) requireThat(allowedContractFields.has(name), `unknown top-level field ${name}`);
   requireThat(input.schemaVersion === undefined || input.schemaVersion === 1, 'schemaVersion must be 1');
   requireThat(input.url === undefined || string(input.url), 'url must be a non-empty string');
@@ -39,19 +41,8 @@ export function parseContract(input: unknown): LayoutContract {
     requireThat(Array.isArray(input.widths) && input.widths.length > 0 && input.widths.every(validWidth), 'widths must contain integers from 200 to 10000');
     requireThat(new Set(input.widths).size === input.widths.length, 'widths must not contain duplicates');
   }
-  if (input.actions !== undefined) {
-    requireThat(Array.isArray(input.actions) && input.actions.length <= 30, 'actions must be an array of at most 30 steps');
-    for (const [i, value] of input.actions.entries()) {
-      requireThat(record(value), `actions[${i}] must be an object`);
-      requireThat(['click', 'fill', 'wait-for', 'scroll-into-view', 'pause'].includes(value.type as string), `actions[${i}] has unsupported type`);
-      const type = value.type as string;
-      const fields = type === 'pause' ? ['type', 'milliseconds'] : type === 'fill' ? ['type', 'selector', 'value'] : ['type', 'selector'];
-      for (const field of Object.keys(value)) requireThat(fields.includes(field), `actions[${i}] has unknown field ${field}`);
-      if (type === 'pause') requireThat(Number.isInteger(value.milliseconds) && (value.milliseconds as number) >= 0 && (value.milliseconds as number) <= 5000, `actions[${i}].milliseconds must be 0..5000`);
-      else requireThat(string(value.selector) && (value.selector as string).length <= 2000, `actions[${i}].selector must be a CSS selector`);
-      if (type === 'fill') requireThat(typeof value.value === 'string' && value.value.length <= 10000, `actions[${i}].value must be a string up to 10000 characters`);
-    }
-  }
+  if (input.actions !== undefined) parseLayoutActions(input.actions);
+  if (input.scenario !== undefined) parseLayoutScenario(input.scenario);
   requireThat(Array.isArray(input.rules) && input.rules.length > 0, 'rules must contain at least one rule');
   const ids = new Set<string>();
   const aliases = input.selectors;

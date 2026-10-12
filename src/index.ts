@@ -1,6 +1,7 @@
 export * from './core.js';
 export * from './actions.js';
 export * from './browser.js';
+export { queryComposedElements } from './composed-selector.js';
 export * from './contract.js';
 export * from './sweep.js';
 export * from './compare.js';
@@ -41,3 +42,7 @@ export { discoverPageSelectors } from './selector-discovery.js';
 export type { SelectorDiscovery } from './selector-discovery.js';
 export { suggestLayoutContracts, acceptContractProposals } from './contract-discovery.js';
 export type { ContractDiscoveryDraft, ContractProposal } from './contract-discovery.js';
+
+export { parseLayoutActions } from './actions.js';
+export { parseLayoutScenario } from './scenario.js';
+export type { LayoutScenario } from './scenario.js';

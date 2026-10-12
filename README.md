@@ -4,6 +4,8 @@
 
 The thesis: a layout should be testable by the *relationships between elements*, rather than only by image-diff screenshots. A coding agent and a developer should receive the same precise, deterministic diagnosis. It must work on an ordinary site without using BrontoUI, React, Playwright, or Puppeteer.
 
+**New users:** start with the [10-minute CLI guide](docs/quickstart.md), run `bronto-layout doctor`, then `audit` an actual local development server. The [release gate](docs/release-checklist.md) tracks what is still unverified.
+
 ## What works today
 
 - Pure TypeScript constraint engine: align edges, center, containment, non-overlap, equal gaps, same-size, size-range, horizontal page overflow, and intrinsic image aspect ratio (with `object-fit` awareness).
@@ -48,6 +50,8 @@ and 24, including the installed CLI's browser checks against bundled
 trusted fixtures. **Preparing a publishable package does not imply that
 it has been published to the npm registry.**
 
+**New in the hardening work:** `doctor` offers a non-invasive install preflight; `--fail-on-coverage-gaps` rejects known partial iframe inspections; `batch --parallel 2` runs independent browser profiles concurrently when resources allow. These features do not establish universal browser coverage or performance gains on arbitrary sites.
+
 ## Review-first contract suggestions (experimental)
 
 Generate a provisional contract draft from browser-observed relationships,
@@ -63,6 +67,8 @@ This does **not** infer artistic/design intent automatically. It reports
 sampling coverage and requires explicit rule approval. See
 [contract discovery](docs/contract-discovery.md).
 
+`suggest` can save a declared browser scenario (`--locale`, `--mobile`, `--color-scheme`, `--reduced-motion`, `--height`, `--ready-selector`, `--settle`, `--stable-for`) and a `--actions` JSON file. Accepted contracts preserve and replay that state; explicit check-time CLI flags override the stored environment. See the [quickstart](docs/quickstart.md) for the workflow.
+
 ## Independent field benchmark workflow
 
 A separate capture/label/score workflow prepares a 30-state first-party
@@ -75,7 +81,7 @@ npm run field:validate
 node scripts/field-benchmark.mjs capture --manifest benchmarks/field-sites.v0.1.json --ids portfolio-375 --out reports/field-first-pass
 ```
 
-Independent review and verified labels are still required before any accuracy
+Use `node scripts/field-benchmark.mjs review-packet --captures reports/field-first-pass --out reports/independent-review.md` to prepare a hash-verified worksheet **without copying automatic findings into human labels**. Independent review and verified labels are still required before any accuracy
 claim. See the [field benchmark protocol](docs/field-benchmark.md).
 
 ## Quick start
