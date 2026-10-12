@@ -12,7 +12,7 @@ import { getWidths } from './cli-options.mjs';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { captureFrameInventoryWithCDP } from '../dist/frame-inspector.js';
 import { planBoundedScreenshot } from '../dist/bounded-screenshot.js';
-import { analyzePageAudit } from '../dist/audit.js';
+import { analyzePageAudit, summarizeOptionalReviewCoverage } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { combineCSSBreakpointSamples } from '../dist/breakpoints.js';
 import { renderPairedAuditGallery } from './audit-comparison-gallery.mjs';
@@ -139,6 +139,14 @@ export function createAuditCommand({
         candidateUninspectedFrames: candidate.coverage.embeddedFrames }];
     });
     result.coverageGaps = coverageGaps;
+    if (a['grid-gap-review'] || a['sibling-overlap-review']) {
+      const flags = {gridGapReview:Boolean(a['grid-gap-review']),
+        siblingOverlapReview:Boolean(a['sibling-overlap-review'])};
+      result.reviewCoverage = {
+        baseline: summarizeOptionalReviewCoverage(result.baseline,flags),
+        candidate: summarizeOptionalReviewCoverage(result.candidate,flags)
+      };
+    }
     if (result.comparisonEvidence) {
       const file = path.join(path.resolve(a['evidence-dir']), 'audit-comparison.html');
       const gallery = renderPairedAuditGallery(result.comparisonEvidence, a['evidence-dir']);
@@ -160,6 +168,7 @@ export function createAuditCommand({
       baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
       summary:result.summary,sampledWidths:result.sampledWidths,
       changes:result.changes,unverified:result.unverified,coverageGaps,
+      ...(result.reviewCoverage ? {reviewCoverage:result.reviewCoverage} : {}),
       ...(result.comparisonEvidence ? {comparisonEvidence:result.comparisonEvidence} : {}),
       ...(result.comparisonGallery ? {comparisonGallery:result.comparisonGallery} : {}),
       ...auditStateSummary(a, actions),
@@ -173,6 +182,8 @@ export function createAuditCommand({
     } : result;
     const printable = [
       'Bronto Layout zero-contract comparison — '+result.baselineUrl+' → '+result.candidateUrl,
+      ...(result.reviewCoverage ? ['  Opt-in review coverage: baseline '+result.reviewCoverage.baseline.status+
+        ', candidate '+result.reviewCoverage.candidate.status+'; omissions are NOT clean reviews'] : []),
       ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed independently on both versions at each width; values omitted'] : []),
       ...(result.comparisonEvidence ? result.comparisonEvidence.map(item => '  '+item.width+'px viewport screenshots: baseline '+item.baseline.file+', candidate '+item.candidate.file) : []),
       ...(result.comparisonGallery ? ['  Offline comparison gallery: '+result.comparisonGallery.file] : []),
@@ -241,8 +252,12 @@ export function createAuditCommand({
         reports.push(report);
       }
       const browser = await cdp.eval('({ userAgent: navigator.userAgent, actualUrl: location.href, language: navigator.language })');
+      const reviewCoverage = a['grid-gap-review'] || a['sibling-overlap-review']
+        ? summarizeOptionalReviewCoverage(reports,{gridGapReview:Boolean(a['grid-gap-review']),
+          siblingOverlapReview:Boolean(a['sibling-overlap-review'])}) : undefined;
       const summary = {
         viewports: reports.length,
+        ...(reviewCoverage ? {reviewCoverage} : {}),
         measuredIssues: reports.reduce((count, report) => count + report.summary.errors, 0),
         reviewWarnings: reports.reduce((count, report) => count + report.summary.warnings, 0),
         incompleteViewports: reports.filter(report => !report.summary.supportedScopeMeasured).length,
@@ -301,13 +316,19 @@ export function createAuditCommand({
     } : result;
     const printable = [
       'Bronto Layout zero-contract audit — ' + result.url,
+      ...(result.summary.reviewCoverage ? ['  Opt-in review coverage: '+result.summary.reviewCoverage.status+
+        '; '+result.summary.reviewCoverage.totalOmissions+' candidate observations omitted across '+
+        result.summary.reviewCoverage.viewportsWithOmissions+' viewport(s); not a clean-page verdict'] : []),
       ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed at each width; values omitted'] : []),
       ...result.reports.flatMap(report => [
         report.viewport.width + 'px (' + report.viewport.direction + '): ' +
           report.summary.errors + ' measured issues, ' + report.summary.warnings +
           ' review warnings; ' + report.coverage.visitedElements + ' DOM elements traversed' +
           (report.coverage.status === 'truncated' ? ' (TRUNCATED)' :
-            report.coverage.status === 'known-uninspected-content' ? ' (PARTIAL COVERAGE)' : ''),
+            report.coverage.status === 'known-uninspected-content' ? ' (PARTIAL COVERAGE)' : '') +
+          (((a['grid-gap-review'] && (report.coverage.gridContainersOmitted ?? 0) > 0) ||
+            (a['sibling-overlap-review'] && (report.coverage.overlapContainersOmitted ?? 0) > 0))
+            ? ' (REVIEW CANDIDATES OMITTED)' : ''),
         ...(report.fullPageScreenshot ? ['  Bounded page evidence: '+report.fullPageScreenshot.capturedWidth+'×'+report.fullPageScreenshot.capturedHeight+' CSS px ('+report.fullPageScreenshot.coverage+')'] : []),
         ...(report.frameInventory ? ['  Frame inventory: '+report.frameInventory.observedFrameDocuments+' / '+report.frameInventory.frameCount+' declared frame documents observed by DOMSnapshot ('+report.frameInventory.status+', '+report.frameInventory.unresolvedDomFrames+' DOM frames unresolved); no inner-frame layout checks'] : []),
         ...report.findings.map(finding =>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzePageAudit } from '../dist/audit.js';
+import { analyzePageAudit, summarizeOptionalReviewCoverage } from '../dist/audit.js';
 
 function obs() {
   return {
@@ -150,4 +150,90 @@ test('bounded overlap leads disclose omitted groups without inventing reported e
  assert.equal(report.findings[1].count,29);
  assert.equal(report.findings[1].path,undefined);
  assert.ok(report.coverage.limitations.some(s=>/overlap.*omitted/i.test(s)));
+});
+
+
+test('opt-in review candidate omissions are distinct from complete top-level DOM traversal',()=>{
+ const report=analyzePageAudit(snap(),obs());
+ // A real-site audit can traverse the full top-level DOM but skip dense
+ // grid/flex candidates, producing zero review warnings without clean verdict.
+ report.coverage.gridContainersOmitted=1;
+ report.coverage.gridGapCount=0;
+ report.coverage.gridGapLeads=[];
+ report.coverage.overlapContainersOmitted=1;
+ report.coverage.siblingOverlapCount=0;
+ report.coverage.siblingOverlapLeads=[];
+ assert.equal(report.summary.verified,true);
+ assert.equal(report.summary.warnings,0);
+ const summary=summarizeOptionalReviewCoverage([report,structuredClone(report)],{
+  gridGapReview:true,siblingOverlapReview:true
+ });
+ assert.equal(summary.status,'known-omissions');
+ assert.equal(summary.viewportsWithOmissions,2);
+ assert.equal(summary.viewportsWithUnavailableEvidence,0);
+ assert.equal(summary.omittedGridContainers,2);
+ assert.equal(summary.omittedOverlapContainers,2);
+ assert.equal(summary.totalOmissions,4);
+});
+
+test('missing experimental reviewer evidence fails closed instead of claiming no omissions',()=>{
+ const report=analyzePageAudit(snap(),obs());
+ const summary=summarizeOptionalReviewCoverage([report],{
+  gridGapReview:true,siblingOverlapReview:true
+ });
+ assert.equal(summary.status,'unavailable');
+ assert.equal(summary.viewportsWithUnavailableEvidence,1);
+ assert.equal(summary.totalOmissions,0);
+});
+
+test('bounded review lead omissions are counted separately from omitted containers',()=>{
+ const report=analyzePageAudit(snap(),obs());
+ report.coverage.gridGapCount=3;
+ report.coverage.gridGapLeads=[{path:'#grid',expectedGapPx:8,observedGapsPx:[8,14],maxDeviationPx:6,itemCount:3}];
+ report.coverage.gridContainersOmitted=0;
+ report.coverage.siblingOverlapCount=2;
+ report.coverage.siblingOverlapLeads=[{path:'#overlap',children:['#a','#b'],overlapWidthPx:9,overlapHeightPx:9,overlapAreaPx:81,overlapFraction:0.4,overlapExtentPx:9}];
+ report.coverage.overlapContainersOmitted=0;
+ const result=summarizeOptionalReviewCoverage([report],{
+  gridGapReview:true,siblingOverlapReview:true
+ });
+ assert.equal(result.status,'known-omissions');
+ assert.deepEqual([result.omittedGridLeads,result.omittedOverlapLeads],[2,1]);
+ assert.equal(result.totalOmissions,3);
+});
+
+
+test('compact review evidence uses attributed findings when raw lead arrays are intentionally omitted',()=>{
+ const page=analyzePageAudit(snap(),obs());
+ page.coverage.gridContainersOmitted=1;
+ page.coverage.gridGapCount=1;
+ page.coverage.overlapContainersOmitted=1;
+ page.coverage.siblingOverlapCount=1;
+ page.findings=[
+  {code:'possible-grid-gap-anomaly',path:'#grid',classification:'review',severity:'warning',message:'measured lead'},
+  {code:'possible-sibling-overlap',path:'#flex',classification:'review',severity:'warning',message:'measured lead'}
+ ];
+ const result=summarizeOptionalReviewCoverage([page],{
+  gridGapReview:true,siblingOverlapReview:true
+ });
+ assert.equal(result.status,'known-omissions');
+ assert.equal(result.viewportsWithUnavailableEvidence,0);
+ assert.equal(result.omittedGridContainers,1);
+ assert.equal(result.omittedOverlapContainers,1);
+ assert.equal(result.omittedGridLeads,0);
+ assert.equal(result.omittedOverlapLeads,0);
+});
+
+
+test('DOM traversal truncation also makes bounded optional review coverage unavailable',()=>{
+ const report=analyzePageAudit(snap(),{...obs(),truncated:true,visitedElements:18000});
+ report.coverage.gridContainersOmitted=0;
+ report.coverage.gridGapCount=0;
+ report.coverage.gridGapLeads=[];
+ const summary=summarizeOptionalReviewCoverage([report],{
+  gridGapReview:true,siblingOverlapReview:false
+ });
+ assert.equal(summary.status,'unavailable');
+ assert.equal(summary.viewportsWithUnavailableEvidence,1);
+ assert.equal(summary.totalOmissions,0);
 });

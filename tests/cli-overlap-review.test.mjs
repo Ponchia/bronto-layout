@@ -24,6 +24,8 @@ test('grid siblings overlap after a transform: opt-in REVIEW only, default stays
  if(noChrome(t,ordinary))return;
  assert.equal(ordinary.status,0,ordinary.stderr||ordinary.stdout);
  assert.equal(JSON.parse(ordinary.stdout).summary.reviewWarnings,0);
+ assert.equal(JSON.parse(ordinary.stdout).summary.reviewCoverage,undefined,
+  'default audit should not claim experimental review inspection');
  const checked=run([...args,'--sibling-overlap-review','--grid-gap-review']);
  assert.equal(checked.status,0,checked.stderr||checked.stdout);
  const report=JSON.parse(checked.stdout);
@@ -96,6 +98,9 @@ test('dense grid discloses skipped candidate in audit and marks comparison unver
  assert.equal(r.status,0,r.stderr||r.stdout);
  const report=JSON.parse(r.stdout);
  assert.equal(report.summary.reviewWarnings,0);
+ assert.equal(report.summary.reviewCoverage.status,'known-omissions');
+ assert.equal(report.summary.reviewCoverage.omittedOverlapContainers,1);
+ assert.equal(report.summary.reviewCoverage.totalOmissions,1);
  assert.equal(report.reports[0].coverage.overlapContainersOmitted,1);
  assert.equal(report.reports[0].coverage.overlapContainersInspected,1);
  assert.ok(report.reports[0].coverage.limitations.some(s=>/overlap.*omitt/i.test(s)));
@@ -103,6 +108,9 @@ test('dense grid discloses skipped candidate in audit and marks comparison unver
  assert.equal(compared.status,2,compared.stderr||compared.stdout);
  const delta=JSON.parse(compared.stdout);
  assert.equal(delta.summary.unverifiedViewports,1);
+ assert.equal(delta.reviewCoverage.baseline.status,'no-known-omissions');
+ assert.equal(delta.reviewCoverage.candidate.status,'known-omissions');
+ assert.equal(delta.reviewCoverage.candidate.omittedOverlapContainers,1);
  assert.match(delta.unverified[0].reasons.join(' '),/omitted candidate containers/i);
 });
 

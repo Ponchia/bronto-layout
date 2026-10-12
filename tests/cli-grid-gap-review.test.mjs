@@ -23,6 +23,7 @@ test('optional measured grid spacing difference is a review warning, never a str
  const output=JSON.parse(selected.stdout);
  assert.equal(output.summary.measuredIssues,0);
  assert.equal(output.summary.reviewWarnings,1);
+ assert.equal(output.summary.reviewCoverage.status,'no-known-omissions');
  const review=output.reports[0].findings[0];
  assert.equal(review.code,'possible-grid-gap-anomaly');
  assert.equal(review.classification,'review');
@@ -50,6 +51,8 @@ test('opt-in audit comparison detects new grid spacing concern as REVIEW-ONLY',t
  assert.equal(report.summary.measuredRegressions,0);
  assert.equal(report.summary.reviewChanges,1);
  assert.equal(report.summary.unverifiedViewports,0);
+ assert.equal(report.reviewCoverage.baseline.status,'no-known-omissions');
+ assert.equal(report.reviewCoverage.candidate.status,'no-known-omissions');
  assert.equal(report.changes[0].code,'possible-grid-gap-anomaly');
  assert.equal(report.changes[0].kind,'review-new');
 });
@@ -67,6 +70,9 @@ test('grid spacing collector explicitly discloses dense containers omitted from 
  const result=JSON.parse(r.stdout);
  assert.equal(result.summary.measuredIssues,0);
  assert.equal(result.summary.reviewWarnings,0);
+ assert.equal(result.summary.reviewCoverage.status,'known-omissions');
+ assert.equal(result.summary.reviewCoverage.totalOmissions,1);
+ assert.equal(result.summary.reviewCoverage.viewportsWithOmissions,1);
  assert.equal(result.reports[0].coverage.gridContainersOmitted,1);
  assert.ok(result.reports[0].coverage.limitations.some(l=>/grid.*omit/i.test(l)));
 });
