@@ -1,5 +1,37 @@
 # Validation notes
 
+## 2026-10-12: Optional first-party review-only layout diagnostics
+
+The manually dispatched `live-site-smoke.yml` workflow can opt into new
+`grid_gap_review` and `sibling_overlap_review` boolean inputs. **Both default
+to false.** Selecting either input automatically runs the existing
+zero-contract audit step at 320/375/768/1280px on the *fixed public first-party
+URLs only* (personal portfolio, Sense6 English, Arabic and Learn). No
+user-supplied websites, browser actions or arbitrary scripts are accepted.
+
+Example diagnostic invocation from a correctly authorized GitHub CLI:
+
+```sh
+gh workflow run live-site-smoke.yml -R Ponchia/bronto-layout --ref main \
+  -f grid_gap_review=true -f sibling_overlap_review=true
+```
+
+Results preserve bounded report JSON and diagnostic logs as a seven-day
+Actions artifact. Logs contain counts and measured CSS-pixel differences but
+no invented judgments or automatically generated human labels. The new
+heuristics report **review-only** leads and do not themselves fail the audit;
+ordinary measured failures, navigation errors and incomplete DOM inspections
+retain their original exit/status behavior. The runner is an isolated
+short-lived GitHub Actions environment, which is the only documented context
+for the workflow's sandbox override. Never copy that override for browsing
+arbitrary external sites from a shared devbox.
+
+Any warnings are *candidates for independent inspection*, not evidence of
+poor design. Real-site precision/recall and the human labels in issue #27
+remain outstanding; collecting site-specific observations is not a substitute.
+
+
+
 ## 2026-10-12: local browser startup preflight (opt-in)
 
 Use `bronto-layout doctor --verify-launch --json` to ask Chromium to start an isolated temporary `about:blank` tab with an active CDP connection. This is a stronger *local startup* check than executable-version detection, but it does not prove site navigation, authenticated states, OS sandbox isolation or real-world layout correctness. In particular, on a real Mac/Linux workstation do **not** pass `--no-sandbox`; inspect `browser.launch.sandboxBypassRequested` and confirm it is false. The release checklist still requires third-party physical macOS testing. Test fixtures on disposable hosted CI runners may explicitly opt out of browser sandboxing only for their own bundled local pages.

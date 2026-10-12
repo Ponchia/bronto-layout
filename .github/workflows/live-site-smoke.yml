@@ -29,6 +29,14 @@ on:
         description: 'Run evidence-first zero-contract audits of first-party websites'
         type: boolean
         default: false
+      grid_gap_review:
+        description: 'Experimental nonblocking CSS grid spacing review on known public first-party sites'
+        type: boolean
+        default: false
+      sibling_overlap_review:
+        description: 'Experimental nonblocking sibling overlap review on known public first-party sites'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -253,13 +261,26 @@ jobs:
             echo "::endgroup::"
           done
       - name: Run zero-contract responsive audits of first-party sites
-        if: ${{ inputs.automatic_audit }}
+        # Review evidence must still be collected when an earlier contract
+        # check reports a violation or a site temporarily fails to load.
+        # Without an explicit status function GitHub implicitly requires
+        # success() and would silently skip the opted-in diagnostic step.
+        if: ${{ !cancelled() && (inputs.automatic_audit || inputs.grid_gap_review || inputs.sibling_overlap_review) }}
         env:
+          # The two review options are opt-in only. Enabling either one also
+          # selects this audit step, rather than silently ignoring the request.
+          GRID_GAP_REVIEW: ${{ inputs.grid_gap_review }}
+          SIBLING_OVERLAP_REVIEW: ${{ inputs.sibling_overlap_review }}
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: |
           # Manual-only CI job: public first-party URLs, isolated runner.
           # A measured failure is not necessarily an unwanted design choice.
+          # Experimental review leads are warnings only and never raise exit 1.
           mkdir -p reports logs
+          review_flags=()
+          if [ "$GRID_GAP_REVIEW" = "true" ]; then review_flags+=(--grid-gap-review); fi
+          if [ "$SIBLING_OVERLAP_REVIEW" = "true" ]; then review_flags+=(--sibling-overlap-review); fi
+          printf 'Audit modes: baseline mechanical checks + %s\n' "${review_flags[*]:-(no experimental review heuristics)}"
           failures=0
           for name in personal-site sense6-gallery sense6-ar sense6-learn; do
             case "$name" in
@@ -274,10 +295,13 @@ jobs:
             set +e
             node bin/bronto-layout.mjs audit --url "$url" \
               --widths 320,375,768,1280 --ready-selector body \
-              --settle 650 --timeout 30000 --json --compact "${extra[@]}" \
+              --settle 650 --timeout 30000 --json --compact \
+              "${review_flags[@]}" "${extra[@]}" \
               --report "reports/auto-audit-$name.json" > "logs/auto-audit-$name.txt" 2>&1
             status=$?
-            set -e
+            # Even when navigation failed or the JSON report is absent/malformed,
+            # keep visiting the other allowlisted sites and preserve artifacts.
+            # A reporting failure is a failed observation, never a clean page.
             node - "$name" "reports/auto-audit-$name.json" <<'NODE'
           const fs = require('node:fs');
           const name = process.argv[2];
@@ -291,10 +315,38 @@ jobs:
             result.reviewWarnings + ' review warnings, ' +
             result.incompleteViewports + ' incomplete viewports, ' +
             result.visitedElements + ' DOM elements traversed');
+          const reviewCodes=new Set(['possible-grid-gap-anomaly','possible-sibling-overlap']);
+          const leads=(doc.reports??[]).flatMap(view => (view.findings??[])
+            .filter(item => item.classification==='review' && reviewCodes.has(item.code))
+            .map(item => ({width:view.width,code:item.code,px:item.measuredPx})));
+          // Zero warnings does not prove the optional analyzers inspected every
+          // candidate. These counters refer to viewport observations, not to
+          // unique components across different responsive widths.
+          const gridCandidatesOmitted=(doc.reports??[]).reduce((count,view)=>
+            count+(view.coverage?.gridContainersOmitted??0),0);
+          const overlapCandidatesOmitted=(doc.reports??[]).reduce((count,view)=>
+            count+(view.coverage?.overlapContainersOmitted??0),0);
+          if (process.env.GRID_GAP_REVIEW==='true') {
+            console.log('Grid review candidate omissions across sampled viewports: '+gridCandidatesOmitted+
+              ' (bounded heuristics; zero findings does NOT mean complete inspection)');
+          }
+          if (process.env.SIBLING_OVERLAP_REVIEW==='true') {
+            console.log('Sibling overlap review candidate omissions across sampled viewports: '+overlapCandidatesOmitted+
+              ' (bounded heuristics; zero findings does NOT mean complete inspection)');
+          }
+          if (process.env.GRID_GAP_REVIEW==='true' || process.env.SIBLING_OVERLAP_REVIEW==='true') {
+            console.log('Experimental REVIEW-ONLY leads: '+leads.length +
+              ' (not independent labels, not CI failures): '+
+              (leads.slice(0,8).map(x=>x.width+'px '+x.code+
+                (Number.isFinite(x.px)?' '+x.px.toFixed(2)+'px':'')).join('; ')||'none')+
+              (leads.length>8?' (additional leads in retained JSON)':''));
+          }
           NODE
-            if [ "$status" -ne 0 ]; then
+            report_status=$?
+            set -e
+            if [ "$status" -ne 0 ] || [ "$report_status" -ne 0 ]; then
               failures=$((failures + 1))
-              echo "::warning::Automatic audit $name exited $status; inspect retained report"
+              echo "::warning::Automatic audit $name exited $status, report validation exited $report_status; inspect retained logs and evidence"
             fi
             echo "::endgroup::"
           done

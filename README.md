@@ -356,6 +356,12 @@ bronto-layout audit --url http://localhost:5173/ --widths 375,768 \
 
 This optional browser geometry pass compares declared `column-gap` with observed gaps between similarly sized direct grid children on the same visual row. It produces `possible-grid-gap-anomaly` **review warnings only** (never exit 1), with measured values and an observed grid container locator. It intentionally skips `justify-content: space-*` layouts, absolute/fixed children, non-comparable shapes and some complex placements. Intentional card offsets, transforms, spanning, dense grids and content changes can create valid deviations. The feature is bounded (120 candidate grids, 80 direct children each, up to 16 leads); omissions and unknown scope are surfaced in the report. It is **not enabled by default** and has **no independently verified production accuracy**.
 
+For safe exploratory first-party checks, the manually dispatched `live-site-smoke.yml` GitHub workflow has separate
+`grid_gap_review` and `sibling_overlap_review` switches, **both disabled by
+default**. Its retained JSON/log artifacts identify review leads without
+turning them into blocking CI rules or independent human labels.
+
+
 For an interactive page, combine `--grid-gap-review` with the explicit,
 validated `--actions FILE` workflow; warnings are measured **after** the setup
 sequence at every width and never become errors. The bundled
