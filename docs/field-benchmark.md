@@ -123,6 +123,42 @@ For captures made with the current CLI, `summary.verified=false` also covers **k
 
 **Capture integrity and diagnostic completeness are distinct.** The capture index may record `complete: true` when a screenshot and top-level audit were successfully acquired, even if an iframe was not inspected. `contentCoverage` documents that limitation; the field scorer excludes reviewed cases with `known-uninspected-content` from whole-page detector accuracy denominators. Historical captures without `coverage.status` still use `embeddedFrames` to avoid silently counting missing interior observations as true negatives. The scorer reports these separately under `coverageExcluded`. Labels are never inferred from Chromium data.
 
+## Start a human-review labels draft without inventing negatives
+
+Manual first-party field capture artifacts now include `review-labels-draft.json`,
+with **one pending entry per captured state** (no positive or negative labels).
+The review gallery and worksheet are deliberately independent from model or
+detector predictions; reviewers should inspect screenshots **and the actual
+rendered page**, including below-fold and relevant interactions, before reading
+`audit.json`. The draft only records case IDs, so it is safe to generate before
+human review:
+
+```sh
+node scripts/field-benchmark.mjs review-label-template \
+  --captures reports/field-2026-10-12 \
+  --out reports/field-manual-labels.json
+node scripts/field-benchmark.mjs review-progress \
+  --captures reports/field-2026-10-12 \
+  --labels reports/field-manual-labels.json
+```
+
+The draft starts as `{ "id": "...", "reviewStatus": "pending" }`. This is
+**not** a reviewed negative case. To finish an entry, a human must set
+`reviewStatus` to `reviewed`, supply the required `reviewer`, `reviewedAt`,
+`rationale`, `reviewedScreenshot: true`, `reviewedRenderedPage: true`, and
+independently determined `expectedMeasured` and `expectedReview` arrays. For
+an unreviewable case, use `reviewStatus: "unreviewable"` with a reviewer,
+review date and explanation, omitting all expected detector arrays.
+
+`review-progress` validates these declarations and screenshot/report hashes,
+shows pending/reviewed/unreviewable and evidence-unsafe counts, and **never
+reads detector findings or computes quality scores**. A pending record carrying
+an expected label or reviewer attestation is rejected; the status must change
+to `reviewed` and satisfy the full validation schema first. The command never
+modifies a review file. `score` excludes pending/unreviewable entries and
+refuses accuracy scoring when no independently reviewed entries remain; with
+`--assert`, any unfinished capture also causes a nonzero exit.
+
 ## Label independently
 
 Before consulting `audit.json` findings, a named human reviewer should
@@ -133,7 +169,8 @@ unreviewable when reliable judgment is not possible. Record `reviewer`,
 `reviewedAt`, `rationale`, and the page/width/state. Do not use the output of
 Bronto Layout to generate the expected labels.
 
-Copy `benchmarks/field-labels.template.json` to an untracked file. For every
+Prefer `review-label-template` for captured cohorts; alternatively copy
+`benchmarks/field-labels.template.json` to an untracked file. For every
 reviewed case, add a record like:
 
 ```json

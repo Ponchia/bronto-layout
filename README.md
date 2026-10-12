@@ -96,6 +96,8 @@ npm run field:validate
 node scripts/field-benchmark.mjs capture --manifest benchmarks/field-sites.v0.1.json --ids portfolio-375 --out reports/field-first-pass
 ```
 
+Use `node scripts/field-benchmark.mjs review-label-template --captures reports/field-first-pass --out reports/field-manual-labels.json` to create an **unscored, one-pending-case-per-capture** human review draft. `review-progress --captures ... --labels ...` validates review attestations and reports pending/unsafe evidence without reading detector predictions. `score` requires independently supplied human labels; neither `review-label-template` nor `review-progress` creates positive/negative cases. Manual CI capture artifacts include the blank draft by default. See [the human review protocol](docs/field-benchmark.md).
+
 Use `node scripts/field-benchmark.mjs review-packet --captures reports/field-first-pass --out reports/independent-review.md` to prepare a hash-verified worksheet **without copying automatic findings into human labels**. The companion `review-gallery --captures reports/field-first-pass --out reports/field-first-pass/review-gallery.html` creates a local, hash-verified screenshot contact sheet with **no detector predictions**; new manual field-capture artifacts include both files automatically. Independent review and verified labels are still required before any accuracy
 claim. See the [field benchmark protocol](docs/field-benchmark.md).
 

@@ -46,8 +46,19 @@ export function validateFieldLabels(data, datasetId, knownIds) {
     assert(ident(label?.id) && knownIds.includes(label.id) && !seen.includes(label.id),
       'unknown or duplicated label case');
     seen.push(label.id);
-    assert(['reviewed', 'unreviewable'].includes(label.reviewStatus),
-      label.id + ': reviewStatus must be reviewed or unreviewable');
+    assert(['pending', 'reviewed', 'unreviewable'].includes(label.reviewStatus),
+      label.id + ': reviewStatus must be pending, reviewed or unreviewable');
+    if (label.reviewStatus === 'pending') {
+      // Template placeholders are never treated as negative labels. If the
+      // reviewer already started entering information, require an explicit
+      // status change and completed attestations before scoring it.
+      assert(label.expectedMeasured === undefined && label.expectedReview === undefined &&
+        label.reviewer === undefined && label.reviewedAt === undefined &&
+        label.rationale === undefined && label.reviewedScreenshot === undefined &&
+        label.reviewedRenderedPage === undefined,
+        label.id + ': pending case cannot contain review attestations or expected labels');
+      continue;
+    }
     assert(typeof label.reviewer === 'string' && label.reviewer.trim().length >= 3 &&
       typeof label.reviewedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(label.reviewedAt) &&
       Number.isFinite(Date.parse(label.reviewedAt)), label.id + ': human reviewer and review date required');
@@ -78,7 +89,7 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
   const pending = [], unreviewable = [], coverageExcluded = [], rows = [];
   for (const sample of index.cases) {
     const label = labeled.get(sample.id);
-    if (!label) { pending.push(sample.id); continue; }
+    if (!label || label.reviewStatus === 'pending') { pending.push(sample.id); continue; }
     if (label.reviewStatus === 'unreviewable') { unreviewable.push(sample.id); continue; }
     const report = evidenceById[sample.id];
     const view = report?.reports?.[0];
