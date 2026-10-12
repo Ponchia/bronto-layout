@@ -304,6 +304,15 @@ absolute local PNG paths, `viewport-only` coverage and SHA-256 byte digests.
 The compact and full JSON forms preserve the same provenance; without the
 flag there is no screenshot capture or additional metadata.
 
+The companion `bin/audit-comparison-gallery.mjs` renders a static offline
+HTML contact sheet using only validated file names, viewport widths and digest
+strings, with no source URLs, findings, inline JavaScript or remote resources.
+A SHA-256 CSP hash authorizes the local stylesheet while scripts and network
+connections remain disabled; its image URLs refer only to sibling PNGs. The
+comparison runner writes `audit-comparison.html` exclusively after complete
+paired capture and exposes it in `comparisonGallery`. An HTML viewer does not
+rehash the images; the JSON comparison remains the source of capture digests.
+
 The writer validates the PNG signature and uses exclusive file creation to
 avoid silently overwriting earlier reviewer screenshots. Missing images,
 invalid screenshot bytes or output-file conflicts fail with exit 2, never a

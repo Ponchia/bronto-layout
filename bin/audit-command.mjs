@@ -15,6 +15,7 @@ import { planBoundedScreenshot } from '../dist/bounded-screenshot.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { combineCSSBreakpointSamples } from '../dist/breakpoints.js';
+import { renderPairedAuditGallery } from './audit-comparison-gallery.mjs';
 
 /** Capture a verified viewport PNG only when expressly requested.
  * The comparison is not a pixel-diff engine; screenshots are human evidence.
@@ -138,6 +139,18 @@ export function createAuditCommand({
         candidateUninspectedFrames: candidate.coverage.embeddedFrames }];
     });
     result.coverageGaps = coverageGaps;
+    if (result.comparisonEvidence) {
+      const file = path.join(path.resolve(a['evidence-dir']), 'audit-comparison.html');
+      const gallery = renderPairedAuditGallery(result.comparisonEvidence, a['evidence-dir']);
+      try {
+        await writeFile(file, gallery, { flag: 'wx' });
+      } catch (error) {
+        if (error?.code === 'EEXIST') throw new Error(
+          'Comparison gallery already exists; choose a fresh --evidence-dir: ' + file);
+        throw error;
+      }
+      result.comparisonGallery = {file, format:'static-offline-html', scripts:false, pairs:result.comparisonEvidence.length};
+    }
     Object.assign(result, auditStateSummary(a, actions));
     const remaining = result.candidate.flatMap(report => report.findings
       .filter(f => f.classification === 'measured')
@@ -148,6 +161,7 @@ export function createAuditCommand({
       summary:result.summary,sampledWidths:result.sampledWidths,
       changes:result.changes,unverified:result.unverified,coverageGaps,
       ...(result.comparisonEvidence ? {comparisonEvidence:result.comparisonEvidence} : {}),
+      ...(result.comparisonGallery ? {comparisonGallery:result.comparisonGallery} : {}),
       ...auditStateSummary(a, actions),
       ...(a['frame-inventory'] ? { frameInventories: result.candidate.map((candidate, i) => ({
         width: candidate.viewport.width, baseline: result.baseline[i].frameInventory,
@@ -161,6 +175,7 @@ export function createAuditCommand({
       'Bronto Layout zero-contract comparison — '+result.baselineUrl+' → '+result.candidateUrl,
       ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed independently on both versions at each width; values omitted'] : []),
       ...(result.comparisonEvidence ? result.comparisonEvidence.map(item => '  '+item.width+'px viewport screenshots: baseline '+item.baseline.file+', candidate '+item.candidate.file) : []),
+      ...(result.comparisonGallery ? ['  Offline comparison gallery: '+result.comparisonGallery.file] : []),
       ...result.changes.map(change=>
         '  '+change.width+'px '+change.kind.toUpperCase()+' '+change.code+
         (change.path?' ['+change.path+']':'')+

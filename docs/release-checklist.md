@@ -5,7 +5,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 ## Repeatable technical gates
 
 - [x] Dependency-free Node CLI uses installed Chromium/CDP rather than bundling a browser.
-- [x] Opt-in baseline/candidate viewport screenshots have SHA-256 metadata and never overwrite prior reviewer evidence. These do not establish visual intent or human ground truth.
+- [x] Opt-in baseline/candidate viewport screenshots have SHA-256 metadata and never overwrite prior reviewer evidence. The screenshot directory also gets a static offline comparison gallery with CSP-blocked scripts and network access. These do not establish visual intent or human ground truth.
 - [x] Validate the generated tarball in two isolated offline consumer npm installations: lifecycle scripts deliberately disabled and standard install behavior enabled (`npm run test:package`). Verify the installed CLI/public API and absence of source-only benchmark tooling.
 - [x] Add ESLint static checks across TypeScript, Node CLI, scripts and tests, plus a portable-core coverage floor in Node 24 CI. These are code-maintenance gates, not production detector accuracy.
 - [x] Capture only observed browser facts and preserve distinct review warnings / accepted rules; verified versus supported-scope measured booleans are separated for known iframe gaps.
