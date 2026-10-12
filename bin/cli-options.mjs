@@ -21,6 +21,7 @@ Usage:
   bronto-layout validate --spec layout.json [--json]
   bronto-layout batch --manifest batch.json [--json --compact] [--parallel 2] [--dry-run]
   bronto-layout batch --manifest batch-audit.json [--json --compact] [--parallel 2]
+  bronto-layout verify-evidence --comparison audit-compare.json --evidence-dir DIR [--json]
 
 Options:
   --spec FILE           Versioned layout contract (JSON; not needed for audit)
@@ -61,6 +62,7 @@ Options:
   --compact             With --json: actionable findings, sampled widths, and totals
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
+  --comparison FILE     Existing audit-compare JSON report to verify against local PNG evidence
   --evidence-dir DIR    Check images; audit viewport images; opt-in paired baseline/candidate PNG evidence
   --full-page-evidence  Audit with --evidence-dir: bounded CSS document screenshot (not a correctness check)
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
@@ -80,7 +82,7 @@ No account, network service, hosted subscription, Playwright, or Puppeteer requi
 `;
 
 const OPTIONS = {
-  spec: { type: 'string' }, manifest: { type: 'string' }, parallel: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
+  spec: { type: 'string' }, manifest: { type: 'string' }, parallel: { type: 'string' }, comparison: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, desktop: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, 'normal-motion': { type: 'boolean' }, scan: { type: 'string' },
   refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' }, 'dom-limit': { type: 'string' },
@@ -95,7 +97,7 @@ export function argsFromCLI(args) {
   const parsed = parseNodeArgs({ args, options: OPTIONS, allowPositionals: true, strict: true });
   const positionals = parsed.positionals;
   const command = positionals[0] ?? 'check';
-  if (!['doctor', 'check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'review-draft', 'approve'].includes(command) || positionals.length > 1) {
+  if (!['doctor', 'check', 'scan', 'inspect', 'init', 'compare', 'validate', 'batch', 'audit', 'suggest', 'review-draft', 'approve', 'verify-evidence'].includes(command) || positionals.length > 1) {
     throw new Error(`Unknown command: ${positionals.join(' ')}. Run --help for available commands.`);
   }
   return { command, ...parsed.values };
@@ -178,6 +180,25 @@ export function getWidths(a, spec) {
 /** Validate option compatibility before launching Chromium or reading a site. */
 export function validateCommandOptions(a) {
   if (a.json && a.sarif) throw new Error('Choose --json or --sarif, not both');
+  if (a.command === 'verify-evidence') {
+    if (!a.comparison || !a['evidence-dir']) {
+      throw new Error('verify-evidence requires --comparison REPORT and --evidence-dir DIR');
+    }
+    if (a.sarif || a.compact || [
+        'spec','manifest','url','baseline','width','widths','scan','actions',
+        'selector','draft','accept','out','parallel','chrome','no-sandbox','full-page-evidence',
+        'frame-inventory','grid-gap-review','sibling-overlap-review','dom-limit','verify-launch',
+        'stable-for','layout-shifts','height','mobile','desktop','locale','color-scheme',
+        'reduced-motion','normal-motion','refine','css-breakpoints','max-samples',
+        'css-sources','container-queries','ready-selector','settle','timeout','fail-on-skip',
+        'fail-on-coverage-gaps','dry-run','force'
+      ].some(key => a[key] !== undefined)) {
+      throw new Error('verify-evidence is an offline read-only check; remove unrelated browser or report flags');
+    }
+  } else if (a.comparison !== undefined) {
+    throw new Error('--comparison applies only to verify-evidence');
+  }
+
   if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch', 'audit'].includes(a.command))) {
     throw new Error('--compact requires --json with check, scan, or compare');
   }

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- Add offline `bronto-layout verify-evidence --comparison FILE --evidence-dir DIR` to recheck relocated baseline/candidate screenshot SHA-256 digests, PNG headers and strict file provenance without browser/network access, rejecting missing, tampered or symlinked review artifacts. Verification never infers visual correctness; comparison input is protected against CLI output overwrites.
 - Expose opt-in `grid_gap_review` and `sibling_overlap_review` switches in the manual, allowlisted first-party live-site workflow. Capture review-only warning summaries in retained CLI reports/logs without changing default audits, blocking PR CI, accepting arbitrary URLs or inventing human labels.
+
 - Extend finite `batch` manifests with explicit `mode: "audit"` URL jobs alongside existing contract checks (still the default); prevalidate action files, retain isolated Chromium processes and mixed 0/1/2 exit semantics, and keep measured mechanical issues and nonblocking review warnings distinct from approved contract assertions.
 
 - Include `audit-comparison.html`, a script-free local side-by-side viewport gallery for opt-in paired audit evidence, with source-hashed CSP styles, strictly validated local PNG references and SHA-256 provenance labels. No remote content, automated visual diff or generated human annotations; test actual image rendering in Chromium.

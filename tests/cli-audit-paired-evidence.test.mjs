@@ -141,3 +141,38 @@ test('paired HTML contact sheet never overwrites an existing human review file',
     assert.deepEqual(readFileSync(file),existing);
   }finally{rmSync(evidence,{recursive:true,force:true});}
 });
+
+test('real Chromium paired PNGs can be independently verified after copying into a new directory',t=>{
+  const original=mkdtempSync(path.join(os.tmpdir(),'bronto-evidence-origin-'));
+  const destination=mkdtempSync(path.join(os.tmpdir(),'bronto-evidence-copy-'));
+  try{
+    const captured=run(['audit','--baseline','examples/audit-healthy.html',
+      '--url','examples/audit-broken.html','--width','375','--json','--compact',
+      '--evidence-dir',original]);
+    if(skipChrome(t,captured))return;
+    assert.equal(captured.status,1,captured.stderr||captured.stdout);
+    const report=JSON.parse(captured.stdout);
+    const file=path.join(destination,'paired-report.json');
+    writeFileSync(file,JSON.stringify(report));
+    for(const kind of ['baseline','candidate']){
+      const name=`audit-${kind}-375px.png`;
+      writeFileSync(path.join(destination,name),readFileSync(path.join(original,name)));
+    }
+    const verify=run(['verify-evidence','--comparison',file,'--evidence-dir',destination,'--json']);
+    assert.equal(verify.status,0,verify.stderr||verify.stdout);
+    const result=JSON.parse(verify.stdout);
+    assert.deepEqual(result.summary,{pairedWidths:1,totalImages:2,verifiedImages:2,unsafeImages:0});
+    assert.equal(result.status,'verified');
+    assert.equal('visualRegression' in result,false);
+    assert.ok(!verify.stdout.includes(original),'original machine paths are never disclosed or read');
+    const changed=path.join(destination,'audit-candidate-375px.png');
+    writeFileSync(changed,Buffer.concat([readFileSync(changed),Buffer.from('changed')]));
+    const unsafe=run(['verify-evidence','--comparison',file,'--evidence-dir',destination,'--json']);
+    assert.equal(unsafe.status,2,unsafe.stderr||unsafe.stdout);
+    assert.equal(JSON.parse(unsafe.stdout).status,'unsafe');
+    assert.equal(JSON.parse(unsafe.stdout).summary.unsafeImages,1);
+  }finally{
+    rmSync(original,{recursive:true,force:true});
+    rmSync(destination,{recursive:true,force:true});
+  }
+});

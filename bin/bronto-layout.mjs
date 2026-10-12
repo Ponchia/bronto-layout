@@ -27,6 +27,7 @@ import { inspectCSSWithCDP } from '../dist/css-inspector.js';
 import { selectCSSFailureAliases } from '../dist/css-failure-leads.js';
 import { compareLayoutGeometry, truncatedGeometryAliases } from '../dist/geometry-stability.js';
 import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layout-shifts.js';
+import { verifyPairedAuditEvidence, sameEvidenceFile } from './audit-evidence-verify.mjs';
 import { HELP, argsFromCLI, withApprovedScenario, scenarioFromExplicitFlags,
   configFromArgs, getWidths, validateCommandOptions } from './cli-options.mjs';
 import { createAuditCommand } from './audit-command.mjs';
@@ -706,6 +707,21 @@ async function doctor(a) {
   if (status === 'needs-attention') process.exitCode = 2;
 }
 
+async function verifyEvidence(a) {
+  const source = path.resolve(a.comparison);
+  if (a.report && await sameEvidenceFile(a.report,source)) {
+    throw new Error('Verification output --report must not overwrite the input --comparison report');
+  }
+  const metadata = JSON.parse(await readFile(source,'utf8'));
+  const verification = await verifyPairedAuditEvidence(metadata,a['evidence-dir']);
+  const message = 'Paired evidence ' + verification.status.toUpperCase() + ': ' +
+    verification.summary.verifiedImages + '/' + verification.summary.totalImages +
+    ' screenshot hashes verified across ' + verification.summary.pairedWidths +
+    ' viewport widths; no layout-quality judgment';
+  await output(a,verification,message);
+  if (verification.summary.unsafeImages) process.exitCode = 2;
+}
+
 async function validate(a) {
   if (!a.spec) throw new Error('validate requires --spec FILE');
   const spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8')));
@@ -719,7 +735,8 @@ async function main() {
   if (a.help) { console.log(HELP); return; }
   if (a.version) { const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')); console.log('Bronto Layout ' + pkg.version); return; }
   validateCommandOptions(a);
-  if (a.command === 'doctor') await doctor(a);
+  if (a.command === 'verify-evidence') await verifyEvidence(a);
+  else if (a.command === 'doctor') await doctor(a);
   else if (a.command === 'review-draft') await reviewDraft(a);
   else if (a.command === 'suggest') await suggest(a);
   else if (a.command === 'approve') await approve(a);
@@ -746,7 +763,15 @@ main().catch(async error => {
   else console.error('Bronto Layout: ' + message);
   const index = args.lastIndexOf('--report');
   const pathValue = index >= 0 ? args[index + 1] : args.find(arg => arg.startsWith('--report='))?.slice(9);
-  if (pathValue && !pathValue.startsWith('--')) {
+  // On ANY failure, never overwrite the source comparison metadata with a
+  // failure report. This includes input-parse errors before verifyEvidence().
+  const comparisonIndex = args.lastIndexOf('--comparison');
+  const comparisonInput = comparisonIndex >= 0 ? args[comparisonIndex + 1] :
+    args.find(arg => arg.startsWith('--comparison='))?.slice(13);
+  const overlapsInput = Boolean(args[0] === 'verify-evidence' && comparisonInput &&
+    !comparisonInput.startsWith('--') && pathValue &&
+    await sameEvidenceFile(comparisonInput,pathValue));
+  if (pathValue && !pathValue.startsWith('--') && !overlapsInput) {
     try {
       await mkdir(path.dirname(path.resolve(pathValue)), { recursive: true });
       await writeFile(pathValue, JSON.stringify(report, null, 2) + '\n', 'utf8');
