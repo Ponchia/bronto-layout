@@ -78,7 +78,8 @@
     "dist",
     "README.md",
     "LICENSE",
-    "examples"
+    "examples",
+    "docs"
   ],
   "publishConfig": {
     "access": "public"

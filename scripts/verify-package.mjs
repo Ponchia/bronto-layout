@@ -38,7 +38,7 @@ try {
     'bin/bronto-layout.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/contract.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html', 'examples/layout.json',
-    'examples/healthy.html', 'README.md', 'LICENSE', 'package.json'
+    'examples/healthy.html', 'README.md', 'LICENSE', 'package.json', 'docs/quickstart.md', 'docs/release-checklist.md'
   ];
   for (const file of required) assert.ok(packedFiles.has(file), 'Missing packaged file: ' + file);
   for (const file of packedFiles) {

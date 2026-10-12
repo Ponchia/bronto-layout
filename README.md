@@ -4,7 +4,7 @@
 
 The thesis: a layout should be testable by the *relationships between elements*, rather than only by image-diff screenshots. A coding agent and a developer should receive the same precise, deterministic diagnosis. It must work on an ordinary site without using BrontoUI, React, Playwright, or Puppeteer.
 
-**New users:** start with the [10-minute CLI guide](docs/quickstart.md), run `bronto-layout doctor`, then `audit` an actual local development server. The [release gate](docs/release-checklist.md) tracks what is still unverified.
+**New users:** start with the [10-minute CLI guide](docs/quickstart.md), run `bronto-layout doctor`, then `audit` an actual local development server. The [release gate](https://github.com/Ponchia/bronto-layout/blob/main/docs/release-checklist.md) tracks what is still unverified.
 
 ## What works today
 
