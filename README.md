@@ -6,6 +6,11 @@ The thesis: a layout should be testable by the *relationships between elements*,
 
 **New users:** start with the [10-minute CLI guide](docs/quickstart.md), run `bronto-layout doctor`, then `audit` an actual local development server. The [release gate](https://github.com/Ponchia/bronto-layout/blob/main/docs/release-checklist.md) tracks what is still unverified.
 
+**Contributor note:** zero-contract `audit`/`audit --baseline` command
+orchestration is isolated in `bin/audit-command.mjs`, separate from the shared
+Chromium CLI session and explicit layout contracts. It retains the same CLI,
+exit codes, optional review heuristics and zero third-party runtime dependencies.
+
 ## What works today
 
 - Pure TypeScript constraint engine: align edges, center, containment, non-overlap, equal gaps, same-size, size-range, horizontal page overflow, and intrinsic image aspect ratio (with `object-fit` awareness).

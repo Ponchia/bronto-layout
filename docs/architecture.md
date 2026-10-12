@@ -73,6 +73,26 @@ error, never a passing layout contract. This does not certify the state of a
 page outside its finite sampled interval, nor does it infer design intent.
 There is no browser-automation framework dependency.
 
+## CLI audit orchestration boundary
+
+`bin/audit-command.mjs` owns the zero-contract `audit` and
+`audit --baseline` workflows, including browser-observed findings, optional
+frame inventory, bounded screenshots, review-only grid/overlap leads, coverage
+and exit-code semantics. It calls the same proven pure observers/reducers and
+uses a narrow dependency injection interface for `measure`, `withBrowser`,
+`resolveURL`, breakpoint discovery and report output. The shared
+`bin/bronto-layout.mjs` remains responsible for Chromium lifecycle,
+navigation and explicitly declared user actions. `bin/cli-options.mjs` owns
+argument validation and saved scenario precedence.
+
+This extraction is a **code-organization change**. It does not add automatic
+CSS repairs, change the default detectors, expand browser coverage or make an
+inferred relationship a blocking assertion. The standalone npm tarball must
+include the audit module; `npm run test:package` verifies its presence and
+that a no-development-dependencies consumer can still run the CLI. Unit tests
+cover privacy-preserving state provenance; Chromium fixtures exercise all
+audit branches, interaction replay, optional heuristics and snapshot evidence.
+
 ## Local HTML fixture server
 
 The CLI delegates local HTML asset loading to

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Extract zero-contract audit and before/after audit orchestration from the growing CLI into `bin/audit-command.mjs`, keeping browser lifecycle and shared scenario parsing in their existing modules. Preserve report/exit-code behavior, privacy-safe action summaries, coverage/iframe evidence and opt-in review leads; test the installed package includes the new module. No added runtime dependencies or automatic verdicts.
+
+
 - Tighten independent human-review label validation: `reviewedAt` must be a *real* ISO `YYYY-MM-DD` calendar date. Node's `Date.parse` silently normalizes impossible dates such as 2026-02-30; these are now refused for both `reviewed` and `unreviewable` declarations, while valid leap days remain supported. This validates record structure only, not the authenticity of human review.
 - Add opt-in `audit --sibling-overlap-review`, a bounded Flex/Grid direct-sibling rectangle intersection analyzer that skips common intentional overlap patterns. Findings include both child paths, are always nonblocking review warnings, and support conservative before/after review changes without inventing CSS causes or real-world accuracy claims.
 
