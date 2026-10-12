@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { renderFieldReviewConsole } from '../scripts/field-review-console.mjs';
@@ -85,6 +85,26 @@ test('the offline console disallows reviewed status for tampered screenshots whi
   assert.match(html,/option value="reviewed" disabled/);
   assert.doesNotMatch(html,/src="cases\/unsafe-320\/screen\.png"/);
   assert.match(html,/Unreviewable \/ evidence insufficient/);
+});
+
+test('renderer independently blocks traversal and symlink-escaped image references',t=>{
+  const root=mkdtempSync(path.join(os.tmpdir(),'bronto-review-safe-root-'));
+  const outside=mkdtempSync(path.join(os.tmpdir(),'bronto-review-outside-'));
+  t.after(()=>{rmSync(root,{recursive:true,force:true});rmSync(outside,{recursive:true,force:true});});
+  writeFileSync(path.join(outside,'private.png'),png);
+  symlinkSync(path.join(outside,'private.png'),path.join(root,'linked.png'));
+  const row={id:'case-375',url:'https://example.org/',width:375,
+    screenshotVerified:true,reportVerified:true,fullPageEvidenceVerified:null,
+    readyForReview:true};
+  for(const source of ['../private.png','linked.png']){
+    const html=renderFieldReviewConsole({schemaVersion:1,datasetId:'path-safety'},
+      [{...row,screenshotFile:source}],root,path.join(root,'console.html'));
+    assert.match(html,/Initial viewport screenshot: unavailable or invalid hash/);
+    assert.match(html,/Evidence unsafe/);
+    assert.match(html,/option value="reviewed" disabled/);
+    assert.doesNotMatch(html,/src="(?:\.\.\/private\.png|linked\.png)"/);
+    assert.match(html,/0\/1/);
+  }
 });
 
 test('renderer escapes malicious metadata instead of making executable markup or untrusted links',()=>{

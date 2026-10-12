@@ -5,6 +5,7 @@
  * The original script-free gallery remains the default blind visual reference.
  */
 import path from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { KNOWN_DETECTORS } from './audit-benchmark-metrics.mjs';
 import { FIELD_REVIEW_PROTOCOL } from './field-benchmark-core.mjs';
@@ -19,9 +20,25 @@ const safeSource = value => {
     return parsed.origin + parsed.pathname;
   } catch { return null; }
 };
-const safeImage = (file, root, output) => file
-  ? path.relative(path.dirname(output), path.resolve(root,file))
-    .split(path.sep).map(encodeURIComponent).join('/') : null;
+/** Defence in depth: source rows were already hash-checked, but the standalone
+ * renderer must never turn an accidentally trusted path into an outside file.
+ */
+function safeImage(file, root, output) {
+  if (!file || typeof file !== 'string') return null;
+  const resolvedRoot=path.resolve(root);
+  const absolute=path.resolve(resolvedRoot,file);
+  const inside=(base,candidate)=>{
+    const relative=path.relative(base,candidate);
+    return Boolean(relative) && relative!=='..' &&
+      !relative.startsWith('..'+path.sep) && !path.isAbsolute(relative);
+  };
+  if (!inside(resolvedRoot,absolute) || !existsSync(absolute)) return null;
+  try {
+    if (!inside(realpathSync(resolvedRoot),realpathSync(absolute))) return null;
+  } catch { return null; }
+  return path.relative(path.dirname(output),absolute)
+    .split(path.sep).map(encodeURIComponent).join('/');
+}
 const clientLiteral = value => JSON.stringify(value)
   .replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
@@ -183,8 +200,17 @@ export function renderFieldReviewConsole(index, rows, capturesDir, outputFile) {
     unique.add(row.id);
   }
   const byCase = new Map((index.cases??[]).map(entry=>[entry.id,entry]));
-  const cards=rows.map(row=>{
-    const ready=row.readyForReview===true;
+  const prepared=rows.map(row=>{
+    const screenshot=row.screenshotVerified
+      ? safeImage(row.screenshotFile,capturesDir,outputFile):null;
+    const full=row.fullPageEvidenceVerified===true
+      ? safeImage(row.fullPageScreenshotFile,capturesDir,outputFile):null;
+    return {...row,screenshot,full,ready:row.readyForReview===true &&
+      row.reportVerified===true && screenshot!==null &&
+      (row.fullPageEvidenceVerified===null || full!==null)};
+  });
+  const cards=prepared.map(row=>{
+    const ready=row.ready;
     // This is capture COVERAGE metadata, not an audit prediction or a label.
     // Known iframe interiors are excluded from whole-page field accuracy.
     const scope=byCase.get(row.id)?.contentCoverage;
@@ -196,10 +222,7 @@ export function renderFieldReviewConsole(index, rows, capturesDir, outputFile) {
           ? 'Top-document/open-shadow scope measured; other visual surfaces may remain unknown.'
           : 'Content coverage unknown; do not infer full-page correctness.';
     const site=safeSource(row.url);
-    const screenshot=row.screenshotVerified
-      ? safeImage(row.screenshotFile,capturesDir,outputFile):null;
-    const full=row.fullPageEvidenceVerified===true
-      ? safeImage(row.fullPageScreenshotFile,capturesDir,outputFile):null;
+    const { screenshot, full } = row;
     const fig=(src,title)=>src
       ? `<figure><a href="${escapeHTML(src)}" target="_blank" rel="noopener"><img src="${escapeHTML(src)}" alt="${escapeHTML(title+' for '+row.id)}" loading="lazy" decoding="async"></a><figcaption>${escapeHTML(title)} · hash verified when this file was generated</figcaption></figure>`
       : `<p class="missing">${escapeHTML(title)}: unavailable or invalid hash. Do not claim reviewed.</p>`;
@@ -226,11 +249,11 @@ export function renderFieldReviewConsole(index, rows, capturesDir, outputFile) {
     </article>`;
   }).join('\n');
   const clientData={id:index.datasetId,reviewProtocol:FIELD_REVIEW_PROTOCOL,
-    cases:rows.map(row=>({id:row.id,ready:row.readyForReview===true})),
+    cases:prepared.map(row=>({id:row.id,ready:row.ready})),
     detectors:KNOWN_DETECTORS};
   const script='('+installReviewConsole.toString()+')('+clientLiteral(clientData)+');';
   const scriptHash=createHash('sha256').update(script).digest('base64');
-  const ready=rows.filter(row=>row.readyForReview).length;
+  const ready=prepared.filter(row=>row.ready).length;
   const contents=rows.map(row=>`<a href="#${escapeHTML(row.id)}">${escapeHTML(row.id)}</a>`).join(' · ');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-${scriptHash}'; style-src 'unsafe-inline'; img-src 'self' file: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
