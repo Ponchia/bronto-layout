@@ -80,7 +80,7 @@ test('opt-in grid-spacing review observes explicitly opened UI states without pr
  const untouched=JSON.parse(initial.stdout);
  assert.equal(untouched.summary.reviewWarnings,0);
  assert.equal(untouched.summary.measuredIssues,0);
- const active=run([...base,'--actions','examples/gallery-toggle-actions.json']);
+ const active=run([...base,'--actions','examples/gallery-toggle-actions.json','--dom-limit','25000']);
  assert.equal(active.status,0,active.stderr||active.stdout);
  const found=JSON.parse(active.stdout);
  assert.equal(found.summary.measuredIssues,0);
@@ -89,4 +89,6 @@ test('opt-in grid-spacing review observes explicitly opened UI states without pr
  assert.equal(found.reports[0].findings[0].measuredPx,12);
  assert.deepEqual(found.stateSetup.actionTypes,['wait-for','click']);
  assert.equal(found.reports[0].coverage.gridContainersInspected,1);
+ assert.equal(found.reports[0].coverage.traversalLimit,25000,
+  'DOM budget, grid-gap review and interactive actions must coexist');
 });

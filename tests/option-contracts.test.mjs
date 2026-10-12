@@ -110,6 +110,7 @@ test('opt-in grid review can be combined with explicit audit interactions, never
  assert.equal(a.actions,'examples/gallery-toggle-actions.json');
  assert.doesNotThrow(()=>validateCommandOptions(a));
  assert.doesNotThrow(()=>validateCommandOptions({...a,baseline:'examples/gallery.html'}));
+ assert.doesNotThrow(()=>validateCommandOptions({...a,'dom-limit':'25000'}));
  assert.throws(()=>validateCommandOptions({command:'check','grid-gap-review':true}),/applies only to audit/);
  assert.throws(()=>validateCommandOptions({command:'suggest','grid-gap-review':true}),/applies only to audit/);
 
