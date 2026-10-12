@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 /** Bronto Layout CLI: intentionally independent from Playwright, Puppeteer and UI frameworks. */
-import { spawnSync, execFile } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { chromeExecutable } from './chrome-detect.mjs';
 import { startBrowser } from './chromium-session.mjs';
-import { promisify } from 'node:util';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
@@ -24,14 +23,14 @@ import { toSarif } from '../dist/sarif.js';
 import { sweepLayout } from '../dist/sweep.js';
 import { mediaBreakpointSamples, combineCSSBreakpointSamples } from '../dist/breakpoints.js';
 import { compactCheckReport, compactCompareReport } from '../dist/agent-report.js';
-import { parseBatchManifest } from '../dist/batch.js';
 import { inspectCSSWithCDP } from '../dist/css-inspector.js';
 import { selectCSSFailureAliases } from '../dist/css-failure-leads.js';
 import { compareLayoutGeometry, truncatedGeometryAliases } from '../dist/geometry-stability.js';
 import { installLayoutShiftCollector, summarizeLayoutShifts } from '../dist/layout-shifts.js';
-import { HELP, argsFromCLI, int, withApprovedScenario, scenarioFromExplicitFlags,
+import { HELP, argsFromCLI, withApprovedScenario, scenarioFromExplicitFlags,
   configFromArgs, getWidths, validateCommandOptions } from './cli-options.mjs';
 import { createAuditCommand } from './audit-command.mjs';
+import { createBatchCommand } from './batch-command.mjs';
 
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -540,129 +539,6 @@ async function compare(a) {
   await output(a, a.compact ? compactCompareReport(result) : result, printable, toSarif(result.candidateUrl, result.candidate, result));
   if (result.summary.regressions || (a['fail-on-skip'] && (result.summary.unverified || hasUnmeasuredRules(result.candidate)))) process.exitCode = 1;
 }
-const execFileAsync = promisify(execFile);
-async function batch(a) {
-  const parallel = int(a.parallel ?? '1', '--parallel', 1, 4);
-  const manifestFile = path.resolve(a.manifest);
-  const manifest = parseBatchManifest(JSON.parse(await readFile(manifestFile, 'utf8')));
-  // Validate every referenced contract before launching any browser.
-  const baseDirectory = path.dirname(manifestFile);
-  const jobs = await Promise.all(manifest.jobs.map(async job => {
-    const spec = path.resolve(baseDirectory, job.spec);
-    const contract = parseContract(JSON.parse(await readFile(spec, 'utf8')));
-    return { ...job, absoluteSpec: spec, contractURL: contract.url, approvedScenario: contract.scenario ?? {} };
-  }));
-  if (a['dry-run']) {
-    const data = {
-      schemaVersion: 1, mode: 'batch-plan', manifest: manifestFile,
-      total: jobs.length, parallel,
-      jobs: jobs.map(job => ({ id: job.id, spec: job.absoluteSpec,
-        target: job.url ?? job.contractURL ?? null,
-        widths: job.widths ?? null, scan: job.scan ?? null,
-        cssBreakpoints: Boolean(job.cssBreakpoints),
-        locale: job.locale ?? a.locale ?? job.approvedScenario.locale ?? null,
-        colorScheme: job.colorScheme ?? a['color-scheme'] ?? job.approvedScenario.colorScheme ?? null,
-        reducedMotion: Boolean(job.reducedMotion ?? (a['normal-motion'] ? false : a['reduced-motion']) ?? job.approvedScenario.reducedMotion),
-        mobile: Boolean(job.mobile ?? (a.desktop ? false : a.mobile) ?? job.approvedScenario.mobile),
-        layoutShifts: Boolean(job.layoutShifts ?? a['layout-shifts']),
-        stableFor: job.stableFor ?? a['stable-for'] ?? job.approvedScenario.stableFor ?? null,
-        readySelector: a['ready-selector'] ?? job.approvedScenario.readySelector ?? null,
-        height: a.height ?? job.approvedScenario.height ?? null }))
-    };
-    await output(a, data, 'Validated ' + jobs.length + ' batch jobs without opening Chromium');
-    return;
-  }
-  const outcomes = new Array(jobs.length);
-  async function runJob(job) {
-    const argv = [fileURLToPath(import.meta.url), 'check', '--spec', job.absoluteSpec, '--json'];
-    if (a.compact) argv.push('--compact');
-    if (job.url) argv.push('--url', /^https?:\/\//.test(job.url) || /^file:\/\//.test(job.url)
-      ? job.url : path.resolve(baseDirectory, job.url));
-    if (job.widths) argv.push('--widths', job.widths.join(','));
-    if (job.scan) argv.push('--scan', job.scan);
-    if (job.cssBreakpoints) argv.push('--css-breakpoints');
-    if (job.layoutShifts ?? a['layout-shifts']) argv.push('--layout-shifts');
-    const stableFor = job.stableFor ?? a['stable-for'];
-    if (stableFor !== undefined) argv.push('--stable-for', String(stableFor));
-    const locale = job.locale ?? a.locale;
-    if (locale) argv.push('--locale', locale);
-    const scheme = job.colorScheme ?? a['color-scheme'];
-    if (scheme) argv.push('--color-scheme', scheme);
-    if (job.reducedMotion === false) argv.push('--normal-motion');
-    else if (job.reducedMotion ?? (a['reduced-motion'] && !a['normal-motion'])) argv.push('--reduced-motion');
-    else if (a['normal-motion']) argv.push('--normal-motion');
-    if (job.mobile === false) argv.push('--desktop');
-    else if (job.mobile ?? (a.mobile && !a.desktop)) argv.push('--mobile');
-    else if (a.desktop) argv.push('--desktop');
-    for (const [option, value] of [['ready-selector', a['ready-selector']], ['height', a.height], ['timeout', a.timeout],
-      ['settle', a.settle], ['chrome', a.chrome]]) {
-      if (value !== undefined) argv.push('--' + option, value);
-    }
-    if (a['no-sandbox']) argv.push('--no-sandbox');
-    if (a['fail-on-skip']) argv.push('--fail-on-skip');
-    if (a['evidence-dir']) argv.push('--evidence-dir', path.join(a['evidence-dir'], job.id));
-    // Run each check with Node argv, never a shell or a manifest-provided command.
-    const runtime = configFromArgs(a);
-    const sampleCount = job.scan ? getWidths({ scan: job.scan }).length + 24 : (job.widths?.length ?? 4);
-    const timeout = Math.min(600000, Math.max(90000, runtime.timeout * (sampleCount + 3)));
-    // Each job gets its own isolated Chromium profile; no cookies or JS state
-    // leak between concurrently executed sites. Child argv is never a shell.
-    let child;
-    try {
-      const result = await execFileAsync(process.execPath, argv, {
-        cwd: process.cwd(), encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024, env: process.env
-      });
-      child = { status: 0, stdout: result.stdout, stderr: result.stderr };
-    } catch (error) {
-      child = { status: typeof error.code === 'number' ? error.code : 2,
-        stdout: error.stdout ?? '', stderr: error.stderr ?? '', error };
-    }
-    let report;
-    try { report = JSON.parse(child.stdout); } catch { report = null; }
-    const exitCode = (child.status === 0 || child.status === 1) && report?.mode === 'check'
-      ? child.status : 2;
-    const status = exitCode === 2 ? 'error' : exitCode === 1 ? 'violations' : 'pass';
-    return {
-      id: job.id, status, exitCode,
-      ...(report ? { result: report } : {
-        result: { schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
-          error: { code: 'BATCH_JOB_ERROR', message: child.error?.message || child.stderr?.trim() ||
-            'Job exited without a readable JSON report' } }
-      })
-    };
-  }
-  // A bounded worker pool preserves manifest order while enabling explicit
-  // parallelism on machines with enough CPU/memory. Default remains serial.
-  let next = 0;
-  await Promise.all(Array.from({ length: Math.min(parallel, jobs.length) }, async () => {
-    for (;;) {
-      const index = next++;
-      if (index >= jobs.length) break;
-      outcomes[index] = await runJob(jobs[index]);
-    }
-  }));
-  const summaryData = {
-    total: outcomes.length,
-    passed: outcomes.filter(j => j.status === 'pass').length,
-    violations: outcomes.filter(j => j.status === 'violations').length,
-    errors: outcomes.filter(j => j.status === 'error').length,
-    checksPassed: outcomes.reduce((n, j) => n + (j.result?.summary?.passed ?? 0), 0),
-    checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0)
-  };
-  const result = { schemaVersion: 1, mode: 'batch', manifest: manifestFile, parallel,
-    ...(a.compact ? { format: 'compact' } : {}), summary: summaryData, jobs: outcomes };
-  const printable = [
-    'Bronto Layout batch — ' + manifestFile,
-    ...outcomes.map(j => '  ' + j.id + ': ' + j.status.toUpperCase() +
-      ' (exit ' + j.exitCode + ', ' + (j.result?.summary?.failed ?? 0) + ' failed checks)'),
-    'Total: ' + summaryData.passed + ' passed, ' + summaryData.violations +
-      ' with violations, ' + summaryData.errors + ' errors'
-  ].join('\n');
-  await output(a, result, printable);
-  if (summaryData.errors) process.exitCode = 2;
-  else if (summaryData.violations) process.exitCode = 1;
-}
-
 /** Read validated, bounded declarative state setup without executing arbitrary JS.
  * The source file is not copied to a report; actions might include user input.
  */
@@ -676,6 +552,8 @@ const audit = createAuditCommand({
   measure, withBrowser, resolveURL, discoverCSSBreakpointWidths,
   output, readExplicitActions
 });
+
+const batch = createBatchCommand({ output });
 /** Suggestions never become enforced contracts without a separate approval. */
 async function suggest(a) {
   if (!a.url) throw new Error('suggest requires --url URL or local HTML path');

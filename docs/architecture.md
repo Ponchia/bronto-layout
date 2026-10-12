@@ -85,6 +85,15 @@ uses a narrow dependency injection interface for `measure`, `withBrowser`,
 navigation and explicitly declared user actions. `bin/cli-options.mjs` owns
 argument validation and saved scenario precedence.
 
+`bin/batch-command.mjs` separately owns validated, finite batch manifests,
+disposable child-process execution and deterministic result ordering. It is
+constructed with a single `output` dependency from the shared CLI and invokes
+the **original** `bin/bronto-layout.mjs check` executable by its adjacent file
+URL, not its own imported filename. Batches never run an arbitrary script from
+the manifest, and each job has its own browser process/profile with bounded
+parallelism. The original `batch --dry-run` is browser-free. Packaging tests
+require this module alongside the audit runner.
+
 This extraction is a **code-organization change**. It does not add automatic
 CSS repairs, change the default detectors, expand browser coverage or make an
 inferred relationship a blocking assertion. The standalone npm tarball must
