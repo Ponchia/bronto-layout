@@ -2,16 +2,20 @@
 
 ## Unreleased
 
+- Add opt-in `audit --grid-gap-review` for bounded, review-only CSS grid direct-child spacing anomalies, with observed declared/actual gaps, explicit incomplete-container reporting, and no automatic blocking or field-accuracy claim. Healthy and intentional `space-between` grids remain clean; a 12px transformed card produces a nonblocking review lead.
 - Expose `audit --dom-limit N` (1,000–50,000, default 18,000) for complex DOM pages. The existing safety cap remains the default; explicit larger budgets preserve measured traversal/coverage in compact reports and can certify only that supported DOM traversal completed, not design correctness or hidden iframe contents.
 
 
+
 - Support declarative `audit --actions FILE` and automatic `audit --baseline ... --actions FILE` to replay user-selected UI states independently at every width, including media-query threshold scans. This exposes previously hidden overflow and failed images after opening panels; reports preserve action type/count provenance without leaking filled values. Missing selectors and malformed actions fail closed; no automatic authentication or arbitrary JS.
+
 - Separate strict CLI parsing, command-option validation, numeric viewport parsing and approved browser scenario precedence into browser-free `bin/cli-options.mjs`. Keep the same commands/exit behavior, add direct pure tests and require the new module in isolated npm installs.
 - Add opt-in 16-route cold CLI stress profiling with a trusted local-only mixed-state batch and synthetic 500/5,000/20,000-element DOM fixtures. Measure repeatable wall-clock times while preserving expected failing contracts and explicit audit traversal truncation; no performance or accuracy claims for production pages.
 
 
 - Improve the human-readable CLI contract workflow: proposals include exact next commands and selector discovery limits, draft reviews show per-viewport deviations/tolerances with correct units, and approval output shows validation/check commands. Add a self-contained 12px gallery regression walkthrough and focused tests. No proposal gains automatic approval or new blocking behavior.
 - Add `field-benchmark review-label-template` and `review-progress` for blinded independent human review. Pending statuses are explicitly unscored, human attestations are validated, and missing/tampered evidence is reported separately. Manual first-party capture artifacts ship the blank draft without detector predictions; existing human review remains unperformed.
+
 - Introduce ESLint 9 + recommended TypeScript linting as development-only dependencies; `npm run check` now enforces lint along with compilation/integration tests. Add built-in Node/V8 unit coverage thresholds for the portable core (90% lines, 85% branches, 80% functions), wired into CI. Remove stale unused helper variables/imports.
 - Correct image-aspect validation: `object-fit: none` preserves source proportions despite a differently shaped image element box, so the constraint is now marked unmeasurable (like `cover`, `contain` and `scale-down`) rather than reported as distortion.
 - Make automatic audit comparisons robust to DOM reordering: uniquely identified broken-image resources can move across DOM paths/hosts without triggering fabricated regressions or improvements. For ambiguous same-count path changes, report an unverified element identity rather than guessing; genuine net count increases remain measurable.

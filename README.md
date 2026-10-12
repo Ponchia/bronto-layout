@@ -260,6 +260,26 @@ about uninspected iframe content. JSON reports describe action **types/counts**,
 not selectors or filled values. Keep sensitive action files out of committed
 examples and shared report artifacts. See [interactive audits](docs/quickstart.md).
 
+### Experimental CSS grid spacing review (opt-in)
+
+For review-only leads about irregular **direct CSS-grid child gaps**, try:
+
+```sh
+bronto-layout audit --url http://localhost:5173/ --widths 375,768 \
+  --grid-gap-review --json --compact
+```
+
+This optional browser geometry pass compares declared `column-gap` with observed gaps between similarly sized direct grid children on the same visual row. It produces `possible-grid-gap-anomaly` **review warnings only** (never exit 1), with measured values and an observed grid container locator. It intentionally skips `justify-content: space-*` layouts, absolute/fixed children, non-comparable shapes and some complex placements. Intentional card offsets, transforms, spanning, dense grids and content changes can create valid deviations. The feature is bounded (120 candidate grids, 80 direct children each, up to 16 leads); omissions and unknown scope are surfaced in the report. It is **not enabled by default** and has **no independently verified production accuracy**.
+
+For an interactive page, combine `--grid-gap-review` with the explicit,
+validated `--actions FILE` workflow; warnings are measured **after** the setup
+sequence at every width and never become errors. The bundled
+`gallery-toggle-broken.html` starts with a hidden gallery and only reveals its
+spacing lead after replaying `gallery-toggle-actions.json`.
+
+The bundled example `gallery.html` produces no warning, while `gallery-broken.html` produces a nonblocking **12px** lead (gaps 16px/28px against declared 16px) with this option. For blocking CI assertions, approve an intentional `uniform-gaps` contract instead. Experimental review warnings are not part of the current 33-case controlled benchmark score or the human-labeled 30-state field cohort; they must be validated independently before promotion to strict checks.
+
+
 ## Inspect CSS container queries (opt-in)
 
 Modern components can switch layout based on the size of an ancestor CSS
