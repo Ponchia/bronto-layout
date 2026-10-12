@@ -900,7 +900,6 @@ async function audit(a) {
   else if (result.summary.measuredIssues) process.exitCode = 1;
 }
 
-/** Suggestions never become enforced contracts without a separate approval. */
 /** Read validated, bounded declarative state setup without executing arbitrary JS.
  * The source file is not copied to a report; actions might include user input.
  */
@@ -915,6 +914,7 @@ function auditStateSummary(a, actions) {
     ...(a.baseline ? { replayedOnBothVersions: true } : {}) } } : {};
 }
 
+/** Suggestions never become enforced contracts without a separate approval. */
 async function suggest(a) {
   if (!a.url) throw new Error('suggest requires --url URL or local HTML path');
   const widths = a.width !== undefined || a.widths !== undefined || a.scan
