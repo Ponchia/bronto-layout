@@ -81,7 +81,8 @@
       "default": "./dist/selector-discovery.js"
     },
     "./schemas/layout-contract.schema.json": "./schemas/layout-contract.schema.json",
-    "./schemas/batch-manifest.schema.json": "./schemas/batch-manifest.schema.json"
+    "./schemas/batch-manifest.schema.json": "./schemas/batch-manifest.schema.json",
+    "./schemas/layout-actions.schema.json": "./schemas/layout-actions.schema.json"
   },
   "files": [
     "bin",

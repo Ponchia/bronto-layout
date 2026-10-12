@@ -427,8 +427,8 @@ Existing `summary.verified`/`supportedScopeMeasured` and `coverage.status` conti
 
 ## Public JSON Schema editor hints (2026-10-12)
 
-`schemas/layout-contract.schema.json` and `schemas/batch-manifest.schema.json`
-are Draft 2020-12 **development/editor metadata**, shipped in the npm package
+`schemas/layout-contract.schema.json`, `schemas/batch-manifest.schema.json`
+and `schemas/layout-actions.schema.json` are Draft 2020-12 **development/editor metadata**, shipped in the npm package
 and available as JSON exports. They describe the 14 strict v1 contract rule
 shapes, bounded declarative actions and both `check` and `audit` batch job
 modes. The strict runtime parsers optionally accept a bounded `$schema` string

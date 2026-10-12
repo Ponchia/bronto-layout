@@ -68,7 +68,7 @@ it has been published to the npm registry.**
 
 ## JSON editor support for layout contracts and batches
 
-Bronto Layout ships two **JSON Schema Draft 2020-12** files for editor autocomplete
+Bronto Layout ships three **JSON Schema Draft 2020-12** files for editor autocomplete
 and structural feedback. Put an optional `$schema` string at the start of your
 own `bronto-layout.json` contract or `batch.json` manifest:
 
@@ -83,10 +83,28 @@ own `bronto-layout.json` contract or `batch.json` manifest:
 
 For a batch, use
 [`batch-manifest.schema.json`](schemas/batch-manifest.schema.json) instead.
+For a standalone actions file (`--actions FILE`), associate its filename with
+[`layout-actions.schema.json`](schemas/layout-actions.schema.json) in the editor.
+An actions file is a **JSON array**, so it cannot carry a root `$schema`
+property itself. In VS Code, an optional workspace setting can associate the
+public schema with files named `*-actions.json`:
+
+```json
+{
+  "json.schemas": [{
+    "fileMatch": ["**/*-actions.json"],
+    "url": "https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/layout-actions.schema.json"
+  }]
+}
+```
+
+Use a local `schemas/layout-actions.schema.json` path instead if the editor
+must operate offline. This association is editor-only and never executes an
+action; Bronto's `--actions` parser still rejects arbitrary JavaScript.
 Copy the working [`schema-enabled-layout.json`](examples/schema-enabled-layout.json)
 and [`schema-enabled-batch.json`](examples/schema-enabled-batch.json) examples,
 or point an offline editor to your local checkout's `schemas/` directory.
-Both schemas are also included in the locally installable `@ponchia/layout`
+All three schemas are also included in the locally installable `@ponchia/layout`
 package. The CLI **never fetches** the `$schema` URL; an editor using the
 public remote schema URL might request it from GitHub. Use a relative path
 when working offline or when you do not want an editor network request.

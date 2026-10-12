@@ -6,22 +6,25 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseContract } from '../dist/contract.js';
 import { parseBatchManifest } from '../dist/batch.js';
+import { parseLayoutActions } from '../dist/actions.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = filename => JSON.parse(readFileSync(path.join(root, filename), 'utf8'));
 const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
 const contractSchema = read('schemas/layout-contract.schema.json');
 const batchSchema = read('schemas/batch-manifest.schema.json');
+const actionsSchema = read('schemas/layout-actions.schema.json');
 const checkContract = ajv.compile(contractSchema);
 const checkBatch = ajv.compile(batchSchema);
+const checkActions = ajv.compile(actionsSchema);
 const canonicalBase = 'https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/';
 
-test('both published Draft 2020-12 editor schemas compile and advertise the correct source paths', () => {
+test('all public Draft 2020-12 editor schemas compile and advertise the correct source paths', () => {
   for (const [schema, filename] of [[contractSchema, 'layout-contract.schema.json'],
-    [batchSchema, 'batch-manifest.schema.json']]) {
+    [batchSchema, 'batch-manifest.schema.json'], [actionsSchema, 'layout-actions.schema.json']]) {
     assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema');
     assert.equal(schema.$id, canonicalBase + filename);
-    assert.equal(schema.additionalProperties, false);
+    if (schema.type === 'object') assert.equal(schema.additionalProperties, false);
     assert.equal(typeof ajv.getSchema(schema.$id), 'function');
   }
 });
@@ -30,7 +33,11 @@ test('every bundled contract and batch manifest accepted by the runtime also pas
   let contracts = 0, batches = 0, actionFiles = 0;
   for (const filename of readdirSync(path.join(root, 'examples')).filter(item => item.endsWith('.json'))) {
     const example = read('examples/' + filename);
-    if (Array.isArray(example)) { actionFiles++; continue; }
+    if (Array.isArray(example)) {
+      assert.doesNotThrow(() => parseLayoutActions(example), filename);
+      assert.equal(checkActions(example),true,filename+': '+JSON.stringify(checkActions.errors));
+      actionFiles++;continue;
+    }
     if (Array.isArray(example.jobs)) {
       const manifest = parseBatchManifest(example);
       assert.equal(manifest.jobs.length, example.jobs.length);
@@ -151,4 +158,35 @@ test('all fourteen supported contract rule discriminators have editor-completion
     assert.equal(checkContract(value),true,rule.type+': '+JSON.stringify(checkContract.errors));
     assert.equal(parseContract(value).rules[0].type,rule.type);
   }
+});
+
+
+test('standalone action schema exactly mirrors the contract schema action definitions',()=>{
+ assert.deepEqual(actionsSchema.items,contractSchema.$defs.action);
+ assert.deepEqual(actionsSchema.$defs.actionSelector,contractSchema.$defs.actionSelector);
+ assert.equal(actionsSchema.maxItems,30);
+ assert.equal(actionsSchema.$id,canonicalBase+'layout-actions.schema.json');
+});
+
+test('standalone action schema and runtime reject the same forbidden scripts and invalid inputs',()=>{
+ const good=read('examples/audit-stateful-actions.json');
+ assert.equal(checkActions(good),true);
+ assert.deepEqual(parseLayoutActions(good),good);
+ const variants=[
+   [{type:'javascript',script:'alert(1)'}],
+   [{type:'fill',selector:'#input'}],
+   [{type:'fill',selector:'#input',value:3}],
+   [{type:'click',selector:' '}],
+   [{type:'click',selector:'#input',extra:'unexpected'}],
+   [{type:'pause',milliseconds:5001}],
+   [{type:'pause',milliseconds:-1}],
+   [{type:'pause',milliseconds:100.5}],
+   [{type:'scroll-into-view',selector:'a'.repeat(2001)}],
+   Array.from({length:31},()=>({type:'click',selector:'#target'}))
+ ];
+ for(const [i,invalid] of variants.entries()){
+   assert.equal(checkActions(invalid),false,'Action mutation #'+i+' should fail editor schema');
+   assert.throws(()=>parseLayoutActions(invalid),/Invalid layout contract/,
+     'Action mutation #'+i+' should fail runtime');
+ }
 });

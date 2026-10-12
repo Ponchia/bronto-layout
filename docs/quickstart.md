@@ -25,7 +25,10 @@ This launches an isolated temporary Chromium profile, checks an active CDP conne
 For JSON-aware editors, start with the schema-tagged
 [`examples/schema-enabled-layout.json`](../examples/schema-enabled-layout.json)
 or [`examples/schema-enabled-batch.json`](../examples/schema-enabled-batch.json).
-They reference the publicly hosted schema files from this repository. To
+They reference the publicly hosted schema files from this repository.
+Standalone `--actions` arrays cannot contain a `$schema` key; associate
+[`layout-actions.schema.json`](../schemas/layout-actions.schema.json)
+with action files through your editor's JSON schema settings instead. To
 avoid editor network requests, change `$schema` to a **relative file path**
 to `schemas/layout-contract.schema.json` or `schemas/batch-manifest.schema.json`
 in your local project. Bronto Layout never downloads these references or uses

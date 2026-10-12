@@ -39,7 +39,7 @@ try {
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html', 'examples/layout.json',
     'examples/healthy.html', 'README.md', 'LICENSE', 'package.json', 'docs/quickstart.md', 'docs/release-checklist.md',
-    'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json'
+    'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json', 'schemas/layout-actions.schema.json'
   ];
   for (const file of required) assert.ok(packedFiles.has(file), 'Missing packaged file: ' + file);
   for (const file of packedFiles) {
@@ -63,7 +63,7 @@ try {
   // Editor schemas must ship with the public npm tarball, but Ajv itself is
   // strictly development-only. The installed package needs no validator to
   // parse/render those JSON definitions or to run its CLI.
-  for (const schemaName of ['layout-contract.schema.json','batch-manifest.schema.json']) {
+  for (const schemaName of ['layout-contract.schema.json','batch-manifest.schema.json','layout-actions.schema.json']) {
     const exportPath = './schemas/' + schemaName;
     assert.equal(installedPkg.exports[exportPath],exportPath,
       'Installed package must expose the '+schemaName+' editor schema');

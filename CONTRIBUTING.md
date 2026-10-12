@@ -37,6 +37,9 @@ scenario or declarative action must update the corresponding static schema:
   the 14 rule types, selector aliases, actions, scenarios and viewport samples.
 - [`schemas/batch-manifest.schema.json`](schemas/batch-manifest.schema.json) —
   finite `check`/`audit` job modes and their distinct allowed fields.
+- [`schemas/layout-actions.schema.json`](schemas/layout-actions.schema.json) —
+  standalone `--actions` arrays; keep this schema's five action variants and
+  selector bounds identical to the contract schema action definitions.
 
 Use `npm run test:unit` to run the Ajv Draft 2020-12 parity tests against the
 actual TypeScript parsers and all bundled valid examples. Add both accepted and

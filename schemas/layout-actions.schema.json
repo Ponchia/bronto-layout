@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/layout-actions.schema.json",
+  "title": "Bronto Layout declarative browser actions",
+  "description": "Optional, bounded setup actions for suggest/audit and their comparisons. Actions are declarative; arbitrary JavaScript execution is forbidden.",
+  "type": "array",
+  "minItems": 0,
+  "maxItems": 30,
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "click"
+          },
+          "selector": {
+            "$ref": "#/$defs/actionSelector"
+          }
+        },
+        "required": [
+          "type",
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "fill"
+          },
+          "selector": {
+            "$ref": "#/$defs/actionSelector"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "type",
+          "selector",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "wait-for"
+          },
+          "selector": {
+            "$ref": "#/$defs/actionSelector"
+          }
+        },
+        "required": [
+          "type",
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "scroll-into-view"
+          },
+          "selector": {
+            "$ref": "#/$defs/actionSelector"
+          }
+        },
+        "required": [
+          "type",
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "pause"
+          },
+          "milliseconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000
+          }
+        },
+        "required": [
+          "type",
+          "milliseconds"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "$defs": {
+    "actionSelector": {
+      "type": "string",
+      "maxLength": 2000,
+      "pattern": "\\S"
+    }
+  }
+}
