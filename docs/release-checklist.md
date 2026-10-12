@@ -11,8 +11,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Uniform open-Shadow DOM selector resolution for measurement, readiness and actions.
 - [x] Expose known iframe coverage gaps, with explicit strict-coverage option. Optional DOMSnapshot frame-document inventory provides bounded evidence without claiming inner-frame correctness.
 - [x] Provide `doctor`, a bounded parallel batch option and `npm run test:unit` for first-time contributors.
-- [ ] Confirm the new macOS installation/browser smoke workflow passes on a hosted macOS runner.
-- [ ] Confirm full Node 22/24 CI after the hardening changes merge.
+- [x] Verify the macOS packaging/conditional Chromium smoke workflow passes on a hosted macOS runner (PR #34 and main `58ebc70`; conditional runner smoke is not independent physical-device proof).
+- [x] Verify full Node 22/24 CI on merged `main` (run `38245817139`, `58ebc70`, success).
 - [ ] Obtain third-party review of platform behavior on a physical macOS machine, including sandboxed Chromium startup (CI is not a substitute).
 - [ ] Run representative large-DOM, 16-route and mixed-state performance tests on a stable host; publish reproducible timing methodology, not unsupported speed claims.
 - [ ] Inspect license headers, generated package content, repo metadata, and registry name availability before publication.
@@ -21,7 +21,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.
-- [x] `review-packet` command generates an independent worksheet, never auto-populating labels.
+- [x] `review-packet` command generates an independent worksheet, never auto-populating labels. `review-gallery` provides a static, hash-verified visual contact sheet with no predictions, included in manual field artifacts.
 - [x] Optional bounded below-the-fold screenshots with digest verification and explicit truncation; original initial-viewport-only captures remain valid, and independent human labels are still required.
 - [ ] An independent reviewer labels all 30 captured states (including below-fold and relevant interactive content). Frame-bearing pages are excluded from whole-page accuracy scoring until their interiors can be verified.
 - [ ] Expand to independently verified positive and negative examples outside the current first-party cohort.

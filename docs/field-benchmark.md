@@ -63,6 +63,22 @@ node scripts/field-benchmark.mjs review-packet \
 
 The command never invents human judgments. It leaves checkboxes blank, flags incomplete evidence, and refuses to overwrite an existing worksheet. The reviewer must visit the rendered page as well as the initial-viewport screenshot, include below-fold/interactive states and manually supply evidence and intent. The worksheet deliberately does **not** copy predictions from the CLI report to avoid anchoring the reviewer.
 
+## Offline visual contact sheet for independent reviewers
+
+Before viewing any automatic audit findings, reviewers can open a locally generated **visual contact sheet** that displays the captured PNGs alongside only the source page, CSS viewport width, locale and capture-integrity state. It deliberately excludes detector findings, scores, inferred defects and generated human labels:
+
+```sh
+node scripts/field-benchmark.mjs review-gallery \
+  --captures reports/field-2026-10-12 \
+  --out reports/field-2026-10-12/review-gallery.html
+```
+
+Open `review-gallery.html` in your browser **after extracting the capture archive**. It is an offline, dependency-free HTML file, with local relative image links, a restrictive content-security policy and no JavaScript or external tracking. Viewport screenshots appear on review cards; a second collapsible image appears when optional bounded page evidence was captured. Image/report SHA-256 digests are verified before generation, and missing, tampered or non-PNG screenshots are marked unsafe instead of presented as valid. Captures are never overwritten, and linked image paths cannot escape the extracted capture directory through traversal or symlinks. The report deliberately hides `audit.json` predictions until the independent review is complete.
+
+New manual GitHub Actions field captures automatically include both `review-gallery.html` and `review-worksheet.md` in the same seven-day artifact when a capture index exists, including for partially failed runs. They do not require or generate labels. For historical archives, the commands above let reviewers generate the same files locally without a new website capture. Keep the gallery and its referenced `cases/` folders together, since it does **not** embed the potentially large PNG files.
+
+**Important:** a screenshot is only the browser state already captured at the recorded width. Reviewers must still inspect the live rendered site, including scrolling, content loaded on demand and interactive conditions. The contact sheet is an aid to *human* labeling, not evidence that the page is correct; only human-origin labels belong in `field-manual-labels.json`.
+
 ## Optional bounded below-the-fold evidence
 
 For reviewable pages, request an additional **bounded document screenshot** without replacing the original viewport PNG or changing any automatic detector conclusions:

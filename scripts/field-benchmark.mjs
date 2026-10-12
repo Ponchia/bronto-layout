@@ -3,11 +3,12 @@
  * labels only. Screenshots and page reports are local artifacts, never published.
  */
 import { spawnSync, execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateFieldManifest, scoreFieldEvidence } from './field-benchmark-core.mjs';
+import { renderFieldReviewGallery } from './field-review-gallery.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const action = argv.shift();
@@ -20,9 +21,20 @@ function opt(name, fallback) {
 const has = flag => argv.includes(flag);
 const readJSON = file => JSON.parse(readFileSync(file, 'utf8'));
 const sha = data => createHash('sha256').update(data).digest('hex');
+const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const validPNG = data => data.length >= 8 && data.subarray(0, 8).equals(pngSignature);
 const ensureInside = (dir, filename) => {
   const resolved = path.resolve(dir, filename);
-  if (!resolved.startsWith(path.resolve(dir) + path.sep)) throw new Error('Evidence path escapes capture directory');
+  const root = path.resolve(dir);
+  if (!resolved.startsWith(root + path.sep)) throw new Error('Evidence path escapes capture directory');
+  // A path inside the directory can still symlink out of it. No evidence
+  // inside a downloaded archive may make us read or link to arbitrary files.
+  if (existsSync(resolved)) {
+    const realRoot = realpathSync(root);
+    const realFile = realpathSync(resolved);
+    if (!realFile.startsWith(realRoot + path.sep))
+      throw new Error('Evidence path resolves outside capture directory');
+  }
   return resolved;
 };
 function writeJSON(file, data) {
@@ -36,6 +48,7 @@ Usage:
   node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id] [--frame-inventory] [--full-page-evidence]
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
   node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
+  node scripts/field-benchmark.mjs review-gallery --captures reports/field-run --out gallery.html [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
 Captures are not ground-truth labels. Scores exclude unreviewed/unavailable states.`;
 }
@@ -151,25 +164,21 @@ function runCapture() {
     complete: entries.filter(x => x.complete).length, index: path.join(outputDir, 'index.json') }, null, 2) + '\n');
   if (entries.some(row => !row.complete)) process.exitCode = 2;
 }
-/** Generate an unbiased HUMAN review worksheet: never seed expected labels from tool output. */
-function runReviewPacket() {
-  const dirName = opt('--captures');
-  const outName = opt('--out');
-  if (!dirName || !outName) throw new Error('review-packet requires --captures and --out');
-  const captures = path.resolve(dirName);
-  const destination = path.resolve(outName);
-  if (existsSync(destination)) throw new Error('Review packet already exists; do not overwrite human notes');
-  const index = readJSON(path.join(captures, 'index.json'));
-  if (index.schemaVersion !== 1 || !Array.isArray(index.cases) ||
+/** Shared integrity-only data: never read a report's automatic detector findings. */
+function fieldReviewEvidenceRows(index, captures) {
+  if (index.schemaVersion !== 1 || !Array.isArray(index.cases) || index.cases.length > 60 ||
       typeof index.datasetId !== 'string') throw new Error('Invalid capture index');
-  const items = index.cases.map(entry => {
+  return index.cases.map(entry => {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(entry.id)) throw new Error('Invalid capture case id');
     let screenshotVerified = false, reportVerified = false;
     const fullExpected = index.captureOptions?.fullPageEvidence === true || Boolean(entry.fullPageScreenshotFile);
     let fullPageEvidenceVerified = !fullExpected;
     if (entry.screenshotFile && entry.screenshotSha256) {
       const screenshot = ensureInside(captures, entry.screenshotFile);
-      screenshotVerified = existsSync(screenshot) && sha(readFileSync(screenshot)) === entry.screenshotSha256;
+      if (existsSync(screenshot)) {
+        const image = readFileSync(screenshot);
+        screenshotVerified = validPNG(image) && sha(image) === entry.screenshotSha256;
+      }
     }
     if (entry.auditFile && entry.auditSha256) {
       const report = ensureInside(captures, entry.auditFile);
@@ -177,8 +186,10 @@ function runReviewPacket() {
     }
     if (fullExpected && entry.fullPageScreenshotFile && entry.fullPageScreenshotSha256) {
       const fullScreenshot = ensureInside(captures, entry.fullPageScreenshotFile);
-      fullPageEvidenceVerified = existsSync(fullScreenshot) &&
-        sha(readFileSync(fullScreenshot)) === entry.fullPageScreenshotSha256;
+      if (existsSync(fullScreenshot)) {
+        const image = readFileSync(fullScreenshot);
+        fullPageEvidenceVerified = validPNG(image) && sha(image) === entry.fullPageScreenshotSha256;
+      }
     }
     return { id: entry.id, url: entry.url, width: entry.width, locale: entry.locale ?? null,
       screenshotFile: entry.screenshotFile ?? null,
@@ -190,6 +201,19 @@ function runReviewPacket() {
       captureComplete: entry.complete === true,
       readyForReview: entry.complete === true && screenshotVerified && reportVerified && fullPageEvidenceVerified };
   });
+}
+/** Generate an unbiased HUMAN review worksheet: never seed expected labels from tool output. */
+function runReviewPacket() {
+  const dirName = opt('--captures');
+  const outName = opt('--out');
+  if (!dirName || !outName) throw new Error('review-packet requires --captures and --out');
+  const captures = path.resolve(dirName);
+  const destination = path.resolve(outName);
+  if (existsSync(destination)) throw new Error('Review packet already exists; do not overwrite human notes');
+  const index = readJSON(path.join(captures, 'index.json'));
+  if (index.schemaVersion !== 1 || !Array.isArray(index.cases) ||
+      typeof index.datasetId !== 'string') throw new Error('Invalid capture index');
+  const items = fieldReviewEvidenceRows(index, captures);
   const lines = [
     '# Independent layout review — ' + index.datasetId, '',
     'This worksheet is **not** ground truth and contains **no generated defect labels**.',
@@ -227,6 +251,26 @@ function runReviewPacket() {
   else console.log('Created independent-review worksheet for '+items.length+' cases ('+result.readyForReview+' verified); no labels inferred: '+destination);
 }
 
+/** Produce a static HTML image gallery; cannot generate human labels. */
+function runReviewGallery() {
+  const dirName = opt('--captures');
+  const outName = opt('--out');
+  if (!dirName || !outName) throw new Error('review-gallery requires --captures and --out');
+  const captures = path.resolve(dirName), destination = path.resolve(outName);
+  if (existsSync(destination)) throw new Error('Review gallery already exists; do not overwrite reviewer work');
+  const index = readJSON(path.join(captures, 'index.json'));
+  const rows = fieldReviewEvidenceRows(index, captures);
+  const html = renderFieldReviewGallery(index, rows, captures, destination);
+  mkdirSync(path.dirname(destination), {recursive:true});
+  writeFileSync(destination, html, {flag:'wx'});
+  const result={schemaVersion:1,mode:'field-review-gallery',datasetId:index.datasetId,
+    output:destination,total:rows.length,readyForReview:rows.filter(row=>row.readyForReview).length,
+    pendingHumanLabels:rows.length,includesDetectorPredictions:false};
+  if (has('--json')) process.stdout.write(JSON.stringify(result,null,2)+'\n');
+  else process.stdout.write('Created offline independent-review contact sheet: '+destination+' ('+
+    result.readyForReview+'/'+result.total+' hash-verified; no labels inferred)\n');
+}
+
 function runScore() {
   const captures = path.resolve(opt('--captures'));
   const labelPath = opt('--labels');
@@ -240,13 +284,17 @@ function runScore() {
     const auditPath = ensureInside(captures, sample.auditFile);
     const imagePath = ensureInside(captures, sample.screenshotFile);
     if (!existsSync(auditPath) || !existsSync(imagePath)) continue;
-    if (sha(readFileSync(auditPath)) !== sample.auditSha256 ||
-        sha(readFileSync(imagePath)) !== sample.screenshotSha256) continue;
+    const auditBytes = readFileSync(auditPath);
+    const viewportBytes = readFileSync(imagePath);
+    if (sha(auditBytes) !== sample.auditSha256 || !validPNG(viewportBytes) ||
+        sha(viewportBytes) !== sample.screenshotSha256) continue;
     const fullExpected = index.captureOptions?.fullPageEvidence === true || Boolean(sample.fullPageScreenshotFile);
     if (fullExpected) {
       if (!sample.fullPageScreenshotFile || !sample.fullPageScreenshotSha256) continue;
       const full = ensureInside(captures, sample.fullPageScreenshotFile);
-      if (!existsSync(full) || sha(readFileSync(full)) !== sample.fullPageScreenshotSha256) continue;
+      if (!existsSync(full)) continue;
+      const fullBytes = readFileSync(full);
+      if (!validPNG(fullBytes) || sha(fullBytes) !== sample.fullPageScreenshotSha256) continue;
     }
     evidence[sample.id] = readJSON(auditPath);
     sample.screenshotVerified = true;
@@ -281,7 +329,8 @@ try {
   } else if (action === 'capture') runCapture();
   else if (action === 'score') runScore();
   else if (action === 'review-packet') runReviewPacket();
-  else throw new Error('Choose validate, capture, review-packet or score. Run --help.');
+  else if (action === 'review-gallery') runReviewGallery();
+  else throw new Error('Choose validate, capture, review-packet, review-gallery or score. Run --help.');
 } catch (error) {
   console.error('Field benchmark: ' + (error?.message || String(error)));
   process.exitCode = 2;
