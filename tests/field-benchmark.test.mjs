@@ -81,3 +81,62 @@ test('fixture-only field capture hashes screenshot/report and refuses tampered r
     assert.equal(JSON.parse(score.stdout).metrics.incompleteCases, 1);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('reviewed iframe pages never contribute fabricated field true negatives or missed positives',()=>{
+ const cases=[
+   {id:'clean',width:375,complete:true,screenshotVerified:true},
+   {id:'partial',width:375,complete:true,screenshotVerified:true}
+ ];
+ const labels={schemaVersion:1,datasetId:'frame-scoring',reviewProtocol:protocol,cases:[
+   {...reviewed('clean'),expectedMeasured:[],expectedReview:[]},
+   {...reviewed('partial'),expectedMeasured:['broken-image'],expectedReview:['embedded-frame-uninspected']}
+ ]};
+ const base={mode:'audit',summary:{viewports:1},reports:[{
+   width:375,summary:{verified:true},coverage:{truncated:false,embeddedFrames:0,status:'supported-scope-measured'},findings:[]
+ }]};
+ const partial=structuredClone(base);
+ partial.reports[0].coverage={truncated:false,embeddedFrames:1,status:'known-uninspected-content'};
+ partial.reports[0].findings=[{classification:'review',code:'embedded-frame-uninspected'}];
+ const result=scoreFieldEvidence({schemaVersion:1,datasetId:'frame-scoring',cases},labels,{clean:base,partial});
+ assert.equal(result.metrics.evaluatedCases,1);
+ assert.equal(result.metrics.incompleteCases,1);
+ assert.deepEqual(result.coverageExcluded,[{id:'partial',reason:'Embedded-frame content was not audited'}]);
+ assert.equal(result.metrics.measured.fn,0);
+ assert.equal(result.metrics.perCode.measured['broken-image'].recall,null);
+ assert.equal(result.metrics.review.tp,0);
+ // The historic v0.4 captures predate the explicit coverage.status: the
+ // embedded-frame count still prevents scoring their uninspected internals.
+ delete partial.reports[0].coverage.status;
+ const historical=scoreFieldEvidence({schemaVersion:1,datasetId:'frame-scoring',cases},labels,{clean:base,partial});
+ assert.equal(historical.metrics.incompleteCases,1);
+ partial.reports[0].coverage.status='future-unsupported-frame-scope';
+ partial.reports[0].coverage.embeddedFrames=0;
+ const future=scoreFieldEvidence({schemaVersion:1,datasetId:'frame-scoring',cases},labels,{clean:base,partial});
+ assert.equal(future.metrics.incompleteCases,1);
+ assert.equal(future.coverageExcluded[0].reason,'Incomplete or unsupported audit coverage: future-unsupported-frame-scope');
+});
+
+test('allowlisted fixture capture preserves DOMSnapshot frame evidence but flags content as partial',t=>{
+ const dir=mkdtempSync(path.join(os.tmpdir(),'bronto-field-frame-'));
+ try {
+  const manifest=path.join(dir,'manifest.json');
+  const output=path.join(dir,'capture');
+  writeFileSync(manifest,JSON.stringify({schemaVersion:1,id:'frame-fixture-field',allowedHosts:[],
+    cases:[{id:'frame-375',url:'examples/audit-iframe-coverage.html',width:375}]}));
+  const capture=spawnSync(process.execPath,[runner,'capture','--fixtures','--manifest',manifest,
+    '--out',output,'--frame-inventory'],{cwd:root,encoding:'utf8',timeout:75000,
+    env:{...process.env,BRONTO_CHROME_NO_SANDBOX:'1',BRONTO_TEST_INLINE_FIXTURE:'1'}});
+  if(/Cannot find Chrome\/Chromium/.test(capture.stdout+capture.stderr)){
+    if(process.env.BRONTO_REQUIRE_CHROME==='1') throw new Error('CI requires Chromium');
+    t.skip('Chromium unavailable');return;
+  }
+  assert.equal(capture.status,0,capture.stderr||capture.stdout);
+  const index=JSON.parse(readFileSync(path.join(output,'index.json'),'utf8'));
+  assert.equal(index.captureOptions.frameInventory,true);
+  assert.equal(index.cases[0].complete,true,'A frame gap does not mean capture integrity failed');
+  assert.equal(index.cases[0].contentCoverage,'known-uninspected-content');
+  const report=JSON.parse(readFileSync(path.join(output,index.cases[0].auditFile),'utf8'));
+  assert.equal(report.reports[0].frameInventory.observedFrameDocuments,1);
+  assert.ok(report.reports[0].findings.some(f=>f.code==='embedded-frame-uninspected'));
+ } finally {rmSync(dir,{recursive:true,force:true});}
+});

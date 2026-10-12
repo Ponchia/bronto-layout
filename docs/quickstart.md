@@ -28,6 +28,8 @@ bronto-layout audit --url http://localhost:5173 --fail-on-coverage-gaps --json
 
 That policy returns exit `2` for known uninspected content. Closed shadow roots and canvas internals are always outside the supported scope even when no such surface can be positively identified. Use ordinary screenshots and human inspection for visual intent.
 
+To investigate a frame coverage warning, use `audit --frame-inventory --json --compact`. This collects additional Chromium frame-tree and DOMSnapshot evidence without certifying layouts inside the frames. If you need strict completeness, keep `--fail-on-coverage-gaps`; it does not become a pass merely because a frame's document appeared in DOMSnapshot.
+
 ## Make an intentional layout regression check
 
 Observe candidate relationships at multiple widths, then explicitly approve only the ones you want to preserve:

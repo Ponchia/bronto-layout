@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add opt-in `audit --frame-inventory` from Chromium frame-tree and DOMSnapshot evidence, with strict bounded reporting, URL sanitization, and baseline/candidate comparison coverage. A snapshot does not constitute an inner-frame layout audit.
+- Prevent independently reviewed but partially covered iframe states from inflating field benchmark true negatives or recall. Distinguish capture integrity from diagnostic coverage, including historical capture compatibility; add opt-in frame inventory to the manual allowlisted field capture workflow.
+
+
 - Unify explicitly open Shadow DOM selector resolution for measurements, readiness and browser actions, with regression fixtures.
 - Preserve reviewed browser scenarios and declarative actions from `suggest` into `approve` / `check`, including explicit desktop and normal-motion overrides.
 - Report the supported audit scope and known iframe coverage gaps; add opt-in `audit --fail-on-coverage-gaps` (exit 2 when evidence is incomplete).

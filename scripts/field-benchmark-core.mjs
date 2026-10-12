@@ -75,18 +75,36 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
   }
   validateFieldLabels(labels, index.datasetId, ids);
   const labeled = new Map(labels.cases.map(row => [row.id, row]));
-  const pending = [], unreviewable = [], rows = [];
+  const pending = [], unreviewable = [], coverageExcluded = [], rows = [];
   for (const sample of index.cases) {
     const label = labeled.get(sample.id);
     if (!label) { pending.push(sample.id); continue; }
     if (label.reviewStatus === 'unreviewable') { unreviewable.push(sample.id); continue; }
     const report = evidenceById[sample.id];
     const view = report?.reports?.[0];
+    // Capture integrity != content coverage. In particular, a correctly
+    // captured top-level screenshot can conceal an uninspected iframe with a
+    // missing image. Do not score an unknown inner-frame defect as a false
+    // negative or an unobserved negative as a true negative.
+    const coverageStatus = view?.coverage?.status;
+    const frameGap = coverageStatus === 'known-uninspected-content' ||
+      (coverageStatus === undefined && view?.coverage?.embeddedFrames > 0);
+    // Fail closed for any future/unknown coverage state, not just the two
+    // currently known incomplete ones. Legacy captures without a status are
+    // still admissible only when no embedded frame was observed.
+    const coverageGap = frameGap ||
+      (coverageStatus !== undefined && coverageStatus !== 'supported-scope-measured');
     const complete = sample.complete === true && sample.screenshotVerified === true &&
       report?.mode === 'audit' && report?.summary?.viewports === 1 &&
       view?.width === sample.width && view?.summary?.verified === true &&
-      Array.isArray(view.findings) && view.coverage?.truncated === false;
-    rows.push({ id: sample.id, complete, error: complete ? undefined : 'Incomplete or tampered browser evidence',
+      Array.isArray(view.findings) && view.coverage?.truncated === false && !coverageGap;
+    if (coverageGap) coverageExcluded.push({ id: sample.id,
+      reason: frameGap ? 'Embedded-frame content was not audited' :
+        'Incomplete or unsupported audit coverage: '+coverageStatus });
+    rows.push({ id: sample.id, complete, error: complete ? undefined :
+      frameGap ? 'Embedded-frame content was not audited' :
+      coverageGap ? 'Incomplete or unsupported audit coverage: '+coverageStatus :
+      'Incomplete or tampered browser evidence',
       expectedMeasured: label.expectedMeasured, expectedReview: label.expectedReview,
       observedMeasured: complete ? [...new Set(view.findings.filter(f => f.classification === 'measured').map(f => f.code))] : [],
       observedReview: complete ? [...new Set(view.findings.filter(f => f.classification === 'review').map(f => f.code))] : [] });
@@ -96,10 +114,11 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
     schemaVersion: 1, mode: 'field-benchmark', datasetId: index.datasetId,
     reviewProtocol: labels.reviewProtocol,
     totalCases: index.cases.length, labeledCases: rows.length,
-    pending, unreviewable, metrics: scoreLabeledAuditCases(rows),
+    pending, unreviewable, coverageExcluded, metrics: scoreLabeledAuditCases(rows),
     limitations: [
       'Accuracy applies only to these named, independently reviewed page states',
       'Detector-code/viewport classification is not pixel-level visual quality',
+      'Any detected embedded-frame coverage gap excludes whole-page detector scoring rather than counting a false clean page',
       'A screenshot covers only the initial browser viewport; reviewers must inspect below-fold content separately',
       'Browser, network and rendered content may differ on later visits',
       'No cross-tool superiority or WCAG conformance claim'
