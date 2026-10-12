@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "url": "layout-shifts-healthy.html",
   "widths": [375],
+  "scenario": { "readySelector": "html[data-bronto-shift-fixture-ready=\"true\"]" },
   "selectors": { "main": "main" },
   "rules": [
     { "id": "loading-is-stable", "type": "layout-stability", "maxScore": 0.005 },
