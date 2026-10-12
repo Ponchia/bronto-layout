@@ -19,6 +19,18 @@ export interface GridGapLead {
   maxDeviationPx: number;
   itemCount: number;
 }
+/** A geometric *review lead* for two direct sibling boxes, never inferred paint occlusion. */
+export interface SiblingOverlapLead {
+  /** Parent grid/flex container locator; not a known CSS root cause. */
+  path: string;
+  children: [string, string];
+  overlapWidthPx: number;
+  overlapHeightPx: number;
+  overlapAreaPx: number;
+  overlapFraction: number;
+  overlapExtentPx: number;
+}
+
 export interface TextClipLead {
   path: string;
   overflowPx: number;
@@ -47,16 +59,23 @@ export interface PageAuditObservations {
   gridGapLeads?: GridGapLead[];
   gridContainersInspected?: number;
   gridContainersOmitted?: number;
+  /** Optional, explicitly requested flex/grid sibling-overlap REVIEW only. */
+  siblingOverlapCount?: number;
+  siblingOverlapLeads?: SiblingOverlapLead[];
+  overlapContainersInspected?: number;
+  overlapContainersOmitted?: number;
 }
 
 export type AuditCoverageStatus = 'supported-scope-measured' | 'known-uninspected-content' | 'truncated';
 export type AuditClassification = 'measured' | 'review';
 export interface AuditFinding {
-  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected' | 'possible-grid-gap-anomaly';
+  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected' | 'possible-grid-gap-anomaly' | 'possible-sibling-overlap';
   classification: AuditClassification;
   severity: 'error' | 'warning';
   message: string;
   path?: string;
+  /** Child elements contributing to a review lead; observations, not known causes. */
+  relatedPaths?: string[];
   measuredPx?: number;
   source?: string;
   count?: number;
@@ -129,6 +148,20 @@ export function analyzePageAudit(
     count: (evidence.gridGapCount ?? 0) - (evidence.gridGapLeads?.length ?? 0),
     message: 'Additional potential grid gap anomalies omitted from the bounded review list'
   });
+  for (const lead of evidence.siblingOverlapLeads ?? []) findings.push({
+    code: 'possible-sibling-overlap', classification: 'review', severity: 'warning',
+    path: lead.path, relatedPaths: [...lead.children],
+    measuredPx: Number(lead.overlapExtentPx.toFixed(2)),
+    message: 'Two direct grid/flex child bounding boxes geometrically overlap by ' +
+      lead.overlapWidthPx.toFixed(2) + ' × ' + lead.overlapHeightPx.toFixed(2) +
+      ' CSS px (' + (lead.overlapFraction * 100).toFixed(1) + '% of smaller box). ' +
+      'This does not prove painted occlusion or unintended design; review transforms and stacking'
+  });
+  if ((evidence.siblingOverlapCount ?? 0) > (evidence.siblingOverlapLeads?.length ?? 0)) findings.push({
+    code: 'possible-sibling-overlap', classification: 'review', severity: 'warning',
+    count: (evidence.siblingOverlapCount ?? 0) - (evidence.siblingOverlapLeads?.length ?? 0),
+    message: 'Additional potential sibling overlaps omitted from bounded review leads'
+  });
   if (evidence.embeddedFrames > 0) findings.push({
     code: 'embedded-frame-uninspected', classification: 'review', severity: 'warning',
     count: evidence.embeddedFrames,
@@ -150,7 +183,8 @@ export function analyzePageAudit(
         'Closed shadow roots cannot be inspected or counted reliably',
         'Canvas/WebGL and visual paint-order relationships are not analyzed',
         'Only the measured viewport and navigation state are observed',
-        ...(evidence.gridContainersOmitted ? ['Grid gap review omitted ' + evidence.gridContainersOmitted + ' candidate containers due to bounded inspection limits'] : [])
+        ...(evidence.gridContainersOmitted ? ['Grid gap review omitted ' + evidence.gridContainersOmitted + ' candidate containers due to bounded inspection limits'] : []),
+        ...(evidence.overlapContainersOmitted ? ['Sibling overlap review omitted ' + evidence.overlapContainersOmitted + ' candidate containers due to bounded inspection limits'] : [])
       ]
     },
     findings,

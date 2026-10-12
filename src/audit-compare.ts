@@ -59,7 +59,7 @@ const presenceCount = (report: ViewportAudit, code: AuditFinding['code']): numbe
  */
 function unmatchedElementFindings(
   before: AuditFinding[], after: AuditFinding[],
-  code: 'broken-image' | 'possible-text-clipping' | 'possible-grid-gap-anomaly'
+  code: 'broken-image' | 'possible-text-clipping' | 'possible-grid-gap-anomaly' | 'possible-sibling-overlap'
 ): { before: AuditFinding[]; after: AuditFinding[] } {
   const oldByPath = new Map(before.map(f => [f.path, f]));
   const newByPath = new Map(after.map(f => [f.path, f]));
@@ -96,7 +96,7 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
   const reasons: string[] = [];
   const supported = new Set([
     'document-horizontal-overflow', 'broken-image', 'possible-text-clipping',
-    'pending-image', 'embedded-frame-uninspected', 'possible-grid-gap-anomaly'
+    'pending-image', 'embedded-frame-uninspected', 'possible-grid-gap-anomaly', 'possible-sibling-overlap'
   ]);
   if (report.findings.some(finding => !supported.has(finding.code))) {
     reasons.push('Encountered a new detector that has no defined comparison semantics');
@@ -117,7 +117,17 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
   if ((report.coverage.gridContainersOmitted ?? 0) > 0) {
     reasons.push('Opt-in grid-gap review omitted candidate containers due to bounded inspection limits');
   }
-  for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly']) {
+  if ((report.coverage.overlapContainersOmitted ?? 0) > 0 ||
+      (report.coverage.siblingOverlapCount ?? 0) > (report.coverage.siblingOverlapLeads?.length ?? 0)) {
+    reasons.push('Opt-in sibling overlap review omitted candidate containers or leads due to bounded inspection limits');
+  }
+  if (findAll(report, 'possible-sibling-overlap').some(finding =>
+      !Array.isArray(finding.relatedPaths) || finding.relatedPaths.length !== 2 ||
+      finding.relatedPaths.some(value => typeof value !== 'string' || !value.trim()) ||
+      new Set(finding.relatedPaths).size !== 2)) {
+    reasons.push('Opt-in sibling overlap review lacks two unique child locators');
+  }
+  for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly','possible-sibling-overlap']) {
     const findings = report.findings.filter(finding => finding.code === code);
     const paths = findings.map(finding => finding.path);
     if (paths.some(path => typeof path !== 'string' || !path.trim())) {
@@ -182,12 +192,21 @@ export function comparePageAudits(
     // magnitude, NOT inferred design intent. Minor font/layout subpixel jitter
     // remains below a conservative 2 CSS-px floor. A positional DOM path is an
     // observational locator, not proof that content identity is immutable.
-    for (const code of ['possible-text-clipping','possible-grid-gap-anomaly'] as const) {
+    for (const code of ['possible-text-clipping','possible-grid-gap-anomaly','possible-sibling-overlap'] as const) {
       const existing = new Map(findAll(before, code).map(finding => [finding.path, finding]));
       const materialDelta = Math.max(2, significantPx);
       for (const finding of findAll(after, code)) {
         const original = existing.get(finding.path);
         if (!original) continue;
+        if (code === 'possible-sibling-overlap' &&
+            [...(original.relatedPaths ?? [])].sort().join('\0') !==
+              [...(finding.relatedPaths ?? [])].sort().join('\0')) {
+          unverified.push({width,reasons:[
+            'Cannot compare overlapping sibling magnitudes at '+finding.path+
+              ': different child pairs were observed across revisions'
+          ]});
+          continue;
+        }
         const oldPx = original.measuredPx;
         const newPx = finding.measuredPx;
         if (!Number.isFinite(oldPx) || !Number.isFinite(newPx) ||
@@ -211,7 +230,7 @@ export function comparePageAudits(
       }
     }
 
-    for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly'] as const) {
+    for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly','possible-sibling-overlap'] as const) {
       const classification = code === 'broken-image' ? 'measured' : 'review';
       const unmatched = unmatchedElementFindings(findAll(before,code), findAll(after,code), code);
       const previous = unmatched.before;

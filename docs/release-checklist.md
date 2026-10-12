@@ -9,6 +9,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Add ESLint static checks across TypeScript, Node CLI, scripts and tests, plus a portable-core coverage floor in Node 24 CI. These are code-maintenance gates, not production detector accuracy.
 - [x] Capture only observed browser facts and preserve distinct review warnings / accepted rules; verified versus supported-scope measured booleans are separated for known iframe gaps.
 - [x] Detect meaningful growth/shrinkage of existing text-clipping and opt-in grid-spacing review leads by measured CSS-pixel magnitude. Keep human-review changes nonblocking and incomplete measurements unverified.
+- [x] Add bounded, opt-in CSS Flex/Grid sibling-overlap **review leads** with intentional-overlay suppressions, element location evidence, stateful replay tests, and explicit uncertainty for omitted candidate containers; no strict or field-accuracy claims.
+
 
 - [x] Reproduce explicit UI states for *zero-contract* audits and automatic baseline/candidate comparisons with bounded, reviewed declarative actions, no arbitrary JavaScript, and no action values in reports.
 - [x] Support explicitly bounded, configurable automatic-audit DOM traversal while defaulting to 18,000 inspected elements. Test 20,000-element truncation and opt-in expanded traversal at 25,000 without claiming visual design completeness.

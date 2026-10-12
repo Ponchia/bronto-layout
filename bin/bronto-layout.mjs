@@ -672,9 +672,9 @@ async function batch(a) {
  * are failures, while potentially intentional clipping is review-only.
  * Incomplete traversal has exit 2, never a misleading "all clear".
  */
-async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = [], gridGapReview = false) {
+async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = [], gridGapReview = false, overlapReview = false) {
   const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture, actions);
-  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')(' + config.auditDOMLimit + ', ' + Boolean(gridGapReview) + ')');
+  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')(' + config.auditDOMLimit + ', ' + Boolean(gridGapReview) + ', ' + Boolean(overlapReview) + ')');
   if (!observations || !Number.isInteger(observations.visitedElements) ||
       typeof observations.truncated !== 'boolean') {
     throw new Error('Browser did not return usable DOM audit observations');
@@ -715,8 +715,8 @@ async function compareAudit(a, coarseWidths, actions = []) {
         }
         const baselineReports = [], candidateReports = [];
         for (const width of widths) {
-          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions, a['grid-gap-review']));
-          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions, a['grid-gap-review']));
+          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions, a['grid-gap-review'], a['sibling-overlap-review']));
+          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions, a['grid-gap-review'], a['sibling-overlap-review']));
         }
         const comparison = comparePageAudits(
           baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
@@ -799,7 +799,7 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory'], actions, a['grid-gap-review']);
+      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory'], actions, a['grid-gap-review'], a['sibling-overlap-review']);
       if (a['evidence-dir']) {
         const image = await cdp.send('Page.captureScreenshot', {
           format: 'png', captureBeyondViewport: false, fromSurface: true
@@ -863,7 +863,13 @@ async function audit(a) {
         intentionalEllipses: report.coverage.intentionalEllipses,
         visuallyHiddenTextExcluded: report.coverage.visuallyHiddenTextExcluded,
         ...(a['grid-gap-review'] ? {gridContainersInspected:report.coverage.gridContainersInspected,
-          gridContainersOmitted:report.coverage.gridContainersOmitted,gridGapCount:report.coverage.gridGapCount} : {})
+          gridContainersOmitted:report.coverage.gridContainersOmitted,gridGapCount:report.coverage.gridGapCount} : {}),
+        ...(a['sibling-overlap-review'] ? {
+          overlapContainersInspected: report.coverage.overlapContainersInspected,
+          overlapContainersOmitted: report.coverage.overlapContainersOmitted,
+          siblingOverlapCount: report.coverage.siblingOverlapCount,
+          omittedSiblingOverlapLeads: Math.max(0, (report.coverage.siblingOverlapCount ?? 0) - (report.coverage.siblingOverlapLeads?.length ?? 0))
+        } : {})
       },
       findings: report.findings,
       ...(report.screenshot ? { screenshot: report.screenshot } : {}),
