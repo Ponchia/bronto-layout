@@ -141,6 +141,17 @@ To get a **nonblocking** hint about irregular CSS Grid spacing before authoring 
 bronto-layout audit --url examples/gallery-broken.html --width 375 --grid-gap-review
 ```
 
+On interactive layouts the opt-in warning also works with `--actions FILE`:
+
+```sh
+bronto-layout audit --url examples/gallery-toggle-broken.html \
+  --actions examples/gallery-toggle-actions.json --grid-gap-review \
+  --width 375 --json --compact
+```
+
+The collapsed gallery is initially unmeasurable; opening it produces a
+nonblocking warning. The combined behavior is checked with real Chromium.
+
 It reports the observed **16px/28px** gaps versus the declared 16px CSS column gap as a *review-only warning*. Unlike an accepted contract this is not a violation and it does not establish whether the offset was intentional. The experimental analyzer is off by default and never makes the page fail CI.
 
 ## Run several routes without a shared browser session

@@ -91,7 +91,6 @@ test('extracted command validation accepts explicit audit state replay but never
     /applies only to suggest or audit/);
 });
 
-
 test('audit DOM traversal budget has an explicit safe bound and does not leak into other commands',()=>{
   assert.equal(configFromArgs({command:'audit'}).auditDOMLimit,18000);
   assert.equal(configFromArgs({command:'audit','dom-limit':'25000'}).auditDOMLimit,25000);
@@ -100,4 +99,18 @@ test('audit DOM traversal budget has an explicit safe bound and does not leak in
   assert.throws(()=>configFromArgs({command:'audit','dom-limit':'50001'}),/--dom-limit/);
   assert.throws(()=>validateCommandOptions({command:'check','dom-limit':'25000'}),/applies only to audit/);
   assert.match(HELP,/--dom-limit N/);
+});
+
+test('opt-in grid review can be combined with explicit audit interactions, never with strict checks',()=>{
+ assert.match(HELP,/--grid-gap-review/);
+ const a=argsFromCLI(['audit','--url','examples/gallery-toggle-broken.html',
+   '--grid-gap-review','--actions','examples/gallery-toggle-actions.json','--width','375',
+   '--json','--compact']);
+ assert.equal(a['grid-gap-review'],true);
+ assert.equal(a.actions,'examples/gallery-toggle-actions.json');
+ assert.doesNotThrow(()=>validateCommandOptions(a));
+ assert.doesNotThrow(()=>validateCommandOptions({...a,baseline:'examples/gallery.html'}));
+ assert.throws(()=>validateCommandOptions({command:'check','grid-gap-review':true}),/applies only to audit/);
+ assert.throws(()=>validateCommandOptions({command:'suggest','grid-gap-review':true}),/applies only to audit/);
+
 });

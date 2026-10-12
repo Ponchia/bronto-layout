@@ -70,3 +70,23 @@ test('grid spacing collector explicitly discloses dense containers omitted from 
  assert.equal(result.reports[0].coverage.gridContainersOmitted,1);
  assert.ok(result.reports[0].coverage.limitations.some(l=>/grid.*omit/i.test(l)));
 });
+
+test('opt-in grid-spacing review observes explicitly opened UI states without promoting warnings to errors',t=>{
+ const base=['audit','--url','examples/gallery-toggle-broken.html','--width','375',
+  '--grid-gap-review','--json','--compact'];
+ const initial=run(base);
+ if(skipChrome(t,initial))return;
+ assert.equal(initial.status,0,initial.stderr||initial.stdout);
+ const untouched=JSON.parse(initial.stdout);
+ assert.equal(untouched.summary.reviewWarnings,0);
+ assert.equal(untouched.summary.measuredIssues,0);
+ const active=run([...base,'--actions','examples/gallery-toggle-actions.json']);
+ assert.equal(active.status,0,active.stderr||active.stdout);
+ const found=JSON.parse(active.stdout);
+ assert.equal(found.summary.measuredIssues,0);
+ assert.equal(found.summary.reviewWarnings,1);
+ assert.equal(found.reports[0].findings[0].code,'possible-grid-gap-anomaly');
+ assert.equal(found.reports[0].findings[0].measuredPx,12);
+ assert.deepEqual(found.stateSetup.actionTypes,['wait-for','click']);
+ assert.equal(found.reports[0].coverage.gridContainersInspected,1);
+});

@@ -1,0 +1,4 @@
+[
+  {"type":"wait-for","selector":"#open"},
+  {"type":"click","selector":"#open"}
+]
