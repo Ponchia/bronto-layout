@@ -214,6 +214,10 @@ A command can execute explicit declarative actions to reach an application state
 
 The early v0.x schema may evolve; breaking changes will be documented in the changelog.
 
+## Pure CLI argument validation (2026-10-12)
+
+`bin/cli-options.mjs` now owns the complete user-facing help text, native Node option schema, viewport width parsing, approved scenario inheritance and all command-option compatibility validation. It imports only Node's built-in `util.parseArgs` and the compiled portable width-range helper; it never starts Chromium or performs I/O. This removes approximately 200 lines of unrelated argument handling from the browser command orchestrator, which retains its existing error-report semantics and exit codes. Portable unit tests exercise invalid flags, boundary widths, inherited browser states and explicit override precedence; the npm package check requires the new module to ship with the CLI.
+
 ## CLI runtime decomposition (2026-10-12)
 
 - `bin/chrome-detect.mjs` discovers an installed browser without downloading or launching it (`doctor` also reads its version).
