@@ -23,6 +23,9 @@ test('manual audit uses only known public first-party sites and preserves nonblo
  assert.match(workflow,/review_flags\+=\(--sibling-overlap-review\)/);
  assert.match(workflow,/"\$\{review_flags\[@\]\}" "\$\{extra\[@\]\}"/);
  assert.match(workflow,/Experimental REVIEW-ONLY leads:/);
+ assert.match(workflow,/gridContainersOmitted/);
+ assert.match(workflow,/overlapContainersOmitted/);
+ assert.match(workflow,/zero findings does NOT mean complete inspection/);
  assert.match(workflow,/item\.classification==='review'/);
  for(const url of ['https://brontolotto.observer/','https://sense6.net/en/',
    'https://sense6.net/ar/','https://sense6.net/en/learn/']) {

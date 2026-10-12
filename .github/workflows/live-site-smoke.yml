@@ -319,6 +319,21 @@ jobs:
           const leads=(doc.reports??[]).flatMap(view => (view.findings??[])
             .filter(item => item.classification==='review' && reviewCodes.has(item.code))
             .map(item => ({width:view.width,code:item.code,px:item.measuredPx})));
+          // Zero warnings does not prove the optional analyzers inspected every
+          // candidate. These counters refer to viewport observations, not to
+          // unique components across different responsive widths.
+          const gridCandidatesOmitted=(doc.reports??[]).reduce((count,view)=>
+            count+(view.coverage?.gridContainersOmitted??0),0);
+          const overlapCandidatesOmitted=(doc.reports??[]).reduce((count,view)=>
+            count+(view.coverage?.overlapContainersOmitted??0),0);
+          if (process.env.GRID_GAP_REVIEW==='true') {
+            console.log('Grid review candidate omissions across sampled viewports: '+gridCandidatesOmitted+
+              ' (bounded heuristics; zero findings does NOT mean complete inspection)');
+          }
+          if (process.env.SIBLING_OVERLAP_REVIEW==='true') {
+            console.log('Sibling overlap review candidate omissions across sampled viewports: '+overlapCandidatesOmitted+
+              ' (bounded heuristics; zero findings does NOT mean complete inspection)');
+          }
           if (process.env.GRID_GAP_REVIEW==='true' || process.env.SIBLING_OVERLAP_REVIEW==='true') {
             console.log('Experimental REVIEW-ONLY leads: '+leads.length +
               ' (not independent labels, not CI failures): '+
