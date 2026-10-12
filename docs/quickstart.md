@@ -82,6 +82,14 @@ The comparison writes `audit-baseline-375px.png`, `audit-candidate-375px.png`,
 `audit-baseline-768px.png` and `audit-candidate-768px.png` to the selected
 local directory. Each `comparisonEvidence` JSON entry records its viewport,
 paths, `viewport-only` coverage and independently checkable SHA-256 hashes.
+Open `reports/compare-evidence/audit-comparison.html` for a script-free,
+side-by-side local contact sheet. The rendered PNG previews are grouped by
+viewport width; the gallery contains no source URLs, detector predictions,
+automated judgments or network/analytics code. JSON metadata also includes
+`comparisonGallery.file`, and the HTML Content Security Policy blocks scripts
+and remote connections. The gallery does not rehash files on opening—verify
+byte digests with the JSON report when consuming copied evidence.
+
 The page is re-navigated before measuring each revision at each width, and any
 explicit `--actions` setup is replayed before its screenshot. Files are never
 automatically overwritten: choose a new directory for subsequent comparisons.

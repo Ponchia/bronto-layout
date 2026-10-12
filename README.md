@@ -113,6 +113,13 @@ directory per comparison. **No pixel diff or automatic visual judgment is made.*
 If the declared UI state includes typed information, the *screenshots themselves*
 may visibly contain it even though Bronto's action metadata does not echo input
 values. Keep screenshots local/private, especially for authenticated pages.
+The same directory now also contains **`audit-comparison.html`**, a static
+offline two-column gallery with width-by-width baseline/candidate previews and
+file hashes. It has a restrictive Content Security Policy, no JavaScript,
+remote requests, user labels or automatic visual-diff inference. The saved
+`comparisonGallery` metadata points directly to this local HTML file. Browser
+integration checks verify both PNGs actually render and its columns are styled.
+
 Below-the-fold paired captures are not supported; `--full-page-evidence` remains
 for the **single-page** audit only. See [paired comparison evidence](docs/quickstart.md).
 
