@@ -21,7 +21,10 @@ function skipIfNoChrome(t, r) {
   }
   return false;
 }
-const options = ['--settle', '750', '--width', '375'];
+// Explicit readiness starts after the first paint and geometry mutation;
+// arbitrary load-relative sleeps can miss the intended shift on busy CI.
+const options = ['--ready-selector', 'html[data-bronto-shift-fixture-ready="true"]',
+  '--settle', '350', '--width', '375'];
 
 test('inspector observes the delayed shift and its affected element', t => {
   const r = run(['inspect', '--url', 'examples/layout-shifts-unstable.html',

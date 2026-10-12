@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Stabilize the browser layout-shift regression fixtures: schedule deliberate geometry changes after the first paint and expose an explicit readiness marker only after the following render frames. Tests wait for observed state instead of assuming a load-relative timer always fires after paint on a busy runner; no change to the production Layout Instability collector.
+
 - Add static offline `field-benchmark review-gallery`, giving independent reviewers a grouped screenshot contact sheet without detector predictions or generated labels. Hash checks reject tampered/non-PNG images; manual capture artifacts include the gallery and blank review worksheet by default.
 
 - Add opt-in `audit --full-page-evidence --evidence-dir DIR` and `field-benchmark capture --full-page-evidence`, saving size-bounded document screenshots from Chromium CSS layout metrics. Reports disclose top-left clipping and document coverage instead of claiming full visual verification; reviewer packets and field scores check the additional image hash when requested.

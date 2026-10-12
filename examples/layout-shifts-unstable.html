@@ -19,11 +19,20 @@
     <div id="below">Content pushed downward after first paint</div>
   </main>
   <script>
-    // Do not wait for a user gesture: this is an intentional delayed fixture.
+    // Wait for at least one rendered frame before changing geometry. A timer
+    // fired immediately after load can run BEFORE first paint on a busy CI
+    // runner, producing no Layout Instability entry despite a DOM change.
     window.addEventListener('load', () => {
-      setTimeout(() => {
-        document.getElementById('placeholder').style.height = '265px';
-      }, 260);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setTimeout(() => {
+          document.getElementById('placeholder').style.height = '265px';
+          // Let Chromium paint the changed rectangle and flush its observer
+          // before the CLI's readiness selector allows measurements.
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.setAttribute('data-bronto-shift-fixture-ready', 'true');
+          }));
+        }, 260);
+      }));
     });
   </script>
 </body>

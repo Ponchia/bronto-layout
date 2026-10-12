@@ -18,5 +18,18 @@
     <div id="placeholder"></div>
     <div id="below">No movement after first paint</div>
   </main>
+  <script>
+    // Keep readiness timing comparable to the intentionally shifted fixture,
+    // without changing geometry or generating a layout shift.
+    window.addEventListener('load', () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setTimeout(() => {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.setAttribute('data-bronto-shift-fixture-ready', 'true');
+          }));
+        }, 260);
+      }));
+    });
+  </script>
 </body>
 </html>
