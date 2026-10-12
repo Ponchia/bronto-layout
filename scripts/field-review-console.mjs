@@ -175,10 +175,20 @@ function installReviewConsole(dataset) {
         if (error) throw new Error(error);
         rows.set(record.id,record);
       }
-      // Import is transactional: validate the entire file before changing controls.
-      for (const card of cards) loadRecord(card,rows.get(card.dataset.caseId)??{reviewStatus:'pending'});
+      // Import is transactional: validate EVERY supplied entry before changing
+      // controls. A partial draft is a merge, not a replacement: silently
+      // turning absent cases back to pending would erase unsaved human work.
+      // Present records are deliberately replaced; all omitted cases retain
+      // their in-progress form values, attestations and current decisions.
+      for (const card of cards) {
+        const imported = rows.get(card.dataset.caseId);
+        if (imported) loadRecord(card,imported);
+      }
       update();
-      show('Imported '+rows.size+' reviewer declarations locally. Review them before exporting again.');
+      const untouched = cards.length - rows.size;
+      show('Imported '+rows.size+' reviewer declarations locally; '+
+        untouched+' other '+(untouched===1?'case':'cases')+' left unchanged. '+
+        'Named cases were replaced; review them before exporting again.');
     } catch (error) {show('Import rejected: '+error.message,true);}
     finally {importInput.value='';}
   }

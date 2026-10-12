@@ -197,6 +197,46 @@ test('Chromium reviewer form exports pending, validates declarations and round-t
     assert.equal(exported.cases[1].reviewStatus,'pending');
     assert.doesNotMatch(JSON.stringify(exported),/PREDICTION_DO_NOT_USE|secret-token/);
     assert.doesNotThrow(()=>validateFieldLabels(exported,index.datasetId,index.cases.map(c=>c.id)));
+    // A reviewer may import only one additional case from another collaborator.
+    // That partial draft MUST NOT wipe unsaved decisions/attestations on cases
+    // absent from the file. The old renderer reset every other case to pending.
+    const partial=await cdp.eval(`(async()=>{
+      const doc={schemaVersion:1,datasetId:'fixture-human-review',cases:[{
+        id:'unsafe-320',reviewStatus:'unreviewable',reviewer:'Synthetic Fixture Reviewer',
+        reviewedAt:'2026-10-12',
+        rationale:'Fixture is intentionally marked unreviewable for data merge testing.'
+      }]};
+      const input=document.querySelector('#import-labels');
+      const data=new DataTransfer();
+      data.items.add(new File([JSON.stringify(doc)],'partial-labels.json',{type:'application/json'}));
+      input.files=data.files;input.dispatchEvent(new Event('change'));
+      for(let i=0;i<60;i++){
+        if(document.querySelector('#feedback').textContent.includes('Imported 1'))break;
+        await new Promise(resolve=>setTimeout(resolve,20));
+      }
+      const first=document.querySelector('[data-case-id="sample-375"]');
+      const second=document.querySelector('[data-case-id="unsafe-320"]');
+      const importStatus=document.querySelector('#feedback').textContent;
+      document.querySelector('#download-labels').click();
+      return {status:importStatus,
+        summary:document.querySelector('#counts').textContent,
+        keptStatus:first.querySelector('.decision').value,
+        keptReviewer:first.querySelector('.reviewer').value,
+        keptScreenshotAttestation:first.querySelector('.attest-screenshot').checked,
+        keptPageAttestation:first.querySelector('.attest-page').checked,
+        importedStatus:second.querySelector('.decision').value,
+        exported:JSON.parse(await window.__reviewExport.text())};
+    })()`);
+    assert.match(partial.status,/Imported 1 reviewer declarations locally/);
+    assert.match(partial.status,/1 other case left unchanged/);
+    assert.match(partial.summary,/1 reviewed · 0 pending · 1 unreviewable/);
+    assert.equal(partial.keptStatus,'reviewed');
+    assert.equal(partial.keptReviewer,'Independent Test Reviewer');
+    assert.equal(partial.keptScreenshotAttestation,true);
+    assert.equal(partial.keptPageAttestation,true);
+    assert.equal(partial.importedStatus,'unreviewable');
+    assert.deepEqual(partial.exported.cases.map(c=>c.reviewStatus),['reviewed','unreviewable']);
+    assert.doesNotThrow(()=>validateFieldLabels(partial.exported,index.datasetId,index.cases.map(c=>c.id)));
     const imported=await cdp.eval(`(async()=>{
       const file=new File([${JSON.stringify(JSON.stringify(exported))}],'prior-labels.json',{type:'application/json'});
       const input=document.querySelector('#import-labels');
