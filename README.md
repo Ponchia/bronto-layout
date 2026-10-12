@@ -164,6 +164,17 @@ The fixture passes at the two coarse widths but demonstrates horizontal
 overflow around its CSS media-query boundaries. Reports record all sampled
 widths. This is *not* exhaustive proof of correct layout between samples.
 
+### Embedded frame evidence (opt-in)
+
+`audit --frame-inventory` uses Chromium's `Page.getFrameTree` and `DOMSnapshot.captureSnapshot` to show how many declared frame documents also appear in a DOM/layout snapshot, along with bounded node/layout-object counts. It works in ordinary single-page checks and `audit --baseline` comparisons:
+
+```sh
+bronto-layout audit --url http://localhost:5173/ --width 375 --frame-inventory --json --compact
+bronto-layout audit --baseline http://localhost:5173/ --url http://localhost:5174/ --frame-inventory --json
+```
+
+A captured frame document is **not** proof that its images, visual clipping or responsive layout are correct. The automatic auditor still flags iframe interiors as uninspected, and `--fail-on-coverage-gaps` still returns exit 2 when such coverage is known to be missing. Different origins, out-of-process frames, closed roots and nested rendering can remain inaccessible. Snapshot collection is extra browser work, so this mode is opt-in. Frame URLs strip credentials, query strings and fragments. See [frame evidence and validation](docs/field-benchmark.md).
+
 Unlike named-selector `check` and `inspect` commands, automatic `audit` does not yet accept `--stable-for`: without explicitly selected child elements, a geometrically quiet body box cannot certify that its contents stopped moving.
 
 The audit uses a bounded DOM traversal and does not inspect internal

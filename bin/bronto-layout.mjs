@@ -15,6 +15,7 @@ import { discoverPageSelectors } from '../dist/selector-discovery.js';
 import { suggestLayoutContracts, acceptContractProposals } from '../dist/contract-discovery.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
+import { captureFrameInventoryWithCDP } from '../dist/frame-inspector.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { parseContract, validWidth } from '../dist/contract.js';
@@ -87,6 +88,7 @@ Options:
   --evidence-dir DIR    Annotated check screenshots; raw audit viewport screenshots
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
   --fail-on-coverage-gaps  Audit: exit 2 for known uninspected content (e.g. iframes)
+  --frame-inventory     Audit: opt-in CDP frame-tree/DOMSnapshot evidence (not inner-frame checks)
   --out FILE            Output path for init (default: bronto-layout.json)
   --force               Overwrite an existing file with init
   --help                Show this help
@@ -106,7 +108,7 @@ const OPTIONS = {
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
-  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' },
+  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' },
   out: { type: 'string' }, draft: { type: 'string' }, actions: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
@@ -827,7 +829,7 @@ async function batch(a) {
  * are failures, while potentially intentional clipping is review-only.
  * Incomplete traversal has exit 2, never a misleading "all clear".
  */
-async function captureAuditAt(cdp, url, width, config, fixture) {
+async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false) {
   const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture);
   const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
   if (!observations || !Number.isInteger(observations.visitedElements) ||
@@ -837,6 +839,7 @@ async function captureAuditAt(cdp, url, width, config, fixture) {
   const report = analyzePageAudit(snapshot, observations);
   return {
     ...report,
+    ...(frameInventory ? { frameInventory: await captureFrameInventoryWithCDP(cdp, observations.embeddedFrames) } : {}),
     ...(snapshot.stabilization ? { stabilization: snapshot.stabilization } : {}),
     ...(snapshot.layoutShifts ? { layoutShifts: snapshot.layoutShifts } : {})
   };
@@ -869,8 +872,8 @@ async function compareAudit(a, coarseWidths) {
         }
         const baselineReports = [], candidateReports = [];
         for (const width of widths) {
-          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture));
-          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture));
+          baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory']));
+          candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory']));
         }
         const comparison = comparePageAudits(
           baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
@@ -902,6 +905,10 @@ async function compareAudit(a, coarseWidths) {
     baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
     summary:result.summary,sampledWidths:result.sampledWidths,
     changes:result.changes,unverified:result.unverified,coverageGaps,
+    ...(a['frame-inventory'] ? { frameInventories: result.candidate.map((candidate, i) => ({
+      width: candidate.viewport.width, baseline: result.baseline[i].frameInventory,
+      candidate: candidate.frameInventory
+    })) } : {}),
     remainingMeasuredIssues:remaining.slice(0,100),
     omittedRemainingMeasuredIssues:Math.max(0,remaining.length-100),
     ...(result.cssBreakpointScan ? { cssBreakpointScan:result.cssBreakpointScan } : {})
@@ -914,6 +921,7 @@ async function compareAudit(a, coarseWidths) {
       ': '+change.message),
     ...result.unverified.map(item=>item.width+'px UNVERIFIED: '+item.reasons.join('; ')),
     ...coverageGaps.map(item=>item.width+'px COVERAGE: baseline '+item.baselineStatus+', candidate '+item.candidateStatus+'; inspect known gaps'),
+    ...(a['frame-inventory'] ? result.candidate.map(item => item.viewport.width+'px frame inventory: '+item.frameInventory?.observedFrameDocuments+' / '+item.frameInventory?.frameCount+' frame documents observed ('+item.frameInventory?.status+', '+item.frameInventory?.unresolvedDomFrames+' DOM frames unresolved); no inner-frame checks') : []),
     'Total: '+result.summary.measuredRegressions+' measured regressions, '+
       result.summary.measuredImprovements+' improvements, '+
       result.summary.reviewChanges+' review changes and '+
@@ -944,7 +952,7 @@ async function audit(a) {
     for (const width of widths) {
       // The body is measured for optional geometry stabilization. The separate
       // observer scans all visible top-level DOM/shadow children.
-      const report = await captureAuditAt(cdp, url, width, config, fixture);
+      const report = await captureAuditAt(cdp, url, width, config, fixture, a['frame-inventory']);
       if (a['evidence-dir']) {
         const image = await cdp.send('Page.captureScreenshot', {
           format: 'png', captureBeyondViewport: false, fromSurface: true
@@ -995,6 +1003,7 @@ async function audit(a) {
       },
       findings: report.findings,
       ...(report.screenshot ? { screenshot: report.screenshot } : {}),
+      ...(report.frameInventory ? { frameInventory: report.frameInventory } : {}),
       ...(report.stabilization ? { stabilization: report.stabilization } : {}),
       ...(report.layoutShifts ? { layoutShifts: {
         supported: report.layoutShifts.supported,
@@ -1012,6 +1021,7 @@ async function audit(a) {
         ' review warnings; ' + report.coverage.visitedElements + ' DOM elements traversed' +
         (report.coverage.status === 'truncated' ? ' (TRUNCATED)' :
           report.coverage.status === 'known-uninspected-content' ? ' (PARTIAL COVERAGE)' : ''),
+      ...(report.frameInventory ? ['  Frame inventory: '+report.frameInventory.observedFrameDocuments+' / '+report.frameInventory.frameCount+' declared frame documents observed by DOMSnapshot ('+report.frameInventory.status+', '+report.frameInventory.unresolvedDomFrames+' DOM frames unresolved); no inner-frame layout checks'] : []),
       ...report.findings.map(finding =>
         '  ' + finding.severity.toUpperCase() + ' ' + finding.code + ': ' + finding.message +
           (finding.path ? ' [' + finding.path + ']' : ''))
@@ -1145,6 +1155,7 @@ async function main() {
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
+  if (a['frame-inventory'] && a.command !== 'audit') throw new Error('--frame-inventory applies only to audit');
   if (a.actions && a.command !== 'suggest') throw new Error('--actions applies only to suggest; checks replay saved contract.actions');
   if (a.parallel !== undefined && a.command !== 'batch') throw new Error('--parallel applies only to batch');
   if (a.command !== 'batch' && a.manifest) throw new Error('--manifest applies only to batch');

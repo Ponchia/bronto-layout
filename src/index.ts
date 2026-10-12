@@ -46,3 +46,7 @@ export type { ContractDiscoveryDraft, ContractProposal } from './contract-discov
 export { parseLayoutActions } from './actions.js';
 export { parseLayoutScenario } from './scenario.js';
 export type { LayoutScenario } from './scenario.js';
+
+export { summarizeFrameInventory } from './frame-inventory.js';
+export type { FrameInventory, FrameInventoryEntry } from './frame-inventory.js';
+export { captureFrameInventoryWithCDP } from './frame-inspector.js';

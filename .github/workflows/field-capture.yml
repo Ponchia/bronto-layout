@@ -5,6 +5,11 @@ name: Manual first-party field benchmark capture
 on:
   workflow_dispatch:
     inputs:
+      frame_inventory:
+        description: 'Collect optional Chromium DOMSnapshot frame inventory (evidence, not inner-frame checks)'
+        required: false
+        default: false
+        type: boolean
       ids:
         description: 'Comma-separated manifest case IDs, or all for 30 cases'
         required: true
@@ -36,6 +41,7 @@ jobs:
       - name: Capture first-party pages on an ephemeral isolated runner
         env:
           CASE_IDS: ${{ inputs.ids }}
+          FRAME_INVENTORY: ${{ inputs.frame_inventory }}
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: |
           # Chromium user namespaces are restricted on hosted CI; bypass the
@@ -43,6 +49,7 @@ jobs:
           # first-party sites in benchmarks/field-sites.v0.1.json.
           args=()
           if [ "$CASE_IDS" != "all" ]; then args+=(--ids "$CASE_IDS"); fi
+          if [ "$FRAME_INVENTORY" = "true" ]; then args+=(--frame-inventory); fi
           node scripts/field-benchmark.mjs capture \
             --manifest benchmarks/field-sites.v0.1.json \
             --out "reports/field-${GITHUB_RUN_ID}" "${args[@]}"

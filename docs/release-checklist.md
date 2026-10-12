@@ -9,7 +9,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Capture only observed browser facts and preserve distinct review warnings / accepted rules.
 - [x] Preserve approved scenario flags and interactions for reproducible contract checks.
 - [x] Uniform open-Shadow DOM selector resolution for measurement, readiness and actions.
-- [x] Expose known iframe coverage gaps, with explicit strict-coverage option.
+- [x] Expose known iframe coverage gaps, with explicit strict-coverage option. Optional DOMSnapshot frame-document inventory provides bounded evidence without claiming inner-frame correctness.
 - [x] Provide `doctor`, a bounded parallel batch option and `npm run test:unit` for first-time contributors.
 - [ ] Confirm the new macOS installation/browser smoke workflow passes on a hosted macOS runner.
 - [ ] Confirm full Node 22/24 CI after the hardening changes merge.
@@ -22,7 +22,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.
 - [x] `review-packet` command generates an independent worksheet, never auto-populating labels.
-- [ ] An independent reviewer labels all 30 captured states (including below-fold and relevant interactive content).
+- [ ] An independent reviewer labels all 30 captured states (including below-fold and relevant interactive content). Frame-bearing pages are excluded from whole-page accuracy scoring until their interiors can be verified.
 - [ ] Expand to independently verified positive and negative examples outside the current first-party cohort.
 - [ ] Report per-detector precision, recall, localization accuracy and unknown/partial coverage on that labeled dataset; no claim of superiority to Snug, Galen or Polypane without the same cases.
 

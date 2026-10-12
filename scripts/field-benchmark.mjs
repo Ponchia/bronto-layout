@@ -33,7 +33,7 @@ function usage() {
   return `Bronto Layout field benchmark — independent human labels only
 Usage:
   node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json
-  node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id]
+  node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id] [--frame-inventory]
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
   node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
@@ -41,7 +41,7 @@ Captures are not ground-truth labels. Scores exclude unreviewed/unavailable stat
 }
 function assertKnownOptions() {
   const values = new Set(['--manifest', '--out', '--captures', '--labels', '--ids', '--report']);
-  const flags = new Set(['--fixtures', '--json', '--assert', '--help']);
+  const flags = new Set(['--fixtures', '--json', '--assert', '--help', '--frame-inventory']);
   for (let i = 0; i < argv.length; i++) {
     if (values.has(argv[i])) { i++; if (i >= argv.length) throw new Error('Missing argument value'); }
     else if (!flags.has(argv[i])) throw new Error('Unknown benchmark option: ' + argv[i]);
@@ -77,6 +77,7 @@ function runCapture() {
       '--width', String(sample.width), '--json', '--compact', '--ready-selector', 'body',
       '--settle', '500', '--timeout', '30000', '--evidence-dir', imageDir];
     if (sample.locale) args.push('--locale', sample.locale);
+    if (has('--frame-inventory')) args.push('--frame-inventory');
     const run = spawnSync(process.execPath, args, {
       cwd: root, encoding: 'utf8', timeout: 75000, maxBuffer: 12 * 1024 * 1024,
       env: process.env
@@ -100,6 +101,8 @@ function runCapture() {
       id: sample.id, url: sample.url, width: sample.width,
       ...(sample.locale ? { locale: sample.locale } : {}),
       complete: Boolean(complete), exitCode: run.status,
+      contentCoverage: report?.reports?.[0]?.coverage?.status ??
+        (report?.reports?.[0]?.coverage?.embeddedFrames > 0 ? 'known-uninspected-content' : 'unknown'),
       browserUserAgent: report?.browser?.userAgent ?? null,
       browserActualUrl: report?.browser?.actualUrl ?? null,
       auditFile: report ? auditRelative : null,
@@ -115,6 +118,7 @@ function runCapture() {
   }
   const index = { schemaVersion: 1, datasetId: manifest.id, capturedAt: new Date().toISOString(),
     captureToolVersion: pkg.version, nodeVersion: process.version, sourceCommit: sourceVersion(),
+    captureOptions: { frameInventory: has('--frame-inventory') },
     allCaseIds: manifest.cases.map(c => c.id), captures: entries.length, cases: entries,
     limitations: ['Screenshots show the initial viewport only; review rendered below-fold layout separately',
       'External page content and assets may change; this is one observed browser session',
@@ -217,6 +221,8 @@ function runScore() {
 }
 try {
   assertKnownOptions();
+  if (has('--frame-inventory') && action !== 'capture')
+    throw new Error('--frame-inventory applies only to capture');
   if (has('--help')) console.log(usage());
   else if (action === 'validate') {
     const manifest = opt('--manifest');

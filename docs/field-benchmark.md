@@ -63,6 +63,22 @@ node scripts/field-benchmark.mjs review-packet \
 
 The command never invents human judgments. It leaves checkboxes blank, flags incomplete evidence, and refuses to overwrite an existing worksheet. The reviewer must visit the rendered page as well as the initial-viewport screenshot, include below-fold/interactive states and manually supply evidence and intent. The worksheet deliberately does **not** copy predictions from the CLI report to avoid anchoring the reviewer.
 
+## Optional frame-evidence capture and scoring protection
+
+For an allowlisted public-site capture, enable `--frame-inventory` only when frame coverage is relevant:
+
+```sh
+node scripts/field-benchmark.mjs capture \
+  --manifest benchmarks/field-sites.v0.1.json \
+  --ids chiara-preview-375 --frame-inventory --out reports/chiara-frame-2026-10-12
+```
+
+The exact case IDs are defined by the manifest. On a shared devbox that cannot retain the Chromium sandbox, run the manual GitHub Actions **Manual first-party field benchmark capture** workflow instead, with its `frame_inventory` option, inside the allowlisted disposable runner. Do not disable the browser sandbox to inspect an arbitrary public URL on a shared host.
+
+Chromium's frame-tree and DOMSnapshot data show **which frame documents were observed in a snapshot**; they do not establish whether their inner contents rendered correctly. The audit retains `embedded-frame-uninspected` review warnings. Frame IDs are ephemeral, captured document counts are bounded, and HTML/canvas/shadow/paint-order completeness is not inferred. URL credentials, query strings and fragments are stripped from frame inventory output.
+
+**Capture integrity and diagnostic completeness are distinct.** The capture index may record `complete: true` when a screenshot and top-level audit were successfully acquired, even if an iframe was not inspected. `contentCoverage` documents that limitation; the field scorer excludes reviewed cases with `known-uninspected-content` from whole-page detector accuracy denominators. Historical captures without `coverage.status` still use `embeddedFrames` to avoid silently counting missing interior observations as true negatives. The scorer reports these separately under `coverageExcluded`. Labels are never inferred from Chromium data.
+
 ## Label independently
 
 Before consulting `audit.json` findings, a named human reviewer should

@@ -94,6 +94,12 @@ assets, hidden files, denied extensions, traversal, symlinks, file URL input
 and HTTP URL passthrough. The package validator requires the server module
 to be present in the installable npm tarball.
 
+## Opt-in frame document inventory
+
+`src/frame-inventory.ts` is a pure, bounded normalizer for `Page.getFrameTree` and `DOMSnapshot.captureSnapshot`; `src/frame-inspector.ts` is the Chromium adapter. Its purpose is to account for frame documents visible in the browser frame tree but absent from the returned DOM snapshot. It does not claim to inspect cross-origin layout or determine root causes, and a captured layout-object count is not a quality assertion. Inventory is only collected when `audit --frame-inventory` is requested, and ordinary no-frame pages avoid a full DOMSnapshot call. `--fail-on-coverage-gaps` is unchanged: known embedded content remains unverified until dedicated inner-frame analyzers exist. Captured URLs are sanitized and report elements are bounded.
+
+The field benchmark scorer independently excludes content-coverage gaps from whole-page precision and recall even if capture bytes are complete and independently human-reviewed. This also applies to legacy captures where `coverage.status` did not yet exist but embedded frame counts were positive.
+
 ## Zero-contract mechanical audit
 
 `src/audit-browser.ts` is a self-contained DOM capture adapter
