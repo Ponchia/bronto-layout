@@ -132,7 +132,8 @@ export function createBatchCommand({ output }) {
       try { report = JSON.parse(child.stdout); } catch { report = null; }
       const exitCode = (child.status === 0 || child.status === 1) && report?.mode === job.mode
         ? child.status : 2;
-      const status = exitCode === 2 ? 'error' : exitCode === 1 ? 'violations' : 'pass';
+      const status = exitCode === 2 ? 'error' : exitCode === 1 ?
+        job.mode === 'audit' ? 'measured-issues' : 'violations' : 'pass';
       return {
         id: job.id, mode: job.mode, status, exitCode,
         ...(report ? { result: report } : {
@@ -156,6 +157,7 @@ export function createBatchCommand({ output }) {
       total: outcomes.length,
       passed: outcomes.filter(j => j.status === 'pass').length,
       violations: outcomes.filter(j => j.status === 'violations').length,
+      auditJobsWithIssues: outcomes.filter(j => j.status === 'measured-issues').length,
       errors: outcomes.filter(j => j.status === 'error').length,
       checksPassed: outcomes.reduce((n, j) => n + (j.result?.summary?.passed ?? 0), 0),
       checksFailed: outcomes.reduce((n, j) => n + (j.result?.summary?.failed ?? 0), 0),
@@ -177,11 +179,12 @@ export function createBatchCommand({ output }) {
             (j.result?.summary?.reviewWarnings ?? 0) + ' review warning(s)'
           : (j.result?.summary?.failed ?? 0) + ' failed checks') + ')'),
       'Total: ' + summaryData.passed + ' passed, ' + summaryData.violations +
-        ' with violations, ' + summaryData.errors + ' errors'
+        ' with approved-contract violations, ' + summaryData.auditJobsWithIssues +
+        ' audit jobs with measured issues, ' + summaryData.errors + ' errors'
     ].join('\n');
     await output(a, result, printable);
     if (summaryData.errors) process.exitCode = 2;
-    else if (summaryData.violations) process.exitCode = 1;
+    else if (summaryData.violations || summaryData.auditJobsWithIssues) process.exitCode = 1;
   }
 
   return batch;

@@ -218,8 +218,10 @@ values. Each job has its own browser profile; no login state is shared.
 **Exit codes:** `0` means no measured issues/violated contracts for the sampled
 states (review warnings may still exist); `1` means at least one measured issue
 or violated approved contract; `2` means at least one invalid/unverified job.
-Batch summaries keep `checksPassed`/`checksFailed` for contract rules **separate**
-from `auditMeasuredIssues`, `auditReviewWarnings`, and
+Audit jobs with observed mechanical errors use the `measured-issues` status,
+not the `violations` status reserved for failed approved contracts. Batch summaries
+keep `violations` and `checksPassed`/`checksFailed` **separate** from
+`auditJobsWithIssues`, `auditMeasuredIssues`, `auditReviewWarnings`, and
 `auditIncompleteViewports`. Experimental review-only leads never become strict
 failures without explicitly approved contracts. This is not a visual QA verdict,
 real-world precision/recall benchmark, or proof of iframe/canvas coverage.

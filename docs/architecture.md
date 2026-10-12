@@ -402,8 +402,10 @@ contracts and audit action files are parsed before Chromium is launched.
 `bin/batch-command.mjs` dispatches to the installed CLI entrypoint through
 `execFile(process.execPath, argv)` and never through a shell. It preserves
 1–4 isolated Chromium processes, manifest order, bounded child timeouts,
-and truthful 0/1/2 exit semantics. The aggregate summary never conflates
-explicit contract assertion counts with observed automatic audit issue counts.
+and truthful 0/1/2 exit semantics. Audit error observations use a distinct
+`measured-issues` job status, unlike `violations` for rejected explicit contracts.
+The aggregate summary never conflates explicit contract assertion counts with
+observed automatic audit issue counts.
 `--dry-run` reports the intended per-job modes, widths, state setup *counts*
 and coverage flags, not action input values.
 
