@@ -114,6 +114,8 @@ fragments and embedded data.
 with the existing DOM geometry snapshot to identify top-level horizontal
 overflow and classify results into measured observations and review-only
 warnings. It does not infer CSS root causes or report all overlaps as bugs.
+`summary.supportedScopeMeasured` states only that the supported DOM traversal was not truncated. `summary.verified` is now false when a **known uninspected frame** exists as well as when traversal truncates. The default `audit` command still returns exit 0 for a review-only frame gap with no measured failures; strict `--fail-on-coverage-gaps` returns exit 2. Field capture integrity uses `supportedScopeMeasured` independently from document coverage, preserving valid screenshots of partially uninspected pages. Neither value certifies canvas, paint order, closed shadow roots or arbitrary visual design.
+
 The audit summarizes viewport coverage and reports bounded omissions rather
 than hiding them. It deliberately does not recurse into frame documents or
 claim to understand canvas/WebGL internals.
@@ -169,6 +171,8 @@ It requires the same unique viewport widths in baseline/candidate reports,
 distinguishes new measured problems from improvements and review-only changes,
 and refuses to infer a clean state from truncated DOM traversal or ambiguous
 element paths.
+
+Before/after element paths can change when otherwise identical DOM content reorders. The comparator first matches unchanged paths, then uniquely occurring, sanitized broken-image resource URL paths (ignoring baseline/candidate host changes). It never treats duplicate paths or nonunique resource paths as stable identity. Where both sides still have unmatched elements, only genuine **net count changes** can be measured without attribution; equal counts with ambiguous identities are marked `unverified`, not simultaneously claimed as a new regression and a fix. This is conservative and can withhold judgments about real replacement defects; it is preferable to false certainty.
 
 Document-level overflow is compared quantitatively with a 1px significance
 floor. Broken images and possibly clipped text are compared by observed
