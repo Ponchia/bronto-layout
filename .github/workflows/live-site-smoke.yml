@@ -261,7 +261,11 @@ jobs:
             echo "::endgroup::"
           done
       - name: Run zero-contract responsive audits of first-party sites
-        if: ${{ inputs.automatic_audit || inputs.grid_gap_review || inputs.sibling_overlap_review }}
+        # Review evidence must still be collected when an earlier contract
+        # check reports a violation or a site temporarily fails to load.
+        # Without an explicit status function GitHub implicitly requires
+        # success() and would silently skip the opted-in diagnostic step.
+        if: ${{ !cancelled() && (inputs.automatic_audit || inputs.grid_gap_review || inputs.sibling_overlap_review) }}
         env:
           # The two review options are opt-in only. Enabling either one also
           # selects this audit step, rather than silently ignoring the request.
@@ -295,7 +299,9 @@ jobs:
               "${review_flags[@]}" "${extra[@]}" \
               --report "reports/auto-audit-$name.json" > "logs/auto-audit-$name.txt" 2>&1
             status=$?
-            set -e
+            # Even when navigation failed or the JSON report is absent/malformed,
+            # keep visiting the other allowlisted sites and preserve artifacts.
+            # A reporting failure is a failed observation, never a clean page.
             node - "$name" "reports/auto-audit-$name.json" <<'NODE'
           const fs = require('node:fs');
           const name = process.argv[2];
@@ -321,9 +327,11 @@ jobs:
               (leads.length>8?' (additional leads in retained JSON)':''));
           }
           NODE
-            if [ "$status" -ne 0 ]; then
+            report_status=$?
+            set -e
+            if [ "$status" -ne 0 ] || [ "$report_status" -ne 0 ]; then
               failures=$((failures + 1))
-              echo "::warning::Automatic audit $name exited $status; inspect retained report"
+              echo "::warning::Automatic audit $name exited $status, report validation exited $report_status; inspect retained logs and evidence"
             fi
             echo "::endgroup::"
           done
