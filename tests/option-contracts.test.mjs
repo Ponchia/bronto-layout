@@ -116,7 +116,6 @@ test('opt-in grid review can be combined with explicit audit interactions, never
 
 });
 
-
 test('doctor launch verification is a deliberate opt-in and sandbox override is not implied',()=>{
  const verified=argsFromCLI(['doctor','--verify-launch','--json']);
  assert.equal(verified.command,'doctor');
@@ -126,4 +125,19 @@ test('doctor launch verification is a deliberate opt-in and sandbox override is 
  assert.throws(()=>validateCommandOptions({command:'audit','verify-launch':true}),/only to doctor/);
  assert.throws(()=>validateCommandOptions({command:'doctor','no-sandbox':true}),/requires --verify-launch/);
  assert.match(HELP,/--verify-launch/);
+});
+
+test('experimental sibling overlap warnings require explicit audit opt-in and may combine with stateful scopes',()=>{
+ assert.match(HELP,/--sibling-overlap-review/);
+ const flags=argsFromCLI(['audit','--url','examples/audit-overlap-broken.html',
+  '--sibling-overlap-review','--grid-gap-review',
+  '--actions','examples/audit-overlap-actions.json','--dom-limit','25000',
+  '--width','375','--json','--compact']);
+ assert.equal(flags['sibling-overlap-review'],true);
+ assert.equal(flags['grid-gap-review'],true);
+ assert.doesNotThrow(()=>validateCommandOptions(flags));
+ assert.doesNotThrow(()=>validateCommandOptions({...flags,baseline:'examples/audit-overlap-healthy.html'}));
+ assert.throws(()=>validateCommandOptions({command:'check','sibling-overlap-review':true}),/applies only to audit/);
+ assert.throws(()=>validateCommandOptions({command:'suggest','sibling-overlap-review':true}),/applies only to audit/);
+
 });

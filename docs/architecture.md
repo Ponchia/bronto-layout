@@ -287,6 +287,27 @@ Formatting is not yet auto-rewritten across all historical files; add formatting
 
 The opt-in `audit --grid-gap-review` and opt-in before/after review comparison never change the measured-vs-review categories or the default automatic audit. A 12px transformed grid card in a controlled fixture generates a 12px lead without failing the audit; a healthy grid and an intentional `space-between` example produce no warning. Arbitrary CSS Grid placement, spans, animation, transforms and designer intent remain outside automatic strict assertions. Use an explicitly approved `uniform-gaps` contract if the developer chooses to enforce exact spacing. No independently human-labeled field precision/recall evidence exists yet for this experimental lead.
 
+## Opt-in flex/grid direct sibling overlap review (2026-10-12)
+
+The browser-native `capturePageAuditObservations(maxElements, gridGapReview,
+includeSiblingOverlapReview)` optionally checks substantial rectangle
+intersection between directly contained visible Flex/Grid items. It bounds the
+work to 120 eligible layout containers, 60 child boxes each, and one lead per
+container (up to 16 full paths), ignoring elements with explicit negative
+margins or absolute/fixed/sticky positioning and tiny boxes/intersections.
+This keeps the collector self-contained for CDP injection and avoids the
+broad false positives caused by arbitrary nested ancestors.
+
+The analyzer reports physical axis-aligned intersections, **not** paint-order
+occlusion or inferred intent. Its `possible-sibling-overlap` is strictly a
+`review` warning. The output includes a bounded parent locator, the two child
+locators and CSS pixel intersection dimensions. A before/after comparison can
+report new/worsened leads without returning a strict regression; changed
+child-pair identities and omitted candidate containers make the comparison
+unverified. Both the normal and existing field-benchmark commands leave the
+feature disabled. The evidence has not been independently labeled on real
+sites and must not be used to make detector-accuracy claims.
+
 ## Optional CSP-bound offline human review console (2026-10-12)
 
 `field-benchmark.mjs review-console` reuses the same integrity-verified index rows as the script-free `review-gallery`; its renderer in `scripts/field-review-console.mjs` never reads audit predictions or invents ground truth. Only an offline, source-hash-locked inline script handles inputs and direct user-triggered JSON downloads/imports. A restrictive CSP blocks remote connections, third-party scripts, frames and forms. The generated page does not store labels in a browser account, send requests, or auto-promote pending records. The exported JSON uses the existing `validateFieldLabels` protocol, including positive codes only after an explicit reviewer choice and attestations. DOM mutations, imported metadata and user notes use properties rather than `innerHTML`; untrusted site metadata is escaped and URL tokens are removed. Real Chromium tests exercise an actual local JSON file download and import. Partial imports are validated transactionally and update only their named case IDs; omitted cases retain unsaved form values, selected warnings and attestations. Full imports deliberately replace all cases. The console shows how many records were replaced, preventing silent loss of unrelated reviewer work.

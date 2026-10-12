@@ -261,3 +261,43 @@ test('new warning at another path is not treated as a persistent magnitude chang
  assert.equal(result.summary.unverifiedViewports,1);
  assert.match(result.unverified[0].reasons.join(' '),/Cannot identify/);
 });
+
+test('new and worsening significant sibling overlap remains review-only',()=>{
+ const oldFinding={...finding('possible-sibling-overlap','#grid',20),
+  relatedPaths:['#grid > .card:nth-child(1)','#grid > .card:nth-child(2)']};
+ const newFinding={...oldFinding,measuredPx:34};
+ const introduced=compare(page(),page(375,[oldFinding]));
+ assert.equal(introduced.summary.measuredRegressions,0);
+ assert.equal(introduced.summary.reviewChanges,1);
+ assert.equal(introduced.changes[0].kind,'review-new');
+ const worsening=compare(page(375,[oldFinding]),page(375,[newFinding]));
+ assert.equal(worsening.summary.measuredRegressions,0);
+ assert.equal(worsening.summary.reviewChanges,1);
+ assert.equal(worsening.changes[0].kind,'review-worsened');
+ assert.deepEqual([worsening.changes[0].baselineValue,worsening.changes[0].candidateValue],[20,34]);
+ const improved=compare(page(375,[newFinding]),page(375,[oldFinding]));
+ assert.equal(improved.changes[0].kind,'review-improved');
+});
+
+test('changing overlapping child pair in a parent cannot be treated as a proven magnitude regression',()=>{
+ const original={...finding('possible-sibling-overlap','#grid',12),
+  relatedPaths:['#first','#second']};
+ const replacement={...finding('possible-sibling-overlap','#grid',40),
+  relatedPaths:['#second','#third']};
+ const ambiguous=compare(page(375,[original]),page(375,[replacement]));
+ assert.equal(ambiguous.summary.measuredRegressions,0);
+ assert.equal(ambiguous.summary.reviewChanges,0);
+ assert.equal(ambiguous.summary.unverifiedViewports,1);
+ assert.match(ambiguous.unverified[0].reasons.join(' '),/different child pairs/);
+ const missingPaths=compare(page(),page(375,[finding('possible-sibling-overlap','#grid',25)]));
+ assert.equal(missingPaths.summary.unverifiedViewports,1);
+ assert.match(missingPaths.unverified[0].reasons.join(' '),/lacks two unique child locators/);
+});
+
+test('bounded overlap inspection omissions exclude ambiguous before-after accuracy',()=>{
+ const candidate=page(375,[],{coverage:{overlapContainersInspected:120,overlapContainersOmitted:1}});
+ const result=compare(page(),candidate);
+ assert.equal(result.summary.measuredRegressions,0);
+ assert.equal(result.summary.unverifiedViewports,1);
+ assert.match(result.unverified[0].reasons.join(' '),/sibling overlap review omitted candidate/);
+});

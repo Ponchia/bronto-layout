@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- Add opt-in `audit --sibling-overlap-review`, a bounded Flex/Grid direct-sibling rectangle intersection analyzer that skips common intentional overlap patterns. Findings include both child paths, are always nonblocking review warnings, and support conservative before/after review changes without inventing CSS causes or real-world accuracy claims.
 - Add opt-in `doctor --verify-launch` to open and close a temporary blank Chromium/CDP session rather than assuming executable detection proves startup. Explicit sandbox bypass remains separately disclosed, and no external site is opened; default version-only doctor behavior is unchanged.
+
 - Harden the offline npm tarball release gate with a second independent **ordinary** installation (lifecycle scripts enabled), exercising the CLI version, contract validation and public TypeScript API without source dependencies. Clarify that independent field-review scripts and benchmark manifests require a source checkout and are deliberately omitted from the installable CLI tarball.
 
 - Prevent data loss when importing a partial independent-review JSON draft: validate all incoming records before applying any, replace only named cases and preserve in-progress controls for every omitted case. Browser regression tests verify the merged export remains schema-valid, including the complete 30-state field capture.

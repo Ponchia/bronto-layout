@@ -1,10 +1,14 @@
-import type { PageAuditObservations, ImageLead, TextClipLead, GridGapLead } from './audit.js';
+import type { PageAuditObservations, ImageLead, TextClipLead, GridGapLead, SiblingOverlapLead } from './audit.js';
 
 /**
  * Browser-native, self-contained DOM walk. Must remain closure-free so the CLI
  * can inject the function source into any Chromium tab.
  */
-export function capturePageAuditObservations(maxElements = 18000, includeGridGapReview = false): PageAuditObservations {
+export function capturePageAuditObservations(
+  maxElements = 18000,
+  includeGridGapReview = false,
+  includeSiblingOverlapReview = false
+): PageAuditObservations {
   // DOM enumeration is potentially expensive on large/virtualized apps. Leave
   // the conservative 18k default in place; higher bounds require explicit CLI
   // opt-in and never imply that uninspected page surfaces are correct.
@@ -20,6 +24,12 @@ export function capturePageAuditObservations(maxElements = 18000, includeGridGap
   let gridContainersInspected = 0;
   let gridContainersOmitted = 0;
   const MAX_GRID_CANDIDATES = 120;
+  const siblingOverlapLeads: SiblingOverlapLead[] = [];
+  const MAX_OVERLAP_CANDIDATES = 120;
+  const MAX_OVERLAP_CHILDREN = 60;
+  let siblingOverlapCount = 0;
+  let overlapContainersInspected = 0;
+  let overlapContainersOmitted = 0;
   let visitedElements = 0;
   let visibleElements = 0;
   let totalImages = 0;
@@ -139,6 +149,67 @@ export function capturePageAuditObservations(maxElements = 18000, includeGridGap
         }
       }
     }
+    // Opt-in only: two *direct* children of a flex/grid layout occupy
+    // substantially intersecting axis-aligned boxes. This is a geometric
+    // lead, NOT proof of paint-layer occlusion, intent, or a CSS root cause.
+    if (includeSiblingOverlapReview &&
+        ['flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display) &&
+        el.children.length >= 2) {
+      if (overlapContainersInspected >= MAX_OVERLAP_CANDIDATES) {
+        overlapContainersOmitted++;
+      } else {
+        overlapContainersInspected++;
+        if (el.children.length > MAX_OVERLAP_CHILDREN) {
+          overlapContainersOmitted++;
+        } else {
+          const boxes: Array<{ el: Element; rect: DOMRect }> = [];
+          for (const child of Array.from(el.children)) {
+            const childStyle = getComputedStyle(child);
+            if (childStyle.display === 'none' ||
+                childStyle.visibility === 'hidden' ||
+                childStyle.visibility === 'collapse' ||
+                ['absolute', 'fixed', 'sticky'].includes(childStyle.position)) continue;
+            // Negative margins often express intentionally overlapping avatars,
+            // badges, etc. Do not infer their intended visual composition.
+            if ([childStyle.marginLeft, childStyle.marginRight,
+                 childStyle.marginTop, childStyle.marginBottom].some(value =>
+                Number.parseFloat(value) < -0.5)) continue;
+            const childRect = child.getBoundingClientRect();
+            if (childRect.width >= 24 && childRect.height >= 24 &&
+                Number.isFinite(childRect.x) && Number.isFinite(childRect.y) &&
+                Number.isFinite(childRect.right) && Number.isFinite(childRect.bottom)) {
+              boxes.push({ el: child, rect: childRect });
+            }
+          }
+          let found = false;
+          for (let i = 0; i < boxes.length && !found; i++) {
+            for (let j = i + 1; j < boxes.length; j++) {
+              const first = boxes[i].rect, second = boxes[j].rect;
+              const width = Math.min(first.right, second.right) - Math.max(first.left, second.left);
+              const height = Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top);
+              // Tiny edge contact and font rounding are common and unhelpful.
+              if (width < 5 || height < 5) continue;
+              const area = width * height;
+              const smaller = Math.min(first.width * first.height, second.width * second.height);
+              const fraction = area / smaller;
+              if (area < 200 || fraction < 0.12) continue;
+              siblingOverlapCount++;
+              if (siblingOverlapLeads.length < MAX_LEADS) siblingOverlapLeads.push({
+                path: pathFor(el),
+                children: [pathFor(boxes[i].el), pathFor(boxes[j].el)],
+                overlapWidthPx: Number(width.toFixed(2)),
+                overlapHeightPx: Number(height.toFixed(2)),
+                overlapAreaPx: Number(area.toFixed(2)),
+                overlapFraction: Number(fraction.toFixed(4)),
+                overlapExtentPx: Number(Math.min(width, height).toFixed(2))
+              });
+              found = true; // One lead per layout parent; no pair explosion.
+              break;
+            }
+          }
+        }
+      }
+    }
     if (el instanceof HTMLImageElement) {
       const src = el.getAttribute('src') || el.getAttribute('srcset') || el.currentSrc;
       if (src) {
@@ -186,6 +257,10 @@ export function capturePageAuditObservations(maxElements = 18000, includeGridGap
     intentionalEllipses, visuallyHiddenTextExcluded, embeddedFrames,
     ...(includeGridGapReview ? {
       gridGapCount, gridGapLeads, gridContainersInspected, gridContainersOmitted
+    } : {}),
+    ...(includeSiblingOverlapReview ? {
+      siblingOverlapCount, siblingOverlapLeads,
+      overlapContainersInspected, overlapContainersOmitted
     } : {})
   };
 }

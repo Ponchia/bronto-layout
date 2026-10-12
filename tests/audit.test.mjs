@@ -115,3 +115,39 @@ test('an irregular CSS-grid spacing lead remains nonblocking review evidence',()
  assert.equal(report.findings[0].classification,'review');
  assert.equal(report.findings[0].measuredPx,12);
 });
+
+test('opt-in sibling box overlap is a nonblocking review lead with bounded element references',()=>{
+ const observations=obs();
+ observations.siblingOverlapCount=1;
+ observations.siblingOverlapLeads=[{path:'#gallery',
+  children:['#gallery > .card:nth-child(1)','#gallery > .card:nth-child(2)'],
+  overlapWidthPx:29,overlapHeightPx:70,overlapAreaPx:2030,
+  overlapFraction:.29,overlapExtentPx:29}];
+ observations.overlapContainersInspected=1;
+ observations.overlapContainersOmitted=0;
+ const result=analyzePageAudit(snap(),observations);
+ assert.equal(result.summary.errors,0);
+ assert.equal(result.summary.warnings,1);
+ assert.equal(result.summary.verified,true);
+ assert.equal(result.findings[0].code,'possible-sibling-overlap');
+ assert.equal(result.findings[0].classification,'review');
+ assert.equal(result.findings[0].measuredPx,29);
+ assert.deepEqual(result.findings[0].relatedPaths,observations.siblingOverlapLeads[0].children);
+ assert.match(result.findings[0].message,/does not prove painted occlusion/i);
+});
+
+test('bounded overlap leads disclose omitted groups without inventing reported element paths',()=>{
+ const evidence=obs();
+ evidence.siblingOverlapCount=30;
+ evidence.siblingOverlapLeads=[{path:'#first',children:['#a','#b'],
+  overlapWidthPx:25,overlapHeightPx:40,overlapAreaPx:1000,
+  overlapFraction:.25,overlapExtentPx:25}];
+ evidence.overlapContainersOmitted=2;
+ const report=analyzePageAudit(snap(),evidence);
+ assert.equal(report.summary.errors,0);
+ assert.equal(report.summary.warnings,2);
+ assert.equal(report.findings[1].code,'possible-sibling-overlap');
+ assert.equal(report.findings[1].count,29);
+ assert.equal(report.findings[1].path,undefined);
+ assert.ok(report.coverage.limitations.some(s=>/overlap.*omitted/i.test(s)));
+});

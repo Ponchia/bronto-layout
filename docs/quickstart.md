@@ -120,6 +120,29 @@ instant/viewport; late animations, authenticated sessions, iframe internals and
 complex drag interactions are not automatically covered. `--css-breakpoints`
 replays setup at the discovered threshold widths too.
 
+### Find potential sibling collisions without first writing a contract
+
+The optional automatic overlap review can surface intersecting Flexbox/Grid
+children that do not widen the document:
+
+```sh
+bronto-layout audit --url examples/audit-overlap-broken.html \
+  --sibling-overlap-review --width 375 --json --compact
+```
+
+The shipped transform example returns a **review warning** for the two card
+rectangles that intersect by 29 CSS px; it does not return a contract violation.
+Negative-margin avatar stacks and absolute overlays are deliberately excluded.
+The result is a geometric prompt for review, not a determination of wrong
+placement, visual occlusion or CSS cause. Optional before/after comparisons
+show new/worsened review leads but do not fail for them. Missing evidence
+and inspection caps remain unverified rather than positive or clean results.
+
+`--sibling-overlap-review` can also be used with `--actions` to inspect an
+expanded component, `--grid-gap-review` for separate horizontal-gap hints,
+and `--dom-limit` to enlarge a bounded scan when needed. The default `audit`
+remains unchanged; use approved contracts to enforce intentional positioning.
+
 ## Make an intentional layout regression check
 
 Observe candidate relationships at multiple widths, then explicitly approve only the ones you want to preserve:

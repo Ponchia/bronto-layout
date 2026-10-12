@@ -295,6 +295,44 @@ spacing lead after replaying `gallery-toggle-actions.json`.
 The bundled example `gallery.html` produces no warning, while `gallery-broken.html` produces a nonblocking **12px** lead (gaps 16px/28px against declared 16px) with this option. For blocking CI assertions, approve an intentional `uniform-gaps` contract instead. Experimental review warnings are not part of the current 33-case controlled benchmark score or the human-labeled 30-state field cohort; they must be validated independently before promotion to strict checks.
 
 
+### Experimental direct sibling overlap review (opt-in)
+
+Review possible collisions between sizeable direct Flexbox/Grid children, even
+when the document has **no horizontal overflow**:
+
+```sh
+bronto-layout audit --url examples/audit-overlap-broken.html \
+  --sibling-overlap-review --width 375 --json --compact
+bronto-layout audit --baseline examples/audit-overlap-healthy.html \
+  --url examples/audit-overlap-broken.html \
+  --sibling-overlap-review --width 375 --json --compact
+```
+
+`possible-sibling-overlap` identifies the parent and **both observed child
+locators** and reports the intersecting axis-aligned CSS rectangles. It is an
+opt-in `review` warning only, **never a blocking layout failure or proof of
+painted occlusion**. It can report a new/worsened overlap between revisions
+without claiming that the visual design is wrong. The bundled broken page
+moves a 100×70px card into its sibling by 29 CSS px; the healthy page and an
+intentional negative-margin avatar/absolute overlay example do not warn.
+
+Only direct visible Flex/Grid child rectangles at least 24×24 CSS px are
+considered. Children using explicit negative margins or absolute/fixed/sticky
+positioning are skipped to limit common false positives; very small overlaps
+(under 5 CSS px per axis, under 200 CSS px², or under 12% of the smaller box)
+are ignored. One lead per container, up to 120 containers, at most 60 direct
+children each, and 16 returned leads keep the traversal bounded. Omitted
+candidates/leads are disclosed; an automatic comparison with known omissions
+is **unverified**, never certified clean.
+
+The option composes with `--grid-gap-review`, `--actions FILE` and
+`--dom-limit N`. It is **off by default**, not included in the controlled
+33-case labels or the first-party 30-state capture, and has **no independently
+measured real-world precision or recall**. Transforms, spanning, SVG paint,
+clipping masks, z-order and deliberate overlays can make axis-aligned box
+intersection quite different from a real visible defect. Approve an explicit
+layout contract only after deciding which relationships are intentional.
+
 ## Inspect CSS container queries (opt-in)
 
 Modern components can switch layout based on the size of an ancestor CSS

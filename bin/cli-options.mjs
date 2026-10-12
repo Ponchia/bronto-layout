@@ -66,6 +66,7 @@ Options:
   --fail-on-coverage-gaps  Audit: exit 2 for known uninspected content (e.g. iframes)
   --frame-inventory     Audit: opt-in CDP frame-tree/DOMSnapshot evidence (not inner-frame checks)
   --grid-gap-review     Audit: opt-in CSS grid spacing anomalies as REVIEW-ONLY warnings
+  --sibling-overlap-review  Audit: opt-in significant grid/flex child box overlaps as REVIEW-ONLY warnings
   --out FILE            Output path for init (default: bronto-layout.json)
   --force               Overwrite an existing file with init
   --help                Show this help
@@ -85,7 +86,7 @@ const OPTIONS = {
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'verify-launch': { type: 'boolean' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
-  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' }, 'grid-gap-review': { type: 'boolean' }, 'full-page-evidence': { type: 'boolean' },
+  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' }, 'grid-gap-review': { type: 'boolean' }, 'sibling-overlap-review': { type: 'boolean' }, 'full-page-evidence': { type: 'boolean' },
   out: { type: 'string' }, draft: { type: 'string' }, actions: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
@@ -203,6 +204,7 @@ export function validateCommandOptions(a) {
   if (a['verify-launch'] && a.command !== 'doctor') throw new Error('--verify-launch applies only to doctor');
   if (a.command === 'doctor' && a['no-sandbox'] && !a['verify-launch'])
     throw new Error('doctor --no-sandbox requires --verify-launch to avoid a misleading detection-only result');
+  if (a['sibling-overlap-review'] && a.command !== 'audit') throw new Error('--sibling-overlap-review applies only to audit');
   if (a.actions && !['suggest', 'audit'].includes(a.command)) throw new Error('--actions applies only to suggest or audit; checks replay saved contract.actions');
   if (a.command === 'review-draft' &&
       ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',
