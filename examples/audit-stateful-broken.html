@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reviewed state broken</title>
+<style>html,body{margin:0}body{font:16px system-ui}button,input{margin:12px}#panel[hidden]{display:none}#panel{box-sizing:border-box;width:calc(100vw + 44px);height:80px;background:#fdd;padding:8px}#panel img{width:48px;height:32px;object-fit:cover}</style>
+</head><body>
+<button id="open" onclick="document.querySelector('#panel').hidden=false">Show detail panel</button>
+<input id="comment" aria-label="Reviewer input" oninput="document.querySelector('#note').textContent=this.value">
+<div id="panel" hidden><span id="note">Waiting for input</span><img src="missing-stateful-resource.png" alt="Broken only in visible state"></div>
+</body></html>

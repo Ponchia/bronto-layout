@@ -73,3 +73,20 @@ test('option restrictions remain explicit, pure and reject incompatible command 
  ];
  for(const [args,expected] of invalid)assert.throws(()=>validateCommandOptions(args),expected);
 });
+
+
+test('extracted command validation accepts explicit audit state replay but never arbitrary check-time actions',()=>{
+  assert.match(HELP,/bronto-layout audit --url URL \[--actions steps\.json\]/);
+  const a=argsFromCLI(['audit','--url','examples/audit-stateful-broken.html','--actions','examples/audit-stateful-actions.json',
+    '--width','375','--json','--compact']);
+  assert.equal(a.command,'audit');
+  assert.equal(a.actions,'examples/audit-stateful-actions.json');
+  assert.deepEqual(getWidths(a),[375]);
+  assert.doesNotThrow(()=>validateCommandOptions(a));
+  assert.doesNotThrow(()=>validateCommandOptions({...a,baseline:'examples/audit-stateful-healthy.html'}));
+  assert.doesNotThrow(()=>validateCommandOptions({command:'suggest',url:'examples/healthy.html',actions:'steps.json'}));
+  assert.throws(()=>validateCommandOptions({command:'check',spec:'examples/layout.json',actions:'steps.json'}),
+    /applies only to suggest or audit/);
+  assert.throws(()=>validateCommandOptions({command:'review-draft',draft:'a',actions:'steps.json'}),
+    /applies only to suggest or audit/);
+});

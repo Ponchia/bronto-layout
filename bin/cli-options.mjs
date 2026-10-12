@@ -9,7 +9,7 @@ export const HELP = `Bronto Layout — browser-native spatial contracts
 Usage:
   bronto-layout doctor [--json] [--chrome PATH]
   bronto-layout check --spec layout.json [--url URL] [--json|--sarif] [--report FILE]
-  bronto-layout audit --url URL [--widths 320,375,768,1280] [--json --compact]
+  bronto-layout audit --url URL [--actions steps.json] [--widths 320,375,768,1280] [--json --compact]
   bronto-layout audit --baseline URL --url URL [--json --compact]
   bronto-layout inspect --url URL [--selector name=CSS ...] [--width 375] [--json]
   bronto-layout init [--url URL] [--out bronto-layout.json]
@@ -43,7 +43,7 @@ Options:
   --max-samples N       Maximum samples, including refinement (default: 200)
   --selector name=CSS   Named selector for inspect or suggest; can be repeated
   --draft FILE          Candidate draft for review-draft or approve
-  --actions FILE        Declarative JSON setup actions for suggest (saved with approved contract)
+  --actions FILE        Declarative JSON interactions for suggest or audit (no JS eval; audit repeats per viewport)
   --accept CSV          Proposal IDs chosen for approval
   --css-sources         Include matched CSS hints in inspect or failed check widths
   --container-queries   Inspect CSS @container conditions and observed container sizes
@@ -194,7 +194,7 @@ export function validateCommandOptions(a) {
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
   if (a['frame-inventory'] && a.command !== 'audit') throw new Error('--frame-inventory applies only to audit');
-  if (a.actions && a.command !== 'suggest') throw new Error('--actions applies only to suggest; checks replay saved contract.actions');
+  if (a.actions && !['suggest', 'audit'].includes(a.command)) throw new Error('--actions applies only to suggest or audit; checks replay saved contract.actions');
   if (a.command === 'review-draft' &&
       ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',
         'reduced-motion','normal-motion','color-scheme','locale','height','settle',

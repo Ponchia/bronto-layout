@@ -52,6 +52,41 @@ bronto-layout check --spec reports/gallery-contract.json \
 
 Expected: the automatic audit has no strict measured problems; `review-draft` prints the observed **12px** gap deviation versus **2px** tolerance at both widths and exits 1; the final approved contract also fails on that difference. These exit codes are intentional for this exercise. No rule was silently approved. For your own page, carefully review each proposed relationship and use `approve --accept` only for behaviors you want to enforce.
 
+## Audit an interactive page state without writing a layout contract
+
+For interactive menus, expanded panels and form states, run `audit --actions` with a
+**declarative** setup file. Every sampled viewport starts with a fresh page navigation;
+the validated actions are replayed **after readiness/settle and before geometry, audit
+findings, screenshots and optional iframe inventory**. The initial state remains the
+default when `--actions` is omitted.
+
+```sh
+bronto-layout audit --url examples/audit-stateful-broken.html --widths 375,768 --json --compact
+bronto-layout audit --url examples/audit-stateful-broken.html \
+  --actions examples/audit-stateful-actions.json --widths 375,768 --json --compact
+bronto-layout audit --baseline examples/audit-stateful-healthy.html \
+  --url examples/audit-stateful-broken.html \
+  --actions examples/audit-stateful-actions.json --width 375 --json --compact
+```
+
+The included fixture is intentionally misleading when closed: the first command
+finds zero measured errors, while opening the panel reveals horizontal overflow
+and a missing image. The baseline/candidate comparison replays the **same setup
+independently** on both versions and reports newly observed mechanical problems.
+A bounded JSON report includes only `stateSetup.actionCount` and `actionTypes`,
+**never selectors or filled input values**; keep the original action file private
+if it contains information you should not share. Do not use production credentials
+in these test fixtures.
+
+Actions allow only `click`, `fill`, `wait-for`, `scroll-into-view` and bounded
+`pause` (maximum 30 steps), without accepting arbitrary JavaScript. An absent
+action selector or invalid file returns exit `2`, not a passing result. Use
+`--ready-selector`, an explicit `wait-for` or bounded `pause` when the application
+requires hydration/network settling. The observed state is only the configured
+instant/viewport; late animations, authenticated sessions, iframe internals and
+complex drag interactions are not automatically covered. `--css-breakpoints`
+replays setup at the discovered threshold widths too.
+
 ## Make an intentional layout regression check
 
 Observe candidate relationships at multiple widths, then explicitly approve only the ones you want to preserve:

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Support declarative `audit --actions FILE` and automatic `audit --baseline ... --actions FILE` to replay user-selected UI states independently at every width, including media-query threshold scans. This exposes previously hidden overflow and failed images after opening panels; reports preserve action type/count provenance without leaking filled values. Missing selectors and malformed actions fail closed; no automatic authentication or arbitrary JS.
 - Separate strict CLI parsing, command-option validation, numeric viewport parsing and approved browser scenario precedence into browser-free `bin/cli-options.mjs`. Keep the same commands/exit behavior, add direct pure tests and require the new module in isolated npm installs.
 - Add opt-in 16-route cold CLI stress profiling with a trusted local-only mixed-state batch and synthetic 500/5,000/20,000-element DOM fixtures. Measure repeatable wall-clock times while preserving expected failing contracts and explicit audit traversal truncation; no performance or accuracy claims for production pages.
 
