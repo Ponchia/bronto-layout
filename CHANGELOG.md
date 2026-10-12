@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Update GitHub Actions checkout/setup-node/upload-artifact to maintained Node 24-compatible v7 major tags; disable checkout credential persistence in read-only CI, macOS and manual smoke workflows. No application runtime changes.
+
+
 - Add `review-draft` to replay *unapproved* browser-observed relationships against a later revision at the same recorded widths and scenario, reporting still-satisfied/changed/unverified with distinct exit codes. No rule is approved or automatically repaired.
 - Disclose selector discovery limit reasons when the 500-element candidate limit, 20-unique-selector cap or six-repeated-group cap prevents further inspection. Review reports retain this coverage evidence.
 
