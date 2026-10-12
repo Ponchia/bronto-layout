@@ -62,7 +62,7 @@ jobs:
           node scripts/field-benchmark.mjs capture \
             --manifest benchmarks/field-sites.v0.1.json \
             --out "reports/field-${GITHUB_RUN_ID}" "${args[@]}"
-      - name: Prepare offline independent-review gallery and worksheet
+      - name: Prepare offline independent-review gallery, worksheet and blank label draft
         if: always()
         shell: bash
         run: |
@@ -72,6 +72,8 @@ jobs:
               --captures "$dir" --out "$dir/review-gallery.html"
             node scripts/field-benchmark.mjs review-packet \
               --captures "$dir" --out "$dir/review-worksheet.md"
+            node scripts/field-benchmark.mjs review-label-template \
+              --captures "$dir" --out "$dir/review-labels-draft.json"
           else
             echo 'No capture index produced; skipping reviewer gallery.'
           fi

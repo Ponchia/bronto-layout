@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, realpathS
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateFieldManifest, scoreFieldEvidence } from './field-benchmark-core.mjs';
+import { validateFieldManifest, validateFieldLabels, scoreFieldEvidence } from './field-benchmark-core.mjs';
 import { renderFieldReviewGallery } from './field-review-gallery.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -49,6 +49,8 @@ Usage:
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
   node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
   node scripts/field-benchmark.mjs review-gallery --captures reports/field-run --out gallery.html [--json]
+  node scripts/field-benchmark.mjs review-label-template --captures reports/field-run --out labels-draft.json [--json]
+  node scripts/field-benchmark.mjs review-progress --captures reports/field-run --labels labels-draft.json [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
 Captures are not ground-truth labels. Scores exclude unreviewed/unavailable states.`;
 }
@@ -274,6 +276,72 @@ function runReviewGallery() {
     result.readyForReview+'/'+result.total+' hash-verified; no labels inferred)\n');
 }
 
+/** Create an editable, deliberately unscorable BLANK ground-truth worksheet.
+ * No predictions or default negative labels are copied from audit evidence.
+ */
+function runReviewLabelTemplate() {
+  const captureName = opt('--captures');
+  const outName = opt('--out');
+  if (!captureName || !outName) throw new Error('review-label-template requires --captures and --out');
+  const captures = path.resolve(captureName);
+  const destination = path.resolve(outName);
+  if (existsSync(destination)) throw new Error('Review label template already exists; do not overwrite human work');
+  const index = readJSON(path.join(captures, 'index.json'));
+  const rows = fieldReviewEvidenceRows(index, captures);
+  if (new Set(rows.map(item => item.id)).size !== rows.length)
+    throw new Error('Duplicate case IDs in evidence index');
+  const labels = {
+    schemaVersion: 1,
+    datasetId: index.datasetId,
+    reviewProtocol: 'Independent human review of rendered pages, screenshots, DOM and intentional exceptions BEFORE viewing automated Bronto Layout findings. Pending entries are NOT negative labels.',
+    cases: rows.map(row => ({ id: row.id, reviewStatus: 'pending' }))
+  };
+  // Validate early, but intentionally preserve pending entries as unscored.
+  validateFieldLabels(labels, index.datasetId, rows.map(item => item.id));
+  mkdirSync(path.dirname(destination), { recursive: true });
+  writeFileSync(destination, JSON.stringify(labels, null, 2) + '\n', { flag: 'wx' });
+  const result = { schemaVersion: 1, mode: 'field-review-label-template', datasetId: index.datasetId,
+    output: destination, cases: rows.length, pending: rows.length,
+    readyForHumanReview: rows.filter(row => row.readyForReview).length,
+    humanLabels: 0, detectorPredictionsIncluded: false };
+  if (has('--json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  else process.stdout.write('Created unreviewed label draft: ' + destination + ' (' +
+    rows.length + ' pending, 0 human labels; no detector predictions).\n');
+}
+
+/** Human-review progress is separate from detector scoring and never opens audit reports. */
+function runReviewProgress() {
+  const captureName = opt('--captures');
+  const labelName = opt('--labels');
+  if (!captureName || !labelName) throw new Error('review-progress requires --captures and --labels');
+  const captures = path.resolve(captureName);
+  const index = readJSON(path.join(captures, 'index.json'));
+  const rows = fieldReviewEvidenceRows(index, captures);
+  const labels = readJSON(path.resolve(labelName));
+  validateFieldLabels(labels, index.datasetId, rows.map(item => item.id));
+  const byId = new Map(labels.cases.map(item => [item.id, item]));
+  const pending = [], reviewed = [], unreviewable = [], unsafe = [];
+  for (const row of rows) {
+    const label = byId.get(row.id);
+    if (!label || label.reviewStatus === 'pending') pending.push(row.id);
+    else if (label.reviewStatus === 'reviewed') reviewed.push(row.id);
+    else unreviewable.push(row.id);
+    if (!row.readyForReview) unsafe.push(row.id);
+  }
+  const result = { schemaVersion: 1, mode: 'field-review-progress', datasetId: index.datasetId,
+    total: rows.length, pending, reviewed, unreviewable,
+    evidenceUnsafe: unsafe, detectorPredictionsIncluded: false,
+    limitations: [
+      'Review status reflects reviewer declarations, never tool-confirmed human inspection',
+      'This command reads capture metadata and hashes but never detector findings or labels them',
+      'Use score only after independently supplying complete human-reviewed labels; frame coverage gaps are excluded from whole-page scoring'
+    ] };
+  if (has('--json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  else process.stdout.write('Human review progress: ' + reviewed.length + '/' + rows.length +
+    ' reviewed; ' + pending.length + ' pending; ' + unreviewable.length +
+    ' unreviewable; ' + unsafe.length + ' evidence-unsafe. No accuracy scored.\n');
+}
+
 function runScore() {
   const captures = path.resolve(opt('--captures'));
   const labelPath = opt('--labels');
@@ -323,7 +391,7 @@ try {
     throw new Error('--frame-inventory applies only to capture');
   if (has('--full-page-evidence') && action !== 'capture')
     throw new Error('--full-page-evidence applies only to capture');
-  if (has('--help')) console.log(usage());
+  if (has('--help') || action === '--help' || action === undefined) console.log(usage());
   else if (action === 'validate') {
     const manifest = opt('--manifest');
     if (!manifest) throw new Error('validate requires --manifest FILE');
@@ -333,7 +401,9 @@ try {
   else if (action === 'score') runScore();
   else if (action === 'review-packet') runReviewPacket();
   else if (action === 'review-gallery') runReviewGallery();
-  else throw new Error('Choose validate, capture, review-packet, review-gallery or score. Run --help.');
+  else if (action === 'review-label-template') runReviewLabelTemplate();
+  else if (action === 'review-progress') runReviewProgress();
+  else throw new Error('Choose validate, capture, review-packet, review-gallery, review-label-template, review-progress or score. Run --help.');
 } catch (error) {
   console.error('Field benchmark: ' + (error?.message || String(error)));
   process.exitCode = 2;

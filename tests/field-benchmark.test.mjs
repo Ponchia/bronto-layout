@@ -193,3 +193,29 @@ test('bounded below-fold field capture preserves image hashes and excludes tampe
   assert.equal(JSON.parse(badPacket.stdout).readyForReview,0);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('unfinished human label drafts remain pending rather than falsely clean',()=>{
+ const dataset='review-pending-proof';
+ const cases=[
+  {id:'case-reviewed',width:375,complete:true,screenshotVerified:true},
+  {id:'case-pending',width:375,complete:true,screenshotVerified:true}
+ ];
+ const labels={schemaVersion:1,datasetId:dataset,reviewProtocol:protocol,cases:[
+  {...reviewed('case-reviewed'),expectedMeasured:[],expectedReview:[]},
+  {id:'case-pending',reviewStatus:'pending'}
+ ]};
+ assert.doesNotThrow(()=>validateFieldLabels(labels,dataset,cases.map(c=>c.id)));
+ const report={mode:'audit',summary:{viewports:1},reports:[{width:375,
+  summary:{verified:true},coverage:{truncated:false,embeddedFrames:0,status:'supported-scope-measured'},
+  findings:[]}]};
+ const score=scoreFieldEvidence({schemaVersion:1,datasetId:dataset,cases},labels,{
+  'case-reviewed':report,'case-pending':report});
+ assert.deepEqual(score.pending,['case-pending']);
+ assert.equal(score.metrics.evaluatedCases,1);
+ assert.equal(score.metrics.measured.tp,0);
+ assert.equal(score.metrics.measured.precision,null);
+ assert.equal(score.metrics.measured.recall,null);
+ assert.throws(()=>validateFieldLabels({...labels,cases:[
+  {id:'case-pending',reviewStatus:'pending',expectedMeasured:[]}
+ ]},dataset,cases.map(c=>c.id)),/pending case cannot contain/);
+});
