@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Move finite `batch` manifest planning and isolated subprocess execution out of the shared CLI into `bin/batch-command.mjs`. Preserve bounded 1–4-way parallelism, manifest ordering and exit-code semantics; the child process path stays anchored to the installed CLI rather than the extracted module. Add browser-free plan tests and package-distribution coverage. No API or runtime dependency changes.
+
+
 - Extract zero-contract audit and before/after audit orchestration from the growing CLI into `bin/audit-command.mjs`, keeping browser lifecycle and shared scenario parsing in their existing modules. Preserve report/exit-code behavior, privacy-safe action summaries, coverage/iframe evidence and opt-in review leads; test the installed package includes the new module. No added runtime dependencies or automatic verdicts.
 
 
