@@ -16,7 +16,11 @@ The thesis: a layout should be testable by the *relationships between elements*,
 - Tests for pure geometry, browser states, RTL, responsive breakpoints, open Shadow DOM, and deliberate layout violations.
 - Bounded, observed element geometry and computed CSS evidence on failed rules; overflow diagnostics include possible overhanging elements, not asserted root causes.
 
-TypeScript is the only development dependency. The CLI has no runtime third-party dependencies and the included `dist/` lets the examples run without compilation.
+TypeScript and ESLint/TypeScript parsing tools are development-only dependencies. The CLI still has **zero third-party runtime dependencies**. CI runs strict TypeScript compilation and recommended static lint rules for the browser adapters, Node CLI, scripts and tests, plus a built-in V8 coverage gate for the core contract/evaluator/audit/comparison modules (minimum 90% lines, 85% branches and 80% functions over those four modules only). This is **not** a full-project or real-world detector-quality coverage claim.
+
+For contributors: `npm run lint` checks all source/CLI/test modules; `npm run test:unit` is the fast browser-free loop; `npm run coverage:unit` checks the portable-engine floor, and `npm run check` remains the full Chromium integration gate. Linting and coverage add no dependencies or features to the installed runtime.
+
+TypeScript is still the core build tool; ESLint is development-only. The CLI has no runtime third-party dependencies and the included `dist/` lets the examples run without compilation.
 
 ## Install from source
 
