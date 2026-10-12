@@ -219,3 +219,9 @@ The early v0.x schema may evolve; breaking changes will be documented in the cha
 - Batch jobs remain isolated subprocesses, with optional 1..4 worker concurrency and serial execution as the default. Browser startup is **not** reused across independent jobs; cookies and localStorage are intentionally kept separate.
 - Approved `scenario` and `actions` fields in version-1 contracts reproduce the explicit environment and declarative interactive state captured during suggestion. The CLI can override the environment on demand.
 - Audit `coverage.status` indicates whether the *supported top-document/open-shadow scope* was measured, known embedded frames were uninspected, or traversal was truncated. Closed roots and paint-order remain inherently unknown.
+
+## Bounded document screenshot evidence (2026-10-12)
+
+`src/bounded-screenshot.ts` is a pure CDP screenshot-clip planner from Chromium CSS layout metrics. The audit CLI captures the initial viewport normally and, only with `audit --evidence-dir ... --full-page-evidence`, writes a second PNG using `captureBeyondViewport` with a top-left clip capped at 4,096×6,000 CSS pixels / 12M CSS pixels. The report includes the measured document dimensions, captured rectangle, truncation status and source limitations. It does not alter `analyzePageAudit` or layout-contract evaluations.
+
+The field-capture wrapper can opt into that additional image, stores independent SHA-256 provenance, and requires its integrity when human review artifacts or scores reference it. The reviewer must still inspect the rendered page and interactions; static full-height capture is not an accessibility, lazy-load, iframe or interactive correctness guarantee. The fullpage option remains disabled by default on production capture workflows to avoid unnecessary large artifacts and image exposure.

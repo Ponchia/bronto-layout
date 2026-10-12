@@ -5,6 +5,11 @@ name: Manual first-party field benchmark capture
 on:
   workflow_dispatch:
     inputs:
+      full_page_evidence:
+        description: 'Preserve an additional size-bounded below-fold screenshot per selected state (not a layout verdict)'
+        required: false
+        default: false
+        type: boolean
       frame_inventory:
         description: 'Collect optional Chromium DOMSnapshot frame inventory (evidence, not inner-frame checks)'
         required: false
@@ -44,6 +49,7 @@ jobs:
         env:
           CASE_IDS: ${{ inputs.ids }}
           FRAME_INVENTORY: ${{ inputs.frame_inventory }}
+          FULL_PAGE_EVIDENCE: ${{ inputs.full_page_evidence }}
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: |
           # Chromium user namespaces are restricted on hosted CI; bypass the
@@ -52,6 +58,7 @@ jobs:
           args=()
           if [ "$CASE_IDS" != "all" ]; then args+=(--ids "$CASE_IDS"); fi
           if [ "$FRAME_INVENTORY" = "true" ]; then args+=(--frame-inventory); fi
+          if [ "$FULL_PAGE_EVIDENCE" = "true" ]; then args+=(--full-page-evidence); fi
           node scripts/field-benchmark.mjs capture \
             --manifest benchmarks/field-sites.v0.1.json \
             --out "reports/field-${GITHUB_RUN_ID}" "${args[@]}"

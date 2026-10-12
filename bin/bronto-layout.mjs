@@ -17,6 +17,7 @@ import { reviewContractProposals } from '../dist/proposal-review.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { captureFrameInventoryWithCDP } from '../dist/frame-inspector.js';
+import { planBoundedScreenshot } from '../dist/bounded-screenshot.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { parseContract, validWidth } from '../dist/contract.js';
@@ -88,6 +89,7 @@ Options:
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
   --report FILE         Write machine-readable JSON or SARIF report to disk
   --evidence-dir DIR    Annotated check screenshots; raw audit viewport screenshots
+  --full-page-evidence  Audit with --evidence-dir: bounded CSS document screenshot (not a correctness check)
   --fail-on-skip        Treat unmeasurable contract rules as failures in CI
   --fail-on-coverage-gaps  Audit: exit 2 for known uninspected content (e.g. iframes)
   --frame-inventory     Audit: opt-in CDP frame-tree/DOMSnapshot evidence (not inner-frame checks)
@@ -110,7 +112,7 @@ const OPTIONS = {
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
-  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' },
+  'evidence-dir': { type: 'string' }, 'fail-on-coverage-gaps': { type: 'boolean' }, 'frame-inventory': { type: 'boolean' }, 'full-page-evidence': { type: 'boolean' },
   out: { type: 'string' }, draft: { type: 'string' }, actions: { type: 'string' }, accept: { type: 'string' }, force: { type: 'boolean' }, 'fail-on-skip': { type: 'boolean' }, 'dry-run': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
 };
@@ -965,6 +967,18 @@ async function audit(a) {
         const screenshot = path.join(directory, `audit-${width}px.png`);
         await writeFile(screenshot, Buffer.from(image.data, 'base64'));
         report.screenshot = { file: screenshot, coverage: 'viewport-only' };
+        if (a['full-page-evidence']) {
+          const metrics = await cdp.send('Page.getLayoutMetrics');
+          const plan = planBoundedScreenshot(width, metrics);
+          const expanded = await cdp.send('Page.captureScreenshot', {
+            format: 'png', fromSurface: true, captureBeyondViewport: true,
+            clip: plan.clip
+          });
+          if (!expanded?.data) throw new Error('Chromium returned no bounded document screenshot');
+          const expandedPath = path.join(directory, `audit-${width}px-full.png`);
+          await writeFile(expandedPath, Buffer.from(expanded.data, 'base64'));
+          report.fullPageScreenshot = { file: expandedPath, ...plan };
+        }
       }
       reports.push(report);
     }
@@ -1005,6 +1019,7 @@ async function audit(a) {
       },
       findings: report.findings,
       ...(report.screenshot ? { screenshot: report.screenshot } : {}),
+      ...(report.fullPageScreenshot ? { fullPageScreenshot: report.fullPageScreenshot } : {}),
       ...(report.frameInventory ? { frameInventory: report.frameInventory } : {}),
       ...(report.stabilization ? { stabilization: report.stabilization } : {}),
       ...(report.layoutShifts ? { layoutShifts: {
@@ -1023,6 +1038,7 @@ async function audit(a) {
         ' review warnings; ' + report.coverage.visitedElements + ' DOM elements traversed' +
         (report.coverage.status === 'truncated' ? ' (TRUNCATED)' :
           report.coverage.status === 'known-uninspected-content' ? ' (PARTIAL COVERAGE)' : ''),
+      ...(report.fullPageScreenshot ? ['  Bounded page evidence: '+report.fullPageScreenshot.capturedWidth+'×'+report.fullPageScreenshot.capturedHeight+' CSS px ('+report.fullPageScreenshot.coverage+')'] : []),
       ...(report.frameInventory ? ['  Frame inventory: '+report.frameInventory.observedFrameDocuments+' / '+report.frameInventory.frameCount+' declared frame documents observed by DOMSnapshot ('+report.frameInventory.status+', '+report.frameInventory.unresolvedDomFrames+' DOM frames unresolved); no inner-frame layout checks'] : []),
       ...report.findings.map(finding =>
         '  ' + finding.severity.toUpperCase() + ' ' + finding.code + ': ' + finding.message +
@@ -1184,6 +1200,8 @@ async function main() {
   if (a.command === 'audit' && a['stable-for'] !== undefined) throw new Error('audit --stable-for requires named selectors; use inspect or check with a contract instead');
   if (a.command === 'audit' && a['fail-on-skip']) throw new Error('audit has no contract skips; remove --fail-on-skip');
   if (a.command === 'audit' && a.refine) throw new Error('audit does not infer contracts for --refine; use scan with a contract');
+  if (a['full-page-evidence'] && (a.command !== 'audit' || a.baseline || !a['evidence-dir']))
+    throw new Error('--full-page-evidence requires audit --evidence-dir DIR without --baseline');
   if (a.command === 'audit' && a.baseline && a['evidence-dir']) throw new Error('Compared audit screenshots are not yet supported');
   if (a.command === 'batch' && !a.manifest) throw new Error('batch requires --manifest FILE');
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');

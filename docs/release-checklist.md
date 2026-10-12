@@ -22,6 +22,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.
 - [x] `review-packet` command generates an independent worksheet, never auto-populating labels.
+- [x] Optional bounded below-the-fold screenshots with digest verification and explicit truncation; original initial-viewport-only captures remain valid, and independent human labels are still required.
 - [ ] An independent reviewer labels all 30 captured states (including below-fold and relevant interactive content). Frame-bearing pages are excluded from whole-page accuracy scoring until their interiors can be verified.
 - [ ] Expand to independently verified positive and negative examples outside the current first-party cohort.
 - [ ] Report per-detector precision, recall, localization accuracy and unknown/partial coverage on that labeled dataset; no claim of superiority to Snug, Galen or Polypane without the same cases.

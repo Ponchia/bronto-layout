@@ -78,6 +78,8 @@ bronto-layout review-draft --draft reports/proposals.json \
 
 See [review-first contract discovery](docs/contract-discovery.md) for exact semantics and the explicit approval step.
 
+For reviewers needing below-the-fold visual context, the opt-in `audit --evidence-dir DIR --full-page-evidence` and manual field-capture `full_page_evidence=true` workflow store an additional size-bounded document screenshot. The capture is explicitly marked truncated for long/wide pages, hashes are verified, and automatic detectors never infer a design failure from the image. [Details and size limits](docs/field-benchmark.md).
+
 ## Independent field benchmark workflow
 
 A separate capture/label/score workflow prepares a 30-state first-party

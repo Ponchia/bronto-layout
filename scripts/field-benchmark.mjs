@@ -33,7 +33,7 @@ function usage() {
   return `Bronto Layout field benchmark — independent human labels only
 Usage:
   node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json
-  node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id] [--frame-inventory]
+  node scripts/field-benchmark.mjs capture --manifest FILE --out reports/field-run [--ids id,id] [--frame-inventory] [--full-page-evidence]
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
   node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
@@ -41,7 +41,7 @@ Captures are not ground-truth labels. Scores exclude unreviewed/unavailable stat
 }
 function assertKnownOptions() {
   const values = new Set(['--manifest', '--out', '--captures', '--labels', '--ids', '--report']);
-  const flags = new Set(['--fixtures', '--json', '--assert', '--help', '--frame-inventory']);
+  const flags = new Set(['--fixtures', '--json', '--assert', '--help', '--frame-inventory', '--full-page-evidence']);
   for (let i = 0; i < argv.length; i++) {
     if (values.has(argv[i])) { i++; if (i >= argv.length) throw new Error('Missing argument value'); }
     else if (!flags.has(argv[i])) throw new Error('Unknown benchmark option: ' + argv[i]);
@@ -78,6 +78,7 @@ function runCapture() {
       '--settle', '500', '--timeout', '30000', '--evidence-dir', imageDir];
     if (sample.locale) args.push('--locale', sample.locale);
     if (has('--frame-inventory')) args.push('--frame-inventory');
+    if (has('--full-page-evidence')) args.push('--full-page-evidence');
     const run = spawnSync(process.execPath, args, {
       cwd: root, encoding: 'utf8', timeout: 75000, maxBuffer: 12 * 1024 * 1024,
       env: process.env
@@ -86,6 +87,18 @@ function runCapture() {
     try { report = JSON.parse(run.stdout); } catch { report = undefined; }
     const screenshotFile = path.join(imageDir, `audit-${sample.width}px.png`);
     const screenshot = existsSync(screenshotFile) ? readFileSync(screenshotFile) : undefined;
+    const expandedFile = path.join(imageDir, `audit-${sample.width}px-full.png`);
+    const expanded = existsSync(expandedFile) ? readFileSync(expandedFile) : undefined;
+    const expandedMeta = report?.reports?.[0]?.fullPageScreenshot;
+    const pngMagic = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    const fullPageRequested = has('--full-page-evidence');
+    const expandedVerified = fullPageRequested && expanded?.subarray(0, 8).equals(pngMagic) === true &&
+      path.resolve(expandedMeta?.file ?? '') === expandedFile &&
+      Number.isInteger(expandedMeta?.capturedWidth) && Number.isInteger(expandedMeta?.capturedHeight) &&
+      expandedMeta.capturedWidth > 0 && expandedMeta.capturedHeight > 0 &&
+      expandedMeta.truncatedHorizontally !== undefined &&
+      expandedMeta.truncatedVertically !== undefined;
+
     const actualHost = (() => {
       try { return new URL(report?.browser?.actualUrl).hostname; } catch { return null; }
     })();
@@ -93,8 +106,8 @@ function runCapture() {
     const trustedFinalLocation = expectedHost === null || actualHost === expectedHost;
     const complete = trustedFinalLocation && [0, 1].includes(run.status) && report?.mode === 'audit' &&
       report?.summary?.viewports === 1 && report?.reports?.[0]?.width === sample.width &&
-      report.reports[0].summary?.verified === true && screenshot?.subarray(0, 8).equals(
-        Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) === true;
+      report.reports[0].summary?.verified === true && screenshot?.subarray(0, 8).equals(pngMagic) === true &&
+      (!fullPageRequested || expandedVerified);
     const auditRelative = `cases/${sample.id}/audit.json`;
     if (report) writeJSON(path.join(outputDir, auditRelative), report);
     const entry = {
@@ -110,6 +123,16 @@ function runCapture() {
       screenshotFile: screenshot ? `cases/${sample.id}/screens/audit-${sample.width}px.png` : null,
       screenshotSha256: screenshot ? sha(screenshot) : null,
       screenshotCoverage: screenshot ? 'viewport-only' : 'unavailable',
+      ...(fullPageRequested ? {
+        fullPageScreenshotFile: expanded ? `cases/${sample.id}/screens/audit-${sample.width}px-full.png` : null,
+        fullPageScreenshotSha256: expanded ? sha(expanded) : null,
+        fullPageEvidenceCoverage: expandedMeta?.coverage ?? 'unavailable',
+        fullPageTruncated: expandedMeta ? Boolean(expandedMeta.truncatedVertically ||
+          expandedMeta.truncatedHorizontally) : null,
+        fullPageCapturedWidth: expandedMeta?.capturedWidth ?? null,
+        fullPageCapturedHeight: expandedMeta?.capturedHeight ?? null,
+        fullPageDocumentHeight: expandedMeta?.documentHeight ?? null
+      } : {}),
       ...(complete ? {} : { error: run.error?.message || report?.error?.message ||
         (run.stderr || '').slice(-300) || 'Incomplete/failed browser capture' })
     };
@@ -118,9 +141,9 @@ function runCapture() {
   }
   const index = { schemaVersion: 1, datasetId: manifest.id, capturedAt: new Date().toISOString(),
     captureToolVersion: pkg.version, nodeVersion: process.version, sourceCommit: sourceVersion(),
-    captureOptions: { frameInventory: has('--frame-inventory') },
+    captureOptions: { frameInventory: has('--frame-inventory'), fullPageEvidence: has('--full-page-evidence') },
     allCaseIds: manifest.cases.map(c => c.id), captures: entries.length, cases: entries,
-    limitations: ['Screenshots show the initial viewport only; review rendered below-fold layout separately',
+    limitations: ['Initial viewport screenshots alone do not show below-fold content; optional bounded page evidence is a separate static capture',
       'External page content and assets may change; this is one observed browser session',
       'No independent human labels are included in capture artifacts'] };
   writeJSON(path.join(outputDir, 'index.json'), index);
@@ -142,6 +165,8 @@ function runReviewPacket() {
   const items = index.cases.map(entry => {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(entry.id)) throw new Error('Invalid capture case id');
     let screenshotVerified = false, reportVerified = false;
+    const fullExpected = index.captureOptions?.fullPageEvidence === true || Boolean(entry.fullPageScreenshotFile);
+    let fullPageEvidenceVerified = !fullExpected;
     if (entry.screenshotFile && entry.screenshotSha256) {
       const screenshot = ensureInside(captures, entry.screenshotFile);
       screenshotVerified = existsSync(screenshot) && sha(readFileSync(screenshot)) === entry.screenshotSha256;
@@ -150,10 +175,20 @@ function runReviewPacket() {
       const report = ensureInside(captures, entry.auditFile);
       reportVerified = existsSync(report) && sha(readFileSync(report)) === entry.auditSha256;
     }
+    if (fullExpected && entry.fullPageScreenshotFile && entry.fullPageScreenshotSha256) {
+      const fullScreenshot = ensureInside(captures, entry.fullPageScreenshotFile);
+      fullPageEvidenceVerified = existsSync(fullScreenshot) &&
+        sha(readFileSync(fullScreenshot)) === entry.fullPageScreenshotSha256;
+    }
     return { id: entry.id, url: entry.url, width: entry.width, locale: entry.locale ?? null,
       screenshotFile: entry.screenshotFile ?? null,
-      screenshotVerified, reportVerified, captureComplete: entry.complete === true,
-      readyForReview: entry.complete === true && screenshotVerified && reportVerified };
+      fullPageScreenshotFile: entry.fullPageScreenshotFile ?? null,
+      fullPageEvidenceCoverage: entry.fullPageEvidenceCoverage ?? null,
+      fullPageTruncated: entry.fullPageTruncated ?? null,
+      screenshotVerified, reportVerified,
+      fullPageEvidenceVerified: fullExpected ? fullPageEvidenceVerified : null,
+      captureComplete: entry.complete === true,
+      readyForReview: entry.complete === true && screenshotVerified && reportVerified && fullPageEvidenceVerified };
   });
   const lines = [
     '# Independent layout review — ' + index.datasetId, '',
@@ -171,6 +206,12 @@ function runReviewPacket() {
       '- Site: `' + String(item.url) + '`',
       '- Observed width: ' + item.width + ' CSS px' + (item.locale ? '; locale `' + item.locale + '`' : ''),
       '- Screenshot (relative to capture directory): `' + (item.screenshotFile ?? '(missing)') + '`',
+      ...(item.fullPageEvidenceVerified !== null ? [
+        '- Bounded below-fold image: `' + (item.fullPageScreenshotFile ?? '(missing)') + '`',
+        '- Bounded image hash: ' + (item.fullPageEvidenceVerified ? 'verified' : 'FAILED / missing'),
+        '- Bounded image coverage: ' + (item.fullPageEvidenceCoverage ?? 'unknown') +
+          (item.fullPageTruncated ? ' (truncated — remaining content NOT captured)' : '')
+      ] : []),
       '- Evidence integrity: **' + (item.readyForReview ? 'verified' : 'INCOMPLETE / UNSAFE TO SCORE') + '**',
       '- [ ] Independently review actual rendered viewport, scroll area and relevant interaction states',
       '- [ ] Record positive defects, known intentional exceptions and element locations',
@@ -201,6 +242,12 @@ function runScore() {
     if (!existsSync(auditPath) || !existsSync(imagePath)) continue;
     if (sha(readFileSync(auditPath)) !== sample.auditSha256 ||
         sha(readFileSync(imagePath)) !== sample.screenshotSha256) continue;
+    const fullExpected = index.captureOptions?.fullPageEvidence === true || Boolean(sample.fullPageScreenshotFile);
+    if (fullExpected) {
+      if (!sample.fullPageScreenshotFile || !sample.fullPageScreenshotSha256) continue;
+      const full = ensureInside(captures, sample.fullPageScreenshotFile);
+      if (!existsSync(full) || sha(readFileSync(full)) !== sample.fullPageScreenshotSha256) continue;
+    }
     evidence[sample.id] = readJSON(auditPath);
     sample.screenshotVerified = true;
   }
@@ -223,6 +270,8 @@ try {
   assertKnownOptions();
   if (has('--frame-inventory') && action !== 'capture')
     throw new Error('--frame-inventory applies only to capture');
+  if (has('--full-page-evidence') && action !== 'capture')
+    throw new Error('--full-page-evidence applies only to capture');
   if (has('--help')) console.log(usage());
   else if (action === 'validate') {
     const manifest = opt('--manifest');

@@ -53,3 +53,6 @@ export { captureFrameInventoryWithCDP } from './frame-inspector.js';
 
 export { reviewContractProposals } from './proposal-review.js';
 export type { ProposalReviewReport, ProposalReviewResult, ProposalReviewStatus } from './proposal-review.js';
+
+export { planBoundedScreenshot, BOUNDED_CAPTURE_LIMITS } from './bounded-screenshot.js';
+export type { BoundedScreenshotPlan } from './bounded-screenshot.js';

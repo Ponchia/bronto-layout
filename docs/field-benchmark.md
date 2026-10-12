@@ -63,6 +63,32 @@ node scripts/field-benchmark.mjs review-packet \
 
 The command never invents human judgments. It leaves checkboxes blank, flags incomplete evidence, and refuses to overwrite an existing worksheet. The reviewer must visit the rendered page as well as the initial-viewport screenshot, include below-fold/interactive states and manually supply evidence and intent. The worksheet deliberately does **not** copy predictions from the CLI report to avoid anchoring the reviewer.
 
+## Optional bounded below-the-fold evidence
+
+For reviewable pages, request an additional **bounded document screenshot** without replacing the original viewport PNG or changing any automatic detector conclusions:
+
+```sh
+node scripts/field-benchmark.mjs capture \
+  --manifest benchmarks/field-sites.v0.1.json \
+  --ids portfolio-375 --full-page-evidence \
+  --out reports/below-fold-review-2026-10-12
+```
+
+For external allowlisted pages on a shared development host, use the manual GitHub Actions capture workflow with `full_page_evidence=true` on a disposable runner rather than disabling Chromium's sandbox locally. The option also works with `--frame-inventory` when additional frame coverage evidence is useful. Existing capture defaults are unchanged.
+
+This uses Chromium `Page.getLayoutMetrics` (CSS dimensions) and `Page.captureScreenshot` with `captureBeyondViewport` and an explicit top-left clip. The evidence rectangle is bounded to **4,096 CSS px in width**, **6,000 CSS px in height**, and **12 million CSS pixels of area**. Pages larger than that are partially captured and marked as `bounded-top-left-rectangle`; smaller pages are recorded as `rendered-document-rectangle`. Both records describe a **single observed rendered state**, not complete CSS correctness. Pixels after the cap, lazy-loaded content, animations, interactions, virtual scrolling, closed shadow roots and iframe internals are not certified.
+
+The capture index records a separate image path, SHA-256, observed geometry, and `fullPageTruncated` status. Review worksheets disclose the truncation and verify that file's digest; scoring excludes cases with a requested but missing/tampered bounded image rather than assigning them true negatives. Even a valid, non-truncated screenshot **does not replace** independent review of the running page, below-fold or interactive states. Existing 30-state captures without this opt-in remain valid viewport-only evidence and are never retroactively described as whole-document screenshots.
+
+Standalone use:
+
+```sh
+bronto-layout audit --url http://localhost:5173/ --width 375 \
+  --json --compact --evidence-dir reports/screens --full-page-evidence
+```
+
+The CLI refuses `--full-page-evidence` without `audit --evidence-dir`, and does not support screenshot capture for baseline comparisons. No screenshot imagery is read by the automatic detector to infer bugs.
+
 ## Optional frame-evidence capture and scoring protection
 
 For an allowlisted public-site capture, enable `--frame-inventory` only when frame coverage is relevant:
