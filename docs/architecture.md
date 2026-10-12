@@ -116,6 +116,17 @@ overflow and classify results into measured observations and review-only
 warnings. It does not infer CSS root causes or report all overlaps as bugs.
 `summary.supportedScopeMeasured` states only that the supported DOM traversal was not truncated. `summary.verified` is now false when a **known uninspected frame** exists as well as when traversal truncates. The default `audit` command still returns exit 0 for a review-only frame gap with no measured failures; strict `--fail-on-coverage-gaps` returns exit 2. Field capture integrity uses `supportedScopeMeasured` independently from document coverage, preserving valid screenshots of partially uninspected pages. Neither value certifies canvas, paint order, closed shadow roots or arbitrary visual design.
 
+The browser-native audit walker has an 18,000-element default traversal
+budget, parameterized only through the explicitly bounded `audit --dom-limit`
+option (1,000–50,000). The selected value reaches the browser as a validated
+integer; `capturePageAuditObservations` also checks it in isolation. Both
+standard and compact reports disclose `coverage.traversalLimit` and visited
+counts. If the DOM exceeds the requested limit, the audit is `truncated`
+(exit 2) and cannot be scored as clean. The baseline/candidate auditor uses
+the **same requested budget** for both versions and refuses incomplete
+comparisons. Larger limits are not automatic, not a performance guarantee,
+and cannot inspect unsupported rendered surfaces.
+
 The audit summarizes viewport coverage and reports bounded omissions rather
 than hiding them. It deliberately does not recurse into frame documents or
 claim to understand canvas/WebGL internals.

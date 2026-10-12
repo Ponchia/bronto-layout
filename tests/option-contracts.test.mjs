@@ -90,3 +90,14 @@ test('extracted command validation accepts explicit audit state replay but never
   assert.throws(()=>validateCommandOptions({command:'review-draft',draft:'a',actions:'steps.json'}),
     /applies only to suggest or audit/);
 });
+
+
+test('audit DOM traversal budget has an explicit safe bound and does not leak into other commands',()=>{
+  assert.equal(configFromArgs({command:'audit'}).auditDOMLimit,18000);
+  assert.equal(configFromArgs({command:'audit','dom-limit':'25000'}).auditDOMLimit,25000);
+  assert.doesNotThrow(()=>validateCommandOptions({command:'audit','dom-limit':'50000'}));
+  assert.throws(()=>configFromArgs({command:'audit','dom-limit':'999'}),/--dom-limit/);
+  assert.throws(()=>configFromArgs({command:'audit','dom-limit':'50001'}),/--dom-limit/);
+  assert.throws(()=>validateCommandOptions({command:'check','dom-limit':'25000'}),/applies only to audit/);
+  assert.match(HELP,/--dom-limit N/);
+});

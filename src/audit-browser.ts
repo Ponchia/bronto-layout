@@ -4,8 +4,13 @@ import type { PageAuditObservations, ImageLead, TextClipLead } from './audit.js'
  * Browser-native, self-contained DOM walk. Must remain closure-free so the CLI
  * can inject the function source into any Chromium tab.
  */
-export function capturePageAuditObservations(): PageAuditObservations {
-  const MAX_ELEMENTS = 18000;
+export function capturePageAuditObservations(maxElements = 18000): PageAuditObservations {
+  // DOM enumeration is potentially expensive on large/virtualized apps. Leave
+  // the conservative 18k default in place; higher bounds require explicit CLI
+  // opt-in and never imply that uninspected page surfaces are correct.
+  if (!Number.isSafeInteger(maxElements) || maxElements < 1000 || maxElements > 50000)
+    throw new Error('Audit DOM traversal limit must be an integer from 1000 to 50000');
+  const MAX_ELEMENTS = maxElements;
   const MAX_LEADS = 16;
   const stack: Element[] = [document.documentElement];
   const brokenImages: ImageLead[] = [];
