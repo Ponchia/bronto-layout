@@ -2,6 +2,8 @@
  * human review of the raw page/screenshot, never copied from detector output.
  */
 import { KNOWN_DETECTORS, scoreLabeledAuditCases } from './audit-benchmark-metrics.mjs';
+/** One shared protocol text for blank CLI drafts and optional browser review exports. */
+export const FIELD_REVIEW_PROTOCOL = 'Independent human review of rendered pages, screenshots, DOM and intentional exceptions BEFORE viewing automated Bronto Layout findings. Pending entries are NOT negative labels.';
 const ident = x => typeof x === 'string' && /^[a-z0-9][a-z0-9_-]{0,79}$/.test(x);
 const unique = list => new Set(list).size === list.length;
 function assert(condition, message) { if (!condition) throw new Error('Field benchmark: ' + message); }

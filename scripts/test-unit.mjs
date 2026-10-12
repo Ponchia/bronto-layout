@@ -11,7 +11,7 @@ if (flags.some(arg => arg !== '--coverage') || flags.length > 1) {
 const coverage = flags.includes('--coverage');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const suite=path.join(root,'tests');
-const browserOnly=new Set(['modern-web.test.mjs','uniform-gaps.test.mjs','breakpoints.test.mjs','field-benchmark.test.mjs']);
+const browserOnly=new Set(['modern-web.test.mjs','uniform-gaps.test.mjs','breakpoints.test.mjs','field-benchmark.test.mjs','field-review-console.test.mjs']);
 const files=readdirSync(suite).filter(file=>file.endsWith('.test.mjs') &&
  !file.startsWith('cli-') && file!=='cli.test.mjs' && !browserOnly.has(file)).sort()
  .map(file=>path.join('tests',file));

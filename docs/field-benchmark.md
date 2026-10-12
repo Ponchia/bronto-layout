@@ -123,6 +123,22 @@ For captures made with the current CLI, `summary.verified=false` also covers **k
 
 **Capture integrity and diagnostic completeness are distinct.** The capture index may record `complete: true` when a screenshot and top-level audit were successfully acquired, even if an iframe was not inspected. `contentCoverage` documents that limitation; the field scorer excludes reviewed cases with `known-uninspected-content` from whole-page detector accuracy denominators. Historical captures without `coverage.status` still use `embeddedFrames` to avoid silently counting missing interior observations as true negatives. The scorer reports these separately under `coverageExcluded`. Labels are never inferred from Chromium data.
 
+## Optional offline human review console
+
+An independent reviewer can use the generated `review-console.html` **after extracting the capture archive** rather than typing JSON by hand. The script-free `review-gallery.html` stays available for reviewers who prefer a static contact sheet. The console is a separate, explicitly opened HTML file with source-hash-locked inline JavaScript. No remote scripts, trackers, `fetch` requests, `localStorage`, or automatic uploads are used. Its only outbound action is an ordinary live-site link you choose to open; the console itself handles case inputs locally. CSP disables script injection, connections, frames and forms.
+
+```sh
+node scripts/field-benchmark.mjs review-console \
+  --captures reports/field-2026-10-12 \
+  --out reports/field-2026-10-12/review-console.html
+```
+
+Every case starts `pending`. The console shows the case ID, captured width, source link without query tokens, hash-verified initial/bounded screenshots, and explicit incomplete/iframe coverage caveats. A reviewer may select `reviewed` **only if capture evidence passed integrity checks** and they have independently inspected the screenshot and live rendered page. That choice requires their identifier, date, rationale, both attestations and independently selected detector codes; an empty list is an explicit judgment, not a default. `unreviewable` requires a reviewer/date/rationale but carries **no** expected detector codes. Failed-integrity cases cannot be marked reviewed. Unknown iframe interiors remain excluded from subsequent **whole-page** field accuracy scoring even if a screenshot hash is valid.
+
+Click **Export human labels JSON** to download a JSON file into your local browser downloads; it contains pending entries for unreviewed cases and explicit decisions for completed ones. The browser validates declarations before exporting; it never quietly promotes pending to reviewed. **Import existing reviewer JSON** lets you resume an earlier local draft. Imports require the same dataset/case IDs and valid states; unknown or malformed content is rejected before modifying the form. The console does not overwrite your files or retain inputs across reloads; **export before closing the tab**. Keep screenshots and reviewer exports private where appropriate.
+
+The exported JSON follows the same validated schema as `review-label-template` and works with `review-progress` and `score`. Neither the console nor the initial human reviewer declaration proves independence or design correctness. Automatic Bronto audit predictions are not included in the page, and the code does not read them to suggest labels. Any actual reviewer must assess the site **before reading** `audit.json`.
+
 ## Start a human-review labels draft without inventing negatives
 
 Manual first-party field capture artifacts now include `review-labels-draft.json`,
