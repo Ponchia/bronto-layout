@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Compare the measured magnitude of persistent, same-path **review-only** text-clipping and experimental grid-gap leads between baseline and candidate. Report `review-worsened` / `review-improved` with original and candidate CSS-pixel values above a 2px jitter floor, never a strict measured regression. Missing numeric evidence is unverified rather than silently unchanged.
 - Add opt-in offline `field-benchmark review-console` for independent human review of hash-verified screenshots. A source-hash CSP protects local JavaScript for explicitly choosing statuses, validating attestations, and importing/exporting label JSON; no audit predictions, invented negative labels, uploads or persistent browser storage. Keep the original script-free gallery unchanged; manual capture artifacts provide both.
 
 

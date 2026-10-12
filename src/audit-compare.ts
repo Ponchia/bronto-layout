@@ -5,7 +5,7 @@ import type { AuditFinding, ViewportAudit } from './audit.js';
  * A regression is new/worsening measured evidence, not a guess about design
  * intent. Review-only changes never fail the CLI.
  */
-export type AuditChangeKind = 'regression' | 'improvement' | 'review-new' | 'review-resolved';
+export type AuditChangeKind = 'regression' | 'improvement' | 'review-new' | 'review-resolved' | 'review-worsened' | 'review-improved';
 export interface AuditChange {
   width: number;
   kind: AuditChangeKind;
@@ -176,6 +176,40 @@ export function comparePageAudits(
       classification:'measured',baselineValue:oldOverflow,candidateValue:newOverflow,
       message:'Observed document-wide horizontal overflow improved by '+(-delta).toFixed(2)+' CSS px'
     });
+
+    // A review lead that remains at the SAME element path may become markedly
+    // worse (or better) without appearing/disappearing. Compare the measured
+    // magnitude, NOT inferred design intent. Minor font/layout subpixel jitter
+    // remains below a conservative 2 CSS-px floor. A positional DOM path is an
+    // observational locator, not proof that content identity is immutable.
+    for (const code of ['possible-text-clipping','possible-grid-gap-anomaly'] as const) {
+      const existing = new Map(findAll(before, code).map(finding => [finding.path, finding]));
+      const materialDelta = Math.max(2, significantPx);
+      for (const finding of findAll(after, code)) {
+        const original = existing.get(finding.path);
+        if (!original) continue;
+        const oldPx = original.measuredPx;
+        const newPx = finding.measuredPx;
+        if (!Number.isFinite(oldPx) || !Number.isFinite(newPx) ||
+            oldPx! < 0 || newPx! < 0) {
+          unverified.push({width,reasons:[
+            'Cannot compare persisted '+code+' at '+finding.path+': numeric deviation is absent or invalid'
+          ]});
+          continue;
+        }
+        const deltaPx = newPx! - oldPx!;
+        if (Math.abs(deltaPx) <= materialDelta) continue;
+        const worsening = deltaPx > 0;
+        add({ width,code,classification:'review',path:finding.path,
+          kind:worsening?'review-worsened':'review-improved',
+          baselineValue:oldPx,candidateValue:newPx,
+          message:'Browser-observed '+code+' magnitude '+
+            (worsening?'increased':'decreased')+' by '+Math.abs(deltaPx).toFixed(2)+
+            ' CSS px ('+oldPx!.toFixed(2)+' → '+newPx!.toFixed(2)+
+            ' CSS px) at the same DOM path; review whether the change is intentional'
+        });
+      }
+    }
 
     for (const code of ['broken-image','possible-text-clipping','possible-grid-gap-anomaly'] as const) {
       const classification = code === 'broken-image' ? 'measured' : 'review';

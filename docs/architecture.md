@@ -196,6 +196,19 @@ element paths.
 
 Before/after element paths can change when otherwise identical DOM content reorders. The comparator first matches unchanged paths, then uniquely occurring, sanitized broken-image resource URL paths (ignoring baseline/candidate host changes). It never treats duplicate paths or nonunique resource paths as stable identity. Where both sides still have unmatched elements, only genuine **net count changes** can be measured without attribution; equal counts with ambiguous identities are marked `unverified`, not simultaneously claimed as a new regression and a fix. This is conservative and can withhold judgments about real replacement defects; it is preferable to false certainty.
 
+Persisting `possible-text-clipping` and opt-in `possible-grid-gap-anomaly`
+leads are not simply presence/absence flags: when the exact warning code and
+unambiguous observed DOM path remain present, the comparator checks the browser
+reported CSS-pixel deviation. A change greater than `max(2 CSS px,
+significantPx)` generates `review-worsened` or `review-improved`, retaining
+baseline/candidate values and the path. These count only under
+`summary.reviewChanges`, never `measuredRegressions`; small rendering jitter is
+ignored. A missing/non-finite magnitude for a persisted warning makes that
+viewport `unverified`, rather than claiming unchanged evidence. A DOM path may
+be reused by different content, so these are **review leads** rather than
+certified object identities or visual quality verdicts. New/resolved warning
+paths and omissions retain their previous explicit semantics.
+
 Document-level overflow is compared quantitatively with a 1px significance
 floor. Broken images and possibly clipped text are compared by observed
 element paths; added/missing paths are regression/improvement leads only

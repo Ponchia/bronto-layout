@@ -59,6 +59,24 @@ bronto-layout check --spec reports/gallery-contract.json \
 
 Expected: the automatic audit has no strict measured problems; `review-draft` prints the observed **12px** gap deviation versus **2px** tolerance at both widths and exits 1; the final approved contract also fails on that difference. These exit codes are intentional for this exercise. No rule was silently approved. For your own page, carefully review each proposed relationship and use `approve --accept` only for behaviors you want to enforce.
 
+### Compare a warning that gets worse without becoming a blocking error
+
+To see how experimental grid spacing can become more irregular between two
+revisions while **remaining review-only**, run:
+
+```sh
+bronto-layout audit --baseline examples/gallery-broken.html \
+  --url examples/gallery-broken-worse.html \
+  --grid-gap-review --width 375 --json --compact
+```
+
+The existing warning's deviation changes from **12px to 24px** at the same
+grid; the report uses `review-worsened` rather than creating a new measured
+regression. The reverse order yields `review-improved`. The same semantics
+apply to persisting text-clipping leads, but neither one reveals whether the
+layout was intentionally designed that way. Only explicitly approved layout
+contracts can make a design relationship blocking.
+
 ## Audit an interactive page state without writing a layout contract
 
 For interactive menus, expanded panels and form states, run `audit --actions` with a

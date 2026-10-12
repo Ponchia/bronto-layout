@@ -116,3 +116,21 @@ test('adding a healthy image before an existing failed image does not produce a 
   assert.equal(result.summary.unverifiedViewports,0);
   assert.deepEqual(result.changes,[]);
 });
+
+test('increasing clipping on the same visible label is review-worsened rather than a new measured failure',t=>{
+ const args=['audit','--baseline','examples/audit-clipping-baseline.html',
+  '--url','examples/audit-clipping-worse.html','--width','375','--json','--compact'];
+ const r=run(args);
+ if(noChrome(t,r))return;
+ assert.equal(r.status,0,r.stderr||r.stdout);
+ const data=JSON.parse(r.stdout);
+ assert.equal(data.summary.measuredRegressions,0);
+ assert.equal(data.summary.measuredImprovements,0);
+ assert.equal(data.summary.reviewChanges,1);
+ assert.equal(data.summary.unverifiedViewports,0);
+ const change=data.changes[0];
+ assert.equal(change.kind,'review-worsened');
+ assert.equal(change.code,'possible-text-clipping');
+ assert.equal(change.path,'#label');
+ assert.ok(change.candidateValue-change.baselineValue>=50);
+});
