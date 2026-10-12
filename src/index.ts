@@ -56,3 +56,5 @@ export type { ProposalReviewReport, ProposalReviewResult, ProposalReviewStatus }
 
 export { planBoundedScreenshot, BOUNDED_CAPTURE_LIMITS } from './bounded-screenshot.js';
 export type { BoundedScreenshotPlan } from './bounded-screenshot.js';
+
+export { describeSuggestedContracts, describeProposalReview, describeApprovedContract } from './workflow-guidance.js';

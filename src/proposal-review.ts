@@ -6,11 +6,13 @@ import { acceptContractProposals, type ContractDiscoveryDraft } from './contract
 import { validWidth } from './contract.js';
 
 export type ProposalReviewStatus = 'still-satisfied' | 'changed' | 'unverified';
+export type ProposalMeasurementUnit = 'px' | '%' | 'score' | 'count';
 export interface ProposalReviewAtWidth {
   width: number;
   status: ProposalReviewStatus;
   findingStatus: LayoutFinding['status'];
   findingCode: LayoutFinding['code'];
+  unit: ProposalMeasurementUnit;
   deviation?: number;
   recordedDeviation?: number;
   tolerance?: number;
@@ -73,8 +75,11 @@ export function reviewContractProposals(
         ? 'still-satisfied'
         : finding.status === 'fail' && finding.code === 'constraint'
           ? 'changed' : 'unverified';
+      const unit: ProposalMeasurementUnit = proposal.rule.type === 'layout-stability' ? 'score'
+        : proposal.rule.type === 'image-aspect' ? '%'
+          : proposal.rule.type === 'selector-count' ? 'count' : 'px';
       return {
-        width, status, findingStatus: finding.status, findingCode: finding.code,
+        width, status, findingStatus: finding.status, findingCode: finding.code, unit,
         ...(Number.isFinite(finding.deviation) ? { deviation: finding.deviation } : {}),
         ...(Number.isFinite(byRecorded.get(width)) ? { recordedDeviation: byRecorded.get(width) } : {}),
         ...(Number.isFinite(finding.tolerance) ? { tolerance: finding.tolerance } : {}),

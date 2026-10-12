@@ -14,6 +14,7 @@ import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
 import { suggestLayoutContracts, acceptContractProposals } from '../dist/contract-discovery.js';
 import { reviewContractProposals } from '../dist/proposal-review.js';
+import { describeSuggestedContracts, describeProposalReview, describeApprovedContract } from '../dist/workflow-guidance.js';
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
 import { captureFrameInventoryWithCDP } from '../dist/frame-inspector.js';
@@ -1091,11 +1092,7 @@ async function suggest(a) {
     await mkdir(path.dirname(destination), { recursive: true });
     await writeFile(destination, JSON.stringify(draft, null, 2) + '\n', { flag: a.force ? 'w' : 'wx' });
   }
-  await output(a, draft, [
-    'Bronto Layout: ' + draft.proposals.length + ' unapproved candidate contracts over ' + draft.widths.join(', ') + 'px',
-    ...draft.proposals.map(p => '  ' + p.id + ': ' + p.rationale),
-    'Review candidates and run approve --accept id[,id...] to make an explicit contract.'
-  ].join('\n'));
+  await output(a, draft, describeSuggestedContracts(draft, a.out ? path.resolve(a.out) : undefined));
 }
 /** Replay unapproved proposals on a later version without inventing design intent. */
 async function reviewDraft(a) {
@@ -1115,14 +1112,7 @@ async function reviewDraft(a) {
     }
     return reviewContractProposals(draft, publicURL, snapshots);
   }, draft.scenario);
-  await output(a, result, [
-    'Bronto Layout proposal review — ' + result.sourceUrl + ' → ' + result.candidateUrl,
-    ...result.proposals.map(p => '  ' + p.status.toUpperCase() + ' ' + p.id +
-      ' (observed at ' + p.checkedWidths.join(', ') + 'px)'),
-    'Total: ' + result.summary.stillSatisfied + ' still satisfied, ' +
-      result.summary.changed + ' changed, ' + result.summary.unverified + ' unverified',
-    'No proposal was approved; compare only covers the originally sampled widths/state.'
-  ].join('\n'));
+  await output(a, result, describeProposalReview(result));
   if (!result.summary.total || result.summary.unverified) process.exitCode = 2;
   else if (result.summary.changed) process.exitCode = 1;
 }
@@ -1136,7 +1126,7 @@ async function approve(a) {
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(destination, JSON.stringify(contract, null, 2) + '\n', { flag: a.force ? 'w' : 'wx' });
   await output(a, { mode: 'approve', file: destination, acceptedIds: ids, contract },
-    'Approved ' + ids.length + ' reviewed rule(s): ' + destination + '. Run validate and check for current results.');
+    describeApprovedContract(destination, ids.length));
 }
 /** A safe installation preflight: detection only, not a sandbox/network guarantee. */
 async function doctor(a) {
