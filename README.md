@@ -66,6 +66,40 @@ it has been published to the npm registry.**
 
 **New in the hardening work:** `doctor` offers a non-invasive install preflight; `--fail-on-coverage-gaps` rejects known partial iframe inspections; `batch --parallel 2` runs independent browser profiles concurrently when resources allow. These features do not establish universal browser coverage or performance gains on arbitrary sites.
 
+## JSON editor support for layout contracts and batches
+
+Bronto Layout ships two **JSON Schema Draft 2020-12** files for editor autocomplete
+and structural feedback. Put an optional `$schema` string at the start of your
+own `bronto-layout.json` contract or `batch.json` manifest:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/layout-contract.schema.json",
+  "schemaVersion": 1,
+  "selectors": {"content": "main"},
+  "rules": [{"id": "fit", "type": "document-overflow", "tolerance": 1}]
+}
+```
+
+For a batch, use
+[`batch-manifest.schema.json`](schemas/batch-manifest.schema.json) instead.
+Copy the working [`schema-enabled-layout.json`](examples/schema-enabled-layout.json)
+and [`schema-enabled-batch.json`](examples/schema-enabled-batch.json) examples,
+or point an offline editor to your local checkout's `schemas/` directory.
+Both schemas are also included in the locally installable `@ponchia/layout`
+package. The CLI **never fetches** the `$schema` URL; an editor using the
+public remote schema URL might request it from GitHub. Use a relative path
+when working offline or when you do not want an editor network request.
+
+**The schema is an editor aid, not the final validation authority.** It can
+validate rule discriminators, supported attributes, actions and finite batch
+modes, but cannot reliably check that a rule's alias appears in `selectors`,
+that `min <= max`, or that a referenced actions/contract file exists. Always
+run `bronto-layout validate --spec FILE` or `bronto-layout batch --manifest
+FILE --dry-run` before checking a site. There is no added runtime dependency;
+Ajv is used only by repository tests to ensure editor schemas stay aligned
+with the versioned TypeScript parsers.
+
 ## Review-first contract suggestions (experimental)
 
 Generate a provisional contract draft from browser-observed relationships,

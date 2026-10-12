@@ -38,7 +38,8 @@ try {
     'bin/bronto-layout.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html', 'examples/layout.json',
-    'examples/healthy.html', 'README.md', 'LICENSE', 'package.json', 'docs/quickstart.md', 'docs/release-checklist.md'
+    'examples/healthy.html', 'README.md', 'LICENSE', 'package.json', 'docs/quickstart.md', 'docs/release-checklist.md',
+    'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json'
   ];
   for (const file of required) assert.ok(packedFiles.has(file), 'Missing packaged file: ' + file);
   for (const file of packedFiles) {
@@ -59,6 +60,18 @@ try {
   const installedPkg = JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8'));
   assert.equal(installedPkg.version, pkg.version);
   assert.deepEqual(installedPkg.dependencies ?? {}, {}, 'Unexpected runtime dependencies');
+  // Editor schemas must ship with the public npm tarball, but Ajv itself is
+  // strictly development-only. The installed package needs no validator to
+  // parse/render those JSON definitions or to run its CLI.
+  for (const schemaName of ['layout-contract.schema.json','batch-manifest.schema.json']) {
+    const exportPath = './schemas/' + schemaName;
+    assert.equal(installedPkg.exports[exportPath],exportPath,
+      'Installed package must expose the '+schemaName+' editor schema');
+    const definition = JSON.parse(await readFile(path.join(installed,'schemas',schemaName),'utf8'));
+    assert.equal(definition.$schema,'https://json-schema.org/draft/2020-12/schema');
+    assert.equal(definition.$id,'https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/'+schemaName);
+  }
+
   const binary = process.platform === 'win32'
     ? path.join(consumer, 'node_modules', '.bin', 'bronto-layout.cmd')
     : path.join(consumer, 'node_modules', '.bin', 'bronto-layout');
@@ -70,6 +83,14 @@ try {
   const sourceSpec = path.join(installed, 'examples', 'layout.json');
   const validated = JSON.parse(run(binary, ['validate', '--spec', sourceSpec, '--json'], { cwd: consumer }));
   assert.equal(validated.valid, true);
+  const schemaSpec = path.join(installed,'examples','schema-enabled-layout.json');
+  const schemaValidated = JSON.parse(run(binary,['validate','--spec',schemaSpec,'--json'],{cwd:consumer}));
+  assert.equal(schemaValidated.valid,true,'Installed CLI must accept optional editor schema metadata');
+  const schemaBatch = path.join(installed,'examples','schema-enabled-batch.json');
+  const planned = JSON.parse(run(binary,['batch','--manifest',schemaBatch,'--dry-run','--json'],{cwd:consumer}));
+  assert.equal(planned.mode,'batch-plan','Installed CLI must accept schema-tagged batch manifests');
+  assert.equal(planned.total,2);
+
   const api = await import(pathToFileURL(path.join(installed, 'dist', 'index.js')).href);
   assert.equal(typeof api.evaluateLayout, 'function');
   assert.equal(typeof api.parseContract, 'function');

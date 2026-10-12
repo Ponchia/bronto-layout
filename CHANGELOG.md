@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Ship JSON Schema Draft 2020-12 editor hints for v1 contracts and bounded batch manifests, with optional non-fetching `$schema` metadata, schema-enabled examples, parser/schema parity tests and npm package exports. Runtime aliases, cross-field constraints and actual browser behavior remain validated by the CLI.
+
 - Add offline `bronto-layout verify-evidence --comparison FILE --evidence-dir DIR` to recheck relocated baseline/candidate screenshot SHA-256 digests, PNG headers and strict file provenance without browser/network access, rejecting missing, tampered or symlinked review artifacts. Verification never infers visual correctness; comparison input is protected against CLI output overwrites.
 - Expose opt-in `grid_gap_review` and `sibling_overlap_review` switches in the manual, allowlisted first-party live-site workflow. Capture review-only warning summaries in retained CLI reports/logs without changing default audits, blocking PR CI, accepting arbitrary URLs or inventing human labels.
 

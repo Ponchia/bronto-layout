@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Ponchia/bronto-layout/main/schemas/layout-contract.schema.json",
+  "schemaVersion": 1,
+  "url": "healthy.html",
+  "widths": [375, 768],
+  "selectors": {
+    "shell": ".shell"
+  },
+  "rules": [
+    {"id":"no-horizontal-overflow","type":"document-overflow","tolerance":1},
+    {"id":"center-shell","type":"centered","element":"shell","in":"viewport","axis":"x","tolerance":2}
+  ]
+}
