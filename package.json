@@ -14,7 +14,7 @@
     "build": "tsc --project tsconfig.json",
     "prepare": "npm run build",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
-    "check": "npm run build && npm test",
+    "check": "npm run build && npm run lint && npm test",
     "demo": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/healthy.html",
     "demo:broken": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/broken.html",
     "demo:inspect": "node bin/bronto-layout.mjs inspect --url examples/healthy.html --width 375 --selector heading=.heading",
@@ -25,10 +25,16 @@
     "benchmark:audit:locations": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert",
     "field:validate": "node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json",
     "test:unit": "npm run build && node scripts/test-unit.mjs",
-    "profile:cli": "node scripts/profile-cli.mjs"
+    "profile:cli": "node scripts/profile-cli.mjs",
+    "lint": "eslint src bin scripts tests",
+    "coverage:unit": "npm run build && node scripts/test-unit.mjs --coverage"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.71.1"
   },
   "types": "./dist/index.d.ts",
   "exports": {

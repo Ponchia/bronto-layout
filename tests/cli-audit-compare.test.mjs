@@ -87,9 +87,9 @@ test('human-readable output contains real lines and clear risk classes',t=>{
     '--url','examples/audit-broken.html','--width','375','--settle','300']);
   if(noChrome(t,r))return;
   assert.equal(r.status,1,r.stderr||r.stdout);
-  assert.match(r.stdout,/\n  375px REGRESSION broken-image/);
-  assert.match(r.stdout,/\n  375px REVIEW-NEW possible-text-clipping/);
-  assert.doesNotMatch(r.stdout,/\\n  375px/);
+  assert.match(r.stdout,/\n {2}375px REGRESSION broken-image/);
+  assert.match(r.stdout,/\n {2}375px REVIEW-NEW possible-text-clipping/);
+  assert.doesNotMatch(r.stdout,/\\n {2}375px/);
 });
 test('invalid baseline locations and unsupported combinations return JSON error with exit 2',()=>{
   const invalid=run(['audit','--baseline','does-not-exist.html',

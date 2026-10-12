@@ -99,9 +99,6 @@ export function validateBenchmarkManifest(data) {
 }
 
 const newCounts = () => ({ tp:0, fp:0, fn:0, tn:0 });
-function addCounts(target, delta) {
-  for (const key of ['tp','fp','fn','tn']) target[key] += delta[key];
-}
 function ratios(counts) {
   return {
     ...counts,
