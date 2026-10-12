@@ -7,6 +7,8 @@ export interface SelectorDiscovery {
   groupAliases: string[];
   inspectedCandidates: number;
   candidatesTruncated: boolean;
+  /** Which discovery limits prevented inspecting additional candidates. */
+  limitReasons: Array<'candidate-limit' | 'unique-selector-limit' | 'repeated-group-limit'>;
   limitations: string[];
 }
 export function discoverPageSelectors(): SelectorDiscovery {
@@ -18,6 +20,9 @@ export function discoverPageSelectors(): SelectorDiscovery {
   const considered = document.querySelectorAll(
     'main,header,nav,footer,aside,h1,h2,section,article,figure,form,[data-testid],[id],.gallery,.grid'
   );
+  // Avoid materializing every matching element in a second unbounded JS array.
+  const candidates = Array.from({ length: Math.min(considered.length, MAX_CANDIDATES) },
+    (_, index) => considered.item(index)!);
   const cssEscape = (value: string) => CSS.escape(value);
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -53,8 +58,10 @@ export function discoverPageSelectors(): SelectorDiscovery {
     while (alias === 'viewport' || Object.hasOwn(selectors, alias)) alias = base + '-' + index++;
     return alias;
   };
-  for (const el of Array.from(considered).slice(0, MAX_CANDIDATES)) {
+  let singlesInspected = 0;
+  for (const el of candidates) {
     if (Object.keys(selectors).length >= MAX_SINGLE) break;
+    singlesInspected++;
     if (!visible(el)) continue;
     const selector = simpleSelector(el);
     if (!selector || Object.values(selectors).includes(selector)) continue;
@@ -62,8 +69,11 @@ export function discoverPageSelectors(): SelectorDiscovery {
   }
   // Repeated direct siblings make a useful provisional spacing group. Do not
   // infer groups from arbitrary descendants or use ambiguous parent selectors.
-  for (const el of Array.from(considered).slice(0, MAX_CANDIDATES)) {
+  let groupParentsInspected = 0;
+  let groupsOmittedAtLimit = false;
+  for (const el of candidates) {
     if (groupAliases.length >= MAX_GROUP) break;
+    groupParentsInspected++;
     const parent = simpleSelector(el);
     if (!parent || !visible(el)) continue;
     const counts = new Map<string, number>();
@@ -75,7 +85,8 @@ export function discoverPageSelectors(): SelectorDiscovery {
       }
     }
     for (const [name, count] of counts) {
-      if (count < 3 || groupAliases.length >= MAX_GROUP) continue;
+      if (count < 3) continue;
+      if (groupAliases.length >= MAX_GROUP) { groupsOmittedAtLimit = true; break; }
       const selector = parent + ' > .' + cssEscape(name);
       if (document.querySelectorAll(selector).length !== count ||
           Object.values(selectors).includes(selector)) continue;
@@ -84,10 +95,15 @@ export function discoverPageSelectors(): SelectorDiscovery {
       groupAliases.push(alias);
     }
   }
+  const limitReasons: SelectorDiscovery['limitReasons'] = [];
+  if (considered.length > MAX_CANDIDATES) limitReasons.push('candidate-limit');
+  if (singlesInspected < candidates.length) limitReasons.push('unique-selector-limit');
+  if (groupParentsInspected < candidates.length || groupsOmittedAtLimit)
+    limitReasons.push('repeated-group-limit');
   return {
     selectors, groupAliases,
-    inspectedCandidates: Math.min(considered.length, MAX_CANDIDATES),
-    candidatesTruncated: considered.length > MAX_CANDIDATES,
+    inspectedCandidates: candidates.length,
+    candidatesTruncated: limitReasons.length > 0, limitReasons,
     limitations: [
       'Only unique, simple selectors and repeated direct siblings are proposed',
       'Auto-discovery does not enter shadow roots, iframes, canvas or WebGL',
