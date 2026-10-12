@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add opt-in offline `field-benchmark review-console` for independent human review of hash-verified screenshots. A source-hash CSP protects local JavaScript for explicitly choosing statuses, validating attestations, and importing/exporting label JSON; no audit predictions, invented negative labels, uploads or persistent browser storage. Keep the original script-free gallery unchanged; manual capture artifacts provide both.
+
+
 - Add opt-in `audit --grid-gap-review` for bounded, review-only CSS grid direct-child spacing anomalies, with observed declared/actual gaps, explicit incomplete-container reporting, and no automatic blocking or field-accuracy claim. Healthy and intentional `space-between` grids remain clean; a 12px transformed card produces a nonblocking review lead.
 - Expose `audit --dom-limit N` (1,000–50,000, default 18,000) for complex DOM pages. The existing safety cap remains the default; explicit larger budgets preserve measured traversal/coverage in compact reports and can certify only that supported DOM traversal completed, not design correctness or hidden iframe contents.
 

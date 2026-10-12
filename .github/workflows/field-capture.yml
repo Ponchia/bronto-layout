@@ -62,7 +62,7 @@ jobs:
           node scripts/field-benchmark.mjs capture \
             --manifest benchmarks/field-sites.v0.1.json \
             --out "reports/field-${GITHUB_RUN_ID}" "${args[@]}"
-      - name: Prepare offline independent-review gallery, worksheet and blank label draft
+      - name: Prepare offline independent-review gallery, optional console, worksheet and blank draft
         if: always()
         shell: bash
         run: |
@@ -70,6 +70,10 @@ jobs:
           if [ -f "$dir/index.json" ]; then
             node scripts/field-benchmark.mjs review-gallery \
               --captures "$dir" --out "$dir/review-gallery.html"
+            # Separate interactive tool: CSP locks its script to a source hash;
+            # no networking, uploaded notes or automatic labels.
+            node scripts/field-benchmark.mjs review-console \
+              --captures "$dir" --out "$dir/review-console.html"
             node scripts/field-benchmark.mjs review-packet \
               --captures "$dir" --out "$dir/review-worksheet.md"
             node scripts/field-benchmark.mjs review-label-template \

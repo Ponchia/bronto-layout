@@ -7,8 +7,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, realpathS
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateFieldManifest, validateFieldLabels, scoreFieldEvidence } from './field-benchmark-core.mjs';
+import { FIELD_REVIEW_PROTOCOL, validateFieldManifest, validateFieldLabels, scoreFieldEvidence } from './field-benchmark-core.mjs';
 import { renderFieldReviewGallery } from './field-review-gallery.mjs';
+import { renderFieldReviewConsole } from './field-review-console.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const action = argv.shift();
@@ -49,6 +50,7 @@ Usage:
   node scripts/field-benchmark.mjs score --captures reports/field-run --labels FILE [--json] [--assert]
   node scripts/field-benchmark.mjs review-packet --captures reports/field-run --out review.md [--json]
   node scripts/field-benchmark.mjs review-gallery --captures reports/field-run --out gallery.html [--json]
+  node scripts/field-benchmark.mjs review-console --captures reports/field-run --out review-console.html [--json]
   node scripts/field-benchmark.mjs review-label-template --captures reports/field-run --out labels-draft.json [--json]
   node scripts/field-benchmark.mjs review-progress --captures reports/field-run --labels labels-draft.json [--json]
 Options: --fixtures for explicitly local test fixtures; --report FILE for score JSON.
@@ -276,6 +278,30 @@ function runReviewGallery() {
     result.readyForReview+'/'+result.total+' hash-verified; no labels inferred)\n');
 }
 
+/** Optional browser-editable offline reviewer form; unlike the script-free gallery,
+ * it uses a CSP-hash-locked inline script for user-triggered JSON downloads.
+ */
+function runReviewConsole() {
+  const dirName = opt('--captures');
+  const outName = opt('--out');
+  if (!dirName || !outName) throw new Error('review-console requires --captures and --out');
+  const captures = path.resolve(dirName);
+  const destination = path.resolve(outName);
+  if (existsSync(destination)) throw new Error('Review console already exists; do not overwrite human work');
+  const index = readJSON(path.join(captures,'index.json'));
+  const rows = fieldReviewEvidenceRows(index,captures);
+  const html=renderFieldReviewConsole(index,rows,captures,destination);
+  mkdirSync(path.dirname(destination),{recursive:true});
+  writeFileSync(destination,html,{flag:'wx'});
+  const result={schemaVersion:1,mode:'field-review-console',datasetId:index.datasetId,
+    output:destination,total:rows.length,readyForReview:rows.filter(row=>row.readyForReview).length,
+    initialPending:rows.length,humanLabels:0,includesDetectorPredictions:false,
+    outboundNetworkEnabled:false};
+  if (has('--json')) process.stdout.write(JSON.stringify(result,null,2)+'\n');
+  else process.stdout.write('Created offline human review console: '+destination+' ('+
+    result.readyForReview+'/'+result.total+' hash-verified; no labels or predictions generated).\n');
+}
+
 /** Create an editable, deliberately unscorable BLANK ground-truth worksheet.
  * No predictions or default negative labels are copied from audit evidence.
  */
@@ -293,7 +319,7 @@ function runReviewLabelTemplate() {
   const labels = {
     schemaVersion: 1,
     datasetId: index.datasetId,
-    reviewProtocol: 'Independent human review of rendered pages, screenshots, DOM and intentional exceptions BEFORE viewing automated Bronto Layout findings. Pending entries are NOT negative labels.',
+    reviewProtocol: FIELD_REVIEW_PROTOCOL,
     cases: rows.map(row => ({ id: row.id, reviewStatus: 'pending' }))
   };
   // Validate early, but intentionally preserve pending entries as unscored.
@@ -401,9 +427,10 @@ try {
   else if (action === 'score') runScore();
   else if (action === 'review-packet') runReviewPacket();
   else if (action === 'review-gallery') runReviewGallery();
+  else if (action === 'review-console') runReviewConsole();
   else if (action === 'review-label-template') runReviewLabelTemplate();
   else if (action === 'review-progress') runReviewProgress();
-  else throw new Error('Choose validate, capture, review-packet, review-gallery, review-label-template, review-progress or score. Run --help.');
+  else throw new Error('Choose validate, capture, review-packet, review-gallery, review-console, review-label-template, review-progress or score. Run --help.');
 } catch (error) {
   console.error('Field benchmark: ' + (error?.message || String(error)));
   process.exitCode = 2;
