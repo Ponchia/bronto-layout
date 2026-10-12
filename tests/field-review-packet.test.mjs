@@ -124,3 +124,37 @@ test('review-progress validates independent label attestations and separately re
   assert.equal(JSON.parse(bad.stdout).detectorPredictionsIncluded,false);
  }finally{rmSync(base,{recursive:true,force:true});}
 });
+
+test('CLI reviewer progress and scoring reject impossible dates before treating a declaration as reviewed',()=>{
+ const base=mkdtempSync(path.join(os.tmpdir(),'bronto-invalid-human-date-'));
+ try {
+  const captures=path.join(base,'captures');
+  mkdirSync(captures,{recursive:true});
+  const entry={id:'calendar-test-375',url:'https://example.test/',width:375,complete:false};
+  writeFileSync(path.join(captures,'index.json'),JSON.stringify({schemaVersion:1,
+   datasetId:'calendar-review-fixture',cases:[entry]}));
+  const labelsFile=path.join(base,'labels.json');
+  const data={schemaVersion:1,datasetId:'calendar-review-fixture',
+   reviewProtocol:'Review the page and screenshot independently before reading automated findings.',
+   cases:[{id:entry.id,reviewStatus:'reviewed',reviewer:'Fixture Human',
+     reviewedAt:'2026-02-30',rationale:'Controlled sample only, not actual independent reviewer evidence.',
+     reviewedScreenshot:true,reviewedRenderedPage:true,
+     expectedMeasured:[],expectedReview:[]}]};
+  writeFileSync(labelsFile,JSON.stringify(data));
+  const command=kind=>spawnSync(process.execPath,[script,kind,'--captures',captures,
+    '--labels',labelsFile,'--json'],{cwd,encoding:'utf8',timeout:20000});
+  for(const action of ['review-progress','score']) {
+   const bad=command(action);
+   assert.equal(bad.status,2,bad.stderr||bad.stdout);
+   assert.match(bad.stderr,/valid YYYY-MM-DD calendar review date required/);
+  }
+  data.cases[0].reviewedAt='2024-02-29';
+  writeFileSync(labelsFile,JSON.stringify(data));
+  const valid=command('review-progress');
+  assert.equal(valid.status,0,valid.stderr||valid.stdout);
+  const progress=JSON.parse(valid.stdout);
+  assert.deepEqual(progress.reviewed,['calendar-test-375']);
+  assert.deepEqual(progress.evidenceUnsafe,['calendar-test-375'],
+   'valid reviewer syntax must never erase missing raw evidence warnings');
+ }finally {rmSync(base,{recursive:true,force:true});}
+});

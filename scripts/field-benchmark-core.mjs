@@ -6,6 +6,15 @@ import { KNOWN_DETECTORS, scoreLabeledAuditCases } from './audit-benchmark-metri
 export const FIELD_REVIEW_PROTOCOL = 'Independent human review of rendered pages, screenshots, DOM and intentional exceptions BEFORE viewing automated Bronto Layout findings. Pending entries are NOT negative labels.';
 const ident = x => typeof x === 'string' && /^[a-z0-9][a-z0-9_-]{0,79}$/.test(x);
 const unique = list => new Set(list).size === list.length;
+/** Date.parse accepts impossible dates such as 2026-02-30 by normalizing them.
+ * Review attestations must use real calendar dates, not silently changed ones.
+ * Use an explicit UTC midnight to avoid local time-zone/DST ambiguity.
+ */
+export function validReviewDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const instant = new Date(value + 'T00:00:00.000Z');
+  return Number.isFinite(instant.getTime()) && instant.toISOString().slice(0, 10) === value;
+}
 function assert(condition, message) { if (!condition) throw new Error('Field benchmark: ' + message); }
 function codes(value, kind) {
   assert(Array.isArray(value) && unique(value) && value.every(code =>
@@ -62,8 +71,8 @@ export function validateFieldLabels(data, datasetId, knownIds) {
       continue;
     }
     assert(typeof label.reviewer === 'string' && label.reviewer.trim().length >= 3 &&
-      typeof label.reviewedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(label.reviewedAt) &&
-      Number.isFinite(Date.parse(label.reviewedAt)), label.id + ': human reviewer and review date required');
+      validReviewDate(label.reviewedAt),
+      label.id + ': human reviewer and valid YYYY-MM-DD calendar review date required');
     assert(typeof label.rationale === 'string' && label.rationale.trim().length >= 15,
       label.id + ': explain evidence and independent judgment');
     if (label.reviewStatus === 'reviewed') {

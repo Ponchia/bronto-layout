@@ -189,8 +189,11 @@ inspect the page, screenshots, DOM and computed styles, and record whether
 each supported detector category actually applies in the observed state.
 Separate intentional design decisions from genuine failures and mark cases
 unreviewable when reliable judgment is not possible. Record `reviewer`,
-`reviewedAt`, `rationale`, and the page/width/state. Do not use the output of
-Bronto Layout to generate the expected labels.
+`reviewedAt`, `rationale`, and the page/width/state. `reviewedAt` must be
+an actual ISO `YYYY-MM-DD` calendar date, including correct leap-day handling;
+impossible dates are rejected rather than silently normalized by JavaScript.
+This checks record consistency, not whether someone actually reviewed the page.
+Do not use the output of Bronto Layout to generate the expected labels.
 
 Prefer `review-label-template` for captured cohorts; alternatively copy
 `benchmarks/field-labels.template.json` to an untracked file. For every
