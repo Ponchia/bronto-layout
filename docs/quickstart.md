@@ -32,6 +32,26 @@ To investigate a frame coverage warning, use `audit --frame-inventory --json --c
 
 For manual review beyond the first viewport, `audit --evidence-dir reports/screens --full-page-evidence` creates an additional size-bounded screenshot. Its report says whether the observed document was fully within the capture rectangle or truncated. The screenshot is evidence only: dynamic/lazy-loaded content and iframe interiors remain unverified. See the [field capture protocol](field-benchmark.md) for caps and artifact integrity.
 
+## Try a complete first-run workflow on bundled pages
+
+Before connecting a real development server, reproduce a subtle defect using the shipped `gallery.html` / `gallery-broken.html` fixtures. The broken page shifts one card by 12 CSS pixels, but retains the same document width and working images; a zero-contract audit does not know the intended spacing:
+
+```sh
+bronto-layout audit --url examples/gallery-broken.html --width 375
+bronto-layout suggest --url examples/gallery.html \
+  --selector gallery=.gallery --selector cards=.card --widths 375,768 \
+  --out reports/gallery-draft.json
+bronto-layout review-draft --draft reports/gallery-draft.json \
+  --url examples/gallery-broken.html
+# Deliberately accept ONLY the horizontal gap rule for this documented example:
+bronto-layout approve --draft reports/gallery-draft.json \
+  --accept uniform-x-cards --out reports/gallery-contract.json
+bronto-layout check --spec reports/gallery-contract.json \
+  --url examples/gallery-broken.html --json --compact
+```
+
+Expected: the automatic audit has no strict measured problems; `review-draft` prints the observed **12px** gap deviation versus **2px** tolerance at both widths and exits 1; the final approved contract also fails on that difference. These exit codes are intentional for this exercise. No rule was silently approved. For your own page, carefully review each proposed relationship and use `approve --accept` only for behaviors you want to enforce.
+
 ## Make an intentional layout regression check
 
 Observe candidate relationships at multiple widths, then explicitly approve only the ones you want to preserve:

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Improve the human-readable CLI contract workflow: proposals include exact next commands and selector discovery limits, draft reviews show per-viewport deviations/tolerances with correct units, and approval output shows validation/check commands. Add a self-contained 12px gallery regression walkthrough and focused tests. No proposal gains automatic approval or new blocking behavior.
 - Introduce ESLint 9 + recommended TypeScript linting as development-only dependencies; `npm run check` now enforces lint along with compilation/integration tests. Add built-in Node/V8 unit coverage thresholds for the portable core (90% lines, 85% branches, 80% functions), wired into CI. Remove stale unused helper variables/imports.
 - Correct image-aspect validation: `object-fit: none` preserves source proportions despite a differently shaped image element box, so the constraint is now marked unmeasurable (like `cover`, `contain` and `scale-down`) rather than reported as distortion.
 - Make automatic audit comparisons robust to DOM reordering: uniquely identified broken-image resources can move across DOM paths/hosts without triggering fabricated regressions or improvements. For ambiguous same-count path changes, report an unverified element identity rather than guessing; genuine net count increases remain measurable.

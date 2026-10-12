@@ -80,7 +80,7 @@ bronto-layout review-draft --draft reports/proposals.json \
   --url http://localhost:5174/ --json --report reports/review-after-edit.json
 ```
 
-See [review-first contract discovery](docs/contract-discovery.md) for exact semantics and the explicit approval step.
+See [review-first contract discovery](docs/contract-discovery.md) for exact semantics and the explicit approval step. The CLI also prints the exact next-step commands after saving a draft or contract, and `review-draft` includes per-width observed deviations and tolerances with units. A reproducible [bundled gallery walkthrough](docs/quickstart.md) demonstrates a 12px regression that automatic auditing alone cannot classify.
 
 For reviewers needing below-the-fold visual context, the opt-in `audit --evidence-dir DIR --full-page-evidence` and manual field-capture `full_page_evidence=true` workflow store an additional size-bounded document screenshot. The capture is explicitly marked truncated for long/wide pages, hashes are verified, and automatic detectors never infer a design failure from the image. [Details and size limits](docs/field-benchmark.md).
 
