@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Recover from intermittent Chromium startup stalls with at most one additional isolated launch when the `DevToolsActivePort` endpoint never appears. Failed child processes and temporary profiles are cleaned up before retrying; input/navigation/check failures are never retried. Startup remains bounded and surfaces explicit errors when both launches fail.
+
+
 - Add `review-draft` to replay *unapproved* browser-observed relationships against a later revision at the same recorded widths and scenario, reporting still-satisfied/changed/unverified with distinct exit codes. No rule is approved or automatically repaired.
 - Disclose selector discovery limit reasons when the 500-element candidate limit, 20-unique-selector cap or six-repeated-group cap prevents further inspection. Review reports retain this coverage evidence.
 
