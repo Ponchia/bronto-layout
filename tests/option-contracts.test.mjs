@@ -115,3 +115,15 @@ test('opt-in grid review can be combined with explicit audit interactions, never
  assert.throws(()=>validateCommandOptions({command:'suggest','grid-gap-review':true}),/applies only to audit/);
 
 });
+
+
+test('doctor launch verification is a deliberate opt-in and sandbox override is not implied',()=>{
+ const verified=argsFromCLI(['doctor','--verify-launch','--json']);
+ assert.equal(verified.command,'doctor');
+ assert.equal(verified['verify-launch'],true);
+ assert.doesNotThrow(()=>validateCommandOptions(verified));
+ assert.doesNotThrow(()=>validateCommandOptions({...verified,'no-sandbox':true}));
+ assert.throws(()=>validateCommandOptions({command:'audit','verify-launch':true}),/only to doctor/);
+ assert.throws(()=>validateCommandOptions({command:'doctor','no-sandbox':true}),/requires --verify-launch/);
+ assert.match(HELP,/--verify-launch/);
+});

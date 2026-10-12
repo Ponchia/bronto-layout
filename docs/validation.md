@@ -1,5 +1,10 @@
 # Validation notes
 
+## 2026-10-12: local browser startup preflight (opt-in)
+
+Use `bronto-layout doctor --verify-launch --json` to ask Chromium to start an isolated temporary `about:blank` tab with an active CDP connection. This is a stronger *local startup* check than executable-version detection, but it does not prove site navigation, authenticated states, OS sandbox isolation or real-world layout correctness. In particular, on a real Mac/Linux workstation do **not** pass `--no-sandbox`; inspect `browser.launch.sandboxBypassRequested` and confirm it is false. The release checklist still requires third-party physical macOS testing. Test fixtures on disposable hosted CI runners may explicitly opt out of browser sandboxing only for their own bundled local pages.
+
+
 ## 2026-10-12: Opt-in stable-host stress profiling
 
 `npm run profile:stress -- --plan` verifies the 16-job local HTML manifest without Chromium. `npm run profile:stress -- --runs 2 --parallel 2` runs serial and 2-way parallel cold CLI batches followed by 500/5,000/20,000-element synthetic DOM audits. All cases use **bundled trusted fixtures only**, and the profiler never disables Chromium sandboxing. On hosts where user namespaces are unavailable, an explicit sandbox override belongs only in disposable, isolated test runners for these trusted fixtures (not for arbitrary public websites).

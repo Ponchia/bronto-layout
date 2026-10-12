@@ -990,10 +990,12 @@ async function approve(a) {
   await output(a, { mode: 'approve', file: destination, acceptedIds: ids, contract },
     describeApprovedContract(destination, ids.length));
 }
-/** A safe installation preflight: detection only, not a sandbox/network guarantee. */
+/** Version-only install check by default; opt-in launch verifies real local CDP
+ * readiness without contacting a site or weakening sandbox flags silently. */
 async function doctor(a) {
   const nodeMajor = Number(process.versions.node.split('.')[0]);
   const nodeSupported = nodeMajor >= 22;
+  const verifyLaunch = Boolean(a['verify-launch']);
   let browser;
   try {
     const executable = chromeExecutable(a.chrome);
@@ -1006,22 +1008,66 @@ async function doctor(a) {
   } catch (error) {
     browser = { detected: false, reason: error instanceof Error ? error.message : String(error) };
   }
-  const status = nodeSupported && browser.detected ? 'detected' : 'needs-attention';
+
+  // Only this explicit opt-in starts a browser. A sandbox bypass must itself
+  // be requested by the caller; the default remains Chromium's normal mode.
+  const bypass = Boolean(a['no-sandbox'] || process.env.BRONTO_CHROME_NO_SANDBOX === '1');
+  if (verifyLaunch) {
+    if (nodeSupported && browser.detected) {
+      let session;
+      try {
+        session = await startBrowser(browser.path, configFromArgs(a).timeout, bypass);
+        const page = await session.cdp.eval('({ url: location.href, readyState: document.readyState })');
+        if (page?.url !== 'about:blank' || !page.readyState)
+          throw new Error('Chromium did not return a usable isolated about:blank page through CDP');
+        browser.launch = { attempted: true, connected: true,
+          sandboxBypassRequested: bypass, page: 'about:blank' };
+      } catch (error) {
+        browser.launch = { attempted: true, connected: false,
+          sandboxBypassRequested: bypass,
+          reason: (error instanceof Error ? error.message : String(error)).slice(0, 600) };
+      } finally {
+        try { await session?.close(); }
+        catch (error) {
+          browser.launch = { attempted: true, connected: false,
+            sandboxBypassRequested: bypass,
+            reason: 'Unable to cleanly close the isolated browser profile: '+
+              (error instanceof Error ? error.message : String(error)).slice(0, 450) };
+        }
+      }
+    } else {
+      browser.launch = { attempted: false, connected: false,
+        sandboxBypassRequested: bypass,
+        reason: nodeSupported ? 'No detected Chrome/Chromium to launch' : 'Unsupported Node.js version' };
+    }
+  }
+
+  const status = !nodeSupported || !browser.detected ||
+    (verifyLaunch && !browser.launch?.connected) ? 'needs-attention'
+    : verifyLaunch ? 'launch-verified' : 'detected';
   const data = { schemaVersion: 1, mode: 'doctor', status,
     node: { version: process.versions.node, supported: nodeSupported },
     platform: process.platform, architecture: process.arch, browser,
     limitations: [
-      'The executable was checked with --version only; Chrome was not launched',
-      'Browser sandbox, network and site permissions remain unverified',
+      ...(verifyLaunch ? [
+        'Only an isolated local about:blank page and active CDP connection were tested',
+        bypass ? 'The browser sandbox bypass was explicitly requested; this is NOT a sandbox verification' :
+          'No explicit sandbox bypass was requested; OS-level isolation was not independently verified'
+      ] : ['The executable was checked with --version only; Chrome was not launched']),
+      'Network navigation, real-site permissions, native physical-device parity and visual correctness remain unverified',
       'Bronto Layout currently supports Chromium-family browsers through CDP'
     ] };
   await output(a, data, [
     'Bronto Layout preflight — ' + status,
     '  Node ' + data.node.version + (nodeSupported ? ' (supported)' : ' (requires >=22)'),
     '  Chromium: ' + (browser.detected ? browser.version + ' at ' + browser.path : browser.reason),
-    '  Note: preflight does not launch the browser or verify sandbox support'
+    ...(verifyLaunch ? ['  Isolated CDP launch: '+(browser.launch.connected ?
+      'connected to about:blank' : 'FAILED: '+browser.launch.reason),
+      '  Sandbox bypass requested: '+(bypass ? 'YES (not a sandbox test)' : 'NO')]
+      : ['  Note: pass --verify-launch to test a real isolated Chromium/CDP startup']),
+    '  Note: real website navigation, privacy and design quality were not inspected'
   ].join('\n'));
-  if (status !== 'detected') process.exitCode = 2;
+  if (status === 'needs-attention') process.exitCode = 2;
 }
 
 async function validate(a) {

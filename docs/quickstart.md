@@ -10,7 +10,15 @@ npm link
 bronto-layout doctor
 ```
 
-`doctor` checks that Node and a Chrome/Chromium binary can be found. It does **not** launch the browser or prove that the operating system allows the browser sandbox. For machine-readable preflight, add `--json`.
+`doctor` checks that Node and a Chrome/Chromium binary can be found. The **default remains non-invasive**: it runs `--version`, does not launch a page and cannot establish sandbox compatibility. For machine-readable preflight, add `--json`.
+
+For an actual **local browser startup check** before your first audit, opt in:
+
+```sh
+bronto-layout doctor --verify-launch --json
+```
+
+This launches an isolated temporary Chromium profile, checks an active CDP connection to `about:blank`, then shuts down and cleans up. Success returns `status: "launch-verified"` and `browser.launch.connected: true`; failure returns `needs-attention` (exit 2) with a launch reason. The record states whether a sandbox bypass was **requested**, not whether operating-system isolation was independently established. Without the `--no-sandbox` flag or explicit test environment override, no bypass is requested. Do not use `--no-sandbox` for arbitrary public websites: CI only uses it with trusted local fixtures on disposable runners. This preflight does **not** prove site navigation, authentication, page geometry quality or physical macOS compatibility until run on an actual machine.
 
 ## Inspect a page without writing a contract
 
