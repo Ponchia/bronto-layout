@@ -110,7 +110,7 @@ bronto-layout audit --url http://localhost:5173/ --width 375 \
   --json --compact --evidence-dir reports/screens --full-page-evidence
 ```
 
-The CLI refuses `--full-page-evidence` without `audit --evidence-dir`, and does not support screenshot capture for baseline comparisons. No screenshot imagery is read by the automatic detector to infer bugs.
+The CLI refuses `--full-page-evidence` without `audit --evidence-dir` and still rejects **full-page** screenshot evidence for baseline comparisons. Separate `audit --baseline OLD --url NEW --evidence-dir DIR` now supports paired **viewport-only** PNG screenshots and SHA-256 metadata as local, opt-in human debugging evidence. These paired screenshots are unrelated to the independent 30-state field-label scorer and do not become ground-truth labels. No screenshot imagery is read by the automatic detector to infer bugs.
 
 ## Optional frame-evidence capture and scoring protection
 

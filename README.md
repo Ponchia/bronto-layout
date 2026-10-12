@@ -94,6 +94,28 @@ See [review-first contract discovery](docs/contract-discovery.md) for exact sema
 
 For reviewers needing below-the-fold visual context, the opt-in `audit --evidence-dir DIR --full-page-evidence` and manual field-capture `full_page_evidence=true` workflow store an additional size-bounded document screenshot. The capture is explicitly marked truncated for long/wide pages, hashes are verified, and automatic detectors never infer a design failure from the image. [Details and size limits](docs/field-benchmark.md).
 
+### Paired visual evidence for before/after audits (opt-in)
+
+The baseline/candidate `audit` can now save **one viewport PNG for each revision
+at every sampled width**, immediately after applying its declared UI state.
+Use these images for human debugging alongside Bronto's numerical evidence:
+
+```sh
+bronto-layout audit --baseline examples/audit-healthy.html \
+  --url examples/audit-broken.html --widths 375,768 \
+  --evidence-dir reports/compare-evidence --json --compact
+```
+
+The JSON `comparisonEvidence` entries contain the exact baseline/candidate PNG
+paths, a SHA-256 digest for each image, and `coverage: "viewport-only"`.
+Files are created without overwriting existing reviewer evidence; use a fresh
+directory per comparison. **No pixel diff or automatic visual judgment is made.**
+If the declared UI state includes typed information, the *screenshots themselves*
+may visibly contain it even though Bronto's action metadata does not echo input
+values. Keep screenshots local/private, especially for authenticated pages.
+Below-the-fold paired captures are not supported; `--full-page-evidence` remains
+for the **single-page** audit only. See [paired comparison evidence](docs/quickstart.md).
+
 ## Independent field benchmark workflow
 
 **Source-checkout tools, not packaged CLI commands:** the `scripts/` and

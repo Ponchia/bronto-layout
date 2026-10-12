@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import os from 'node:os';
+
+const cwd=path.resolve(import.meta.dirname,'..');
+const cli=path.join(cwd,'bin/bronto-layout.mjs');
+const run=args=>spawnSync(process.execPath,[cli,...args],{
+  cwd,encoding:'utf8',timeout:100000,maxBuffer:8*1024*1024,
+  env:{...process.env,BRONTO_CHROME_NO_SANDBOX:'1',BRONTO_TEST_INLINE_FIXTURE:'1'}
+});
+const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
+const pngMagic=Buffer.from([137,80,78,71,13,10,26,10]);
+const validatePNG=(record,width)=>{
+  assert.equal(record.coverage,'viewport-only');
+  assert.equal(existsSync(record.file),true,record.file);
+  const bytes=readFileSync(record.file);
+  assert.ok(bytes.subarray(0,8).equals(pngMagic));
+  assert.equal(bytes.readUInt32BE(16),width);
+  assert.match(record.sha256,/^[a-f0-9]{64}$/);
+  assert.equal(record.sha256,digest(bytes));
+  return bytes;
+};
+function skipChrome(t,result){
+  if(result.error?.code==='ENOENT'||/Cannot find Chrome\/Chromium/.test(result.stdout+result.stderr)){
+    if(process.env.BRONTO_REQUIRE_CHROME==='1')throw new Error('Chromium required by CI');
+    t.skip('Chromium unavailable');return true;
+  }
+  return false;
+}
+
+test('opt-in baseline comparison saves exact paired viewport PNGs with verifiable hashes at both widths',t=>{
+  const evidence=mkdtempSync(path.join(os.tmpdir(),'bronto-paired-evidence-'));
+  try{
+    const args=['audit','--baseline','examples/audit-healthy.html',
+      '--url','examples/audit-broken.html','--widths','375,768',
+      '--json','--compact','--evidence-dir',evidence];
+    const child=run(args);
+    if(skipChrome(t,child))return;
+    assert.equal(child.status,1,child.stderr||child.stdout);
+    const report=JSON.parse(child.stdout);
+    assert.equal(report.mode,'audit-compare');
+    assert.equal(report.summary.measuredRegressions,4);
+    assert.equal(report.summary.unverifiedViewports,0);
+    assert.deepEqual(report.comparisonEvidence.map(x=>x.width),[375,768]);
+    for(const item of report.comparisonEvidence){
+      assert.equal(item.baseline.file,path.join(evidence,`audit-baseline-${item.width}px.png`));
+      assert.equal(item.candidate.file,path.join(evidence,`audit-candidate-${item.width}px.png`));
+      const baseline=validatePNG(item.baseline,item.width);
+      const candidate=validatePNG(item.candidate,item.width);
+      assert.notEqual(digest(baseline),digest(candidate));
+    }
+    assert.equal('visualRegression' in report,false);
+  }finally{rmSync(evidence,{recursive:true,force:true});}
+});
+
+test('ordinary no-evidence audit comparison makes no screenshot directory and retains prior report behavior',t=>{
+  const child=run(['audit','--baseline','examples/audit-healthy.html',
+    '--url','examples/audit-broken.html','--width','375','--json','--compact']);
+  if(skipChrome(t,child))return;
+  assert.equal(child.status,1,child.stderr||child.stdout);
+  const report=JSON.parse(child.stdout);
+  assert.equal(report.summary.measuredRegressions,2);
+  assert.equal('comparisonEvidence' in report,false);
+});
+
+test('paired comparison captures declared interactive state without echoing fill values in JSON',t=>{
+  const evidence=mkdtempSync(path.join(os.tmpdir(),'bronto-paired-action-'));
+  try{
+    const child=run(['audit',
+      '--baseline','examples/audit-stateful-healthy.html',
+      '--url','examples/audit-stateful-broken.html','--width','375',
+      '--actions','examples/audit-stateful-actions.json',
+      '--evidence-dir',evidence,'--json','--compact']);
+    if(skipChrome(t,child))return;
+    assert.equal(child.status,1,child.stderr||child.stdout);
+    const report=JSON.parse(child.stdout);
+    assert.equal(report.summary.measuredRegressions,2);
+    assert.equal(report.stateSetup.actionCount,4);
+    assert.deepEqual(report.stateSetup.actionTypes,['wait-for','click','fill','wait-for']);
+    assert.doesNotMatch(child.stdout,/sensitive-demo-input-do-not-leak/);
+    assert.equal(report.comparisonEvidence.length,1);
+    assert.notEqual(digest(validatePNG(report.comparisonEvidence[0].baseline,375)),
+      digest(validatePNG(report.comparisonEvidence[0].candidate,375)));
+  }finally{rmSync(evidence,{recursive:true,force:true});}
+});
+
+test('paired evidence never silently replaces an existing screenshot or produces a false green result',t=>{
+  const evidence=mkdtempSync(path.join(os.tmpdir(),'bronto-paired-no-clobber-'));
+  try{
+    const file=path.join(evidence,'audit-baseline-375px.png');
+    const existing=Buffer.from('EXISTING HUMAN REVIEW FILE');
+    writeFileSync(file,existing);
+    const child=run(['audit','--baseline','examples/audit-healthy.html',
+      '--url','examples/audit-broken.html','--width','375','--json',
+      '--evidence-dir',evidence]);
+    if(skipChrome(t,child))return;
+    assert.equal(child.status,2,child.stderr||child.stdout);
+    assert.match(JSON.parse(child.stdout).error.message,/already exists/);
+    assert.deepEqual(readFileSync(file),existing);
+    assert.equal(existsSync(path.join(evidence,'audit-candidate-375px.png')),false);
+  }finally{rmSync(evidence,{recursive:true,force:true});}
+});
+
+test('paired viewport evidence does not implicitly enable unsupported full-page comparisons',()=>{
+  const child=run(['audit','--baseline','examples/audit-healthy.html',
+    '--url','examples/audit-broken.html','--width','375','--json',
+    '--evidence-dir','somewhere-not-created','--full-page-evidence']);
+  assert.equal(child.status,2);
+  assert.match(JSON.parse(child.stdout).error.message,/full-page-evidence/);
+});

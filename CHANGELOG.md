@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add opt-in `audit --baseline OLD --url NEW --evidence-dir DIR` to save viewport-only baseline/candidate PNG pairs after equivalent browser-state replay at each responsive width. Full and compact JSON carry SHA-256 provenance and file paths. Existing reviewer images are never silently overwritten, and screenshots are for visual inspection only, not automatic pixel-diff or independently labeled accuracy. Full-page paired images remain unsupported.
 - Move finite `batch` manifest planning and isolated subprocess execution out of the shared CLI into `bin/batch-command.mjs`. Preserve bounded 1–4-way parallelism, manifest ordering and exit-code semantics; the child process path stays anchored to the installed CLI rather than the extracted module. Add browser-free plan tests and package-distribution coverage. No API or runtime dependency changes.
 
 

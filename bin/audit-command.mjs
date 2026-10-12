@@ -6,6 +6,7 @@
 import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
 import { serveTarget } from './local-fixture-server.mjs';
 import { getWidths } from './cli-options.mjs';
 import { capturePageAuditObservations } from '../dist/audit-browser.js';
@@ -14,6 +15,32 @@ import { planBoundedScreenshot } from '../dist/bounded-screenshot.js';
 import { analyzePageAudit } from '../dist/audit.js';
 import { comparePageAudits } from '../dist/audit-compare.js';
 import { combineCSSBreakpointSamples } from '../dist/breakpoints.js';
+
+/** Capture a verified viewport PNG only when expressly requested.
+ * The comparison is not a pixel-diff engine; screenshots are human evidence.
+ * Never overwrite an existing file from an earlier reviewer session.
+ */
+async function savePairedViewport(cdp, evidenceDir, version, width) {
+  const image = await cdp.send('Page.captureScreenshot', {
+    format: 'png', captureBeyondViewport: false, fromSurface: true
+  });
+  if (typeof image?.data !== 'string') throw new Error('Chromium returned no ' + version + ' comparison screenshot');
+  const png = Buffer.from(image.data, 'base64');
+  const signature = Buffer.from([137,80,78,71,13,10,26,10]);
+  if (png.length <= signature.length || !png.subarray(0, 8).equals(signature))
+    throw new Error('Chromium returned invalid ' + version + ' comparison PNG evidence');
+  const directory = path.resolve(evidenceDir);
+  await mkdir(directory, { recursive: true });
+  const file = path.join(directory, 'audit-' + version + '-' + width + 'px.png');
+  try {
+    await writeFile(file, png, { flag: 'wx' });
+  } catch (error) {
+    if (error?.code === 'EEXIST') throw new Error(
+      'Comparison screenshot already exists; choose a fresh --evidence-dir to preserve reviewer evidence: ' + file);
+    throw error;
+  }
+  return {file, sha256: createHash('sha256').update(png).digest('hex'), coverage: 'viewport-only'};
+}
 
 /** Report which kinds of actions were run, never typed values or selectors. */
 export function auditStateSummary(a, actions) {
@@ -77,10 +104,16 @@ export function createAuditCommand({
             throw new Error('Automatic audit comparison has ' + widths.length +
               ' widths, exceeding --max-samples ' + config.maxSamples);
           }
-          const baselineReports = [], candidateReports = [];
+          const baselineReports = [], candidateReports = [], comparisonEvidence = [];
           for (const width of widths) {
             baselineReports.push(await captureAuditAt(cdp, baselineTarget.url, width, config, baselineFixture, a['frame-inventory'], actions, a['grid-gap-review'], a['sibling-overlap-review']));
+            const baselineEvidence = a['evidence-dir']
+              ? await savePairedViewport(cdp, a['evidence-dir'], 'baseline', width) : null;
             candidateReports.push(await captureAuditAt(cdp, candidateUrl, width, config, candidateFixture, a['frame-inventory'], actions, a['grid-gap-review'], a['sibling-overlap-review']));
+            if (baselineEvidence) {
+              const candidateEvidence = await savePairedViewport(cdp, a['evidence-dir'], 'candidate', width);
+              comparisonEvidence.push({ width, baseline: baselineEvidence, candidate: candidateEvidence });
+            }
           }
           const comparison = comparePageAudits(
             baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url,
@@ -88,6 +121,7 @@ export function createAuditCommand({
           );
           return {
             ...comparison,
+            ...(a['evidence-dir'] ? {comparisonEvidence} : {}),
             ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {})
           };
         } finally { baselineTarget.close(); }
@@ -113,6 +147,7 @@ export function createAuditCommand({
       baselineUrl:result.baselineUrl,candidateUrl:result.candidateUrl,
       summary:result.summary,sampledWidths:result.sampledWidths,
       changes:result.changes,unverified:result.unverified,coverageGaps,
+      ...(result.comparisonEvidence ? {comparisonEvidence:result.comparisonEvidence} : {}),
       ...auditStateSummary(a, actions),
       ...(a['frame-inventory'] ? { frameInventories: result.candidate.map((candidate, i) => ({
         width: candidate.viewport.width, baseline: result.baseline[i].frameInventory,
@@ -125,6 +160,7 @@ export function createAuditCommand({
     const printable = [
       'Bronto Layout zero-contract comparison — '+result.baselineUrl+' → '+result.candidateUrl,
       ...(a.actions ? ['  Setup: '+actions.length+' validated declarative action(s), replayed independently on both versions at each width; values omitted'] : []),
+      ...(result.comparisonEvidence ? result.comparisonEvidence.map(item => '  '+item.width+'px viewport screenshots: baseline '+item.baseline.file+', candidate '+item.candidate.file) : []),
       ...result.changes.map(change=>
         '  '+change.width+'px '+change.kind.toUpperCase()+' '+change.code+
         (change.path?' ['+change.path+']':'')+
