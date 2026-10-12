@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "healthy-320",
+      "spec": "layout.json",
+      "url": "healthy.html",
+      "widths": [
+        320
+      ],
+      "mobile": true
+    },
+    {
+      "id": "healthy-375",
+      "spec": "layout.json",
+      "url": "healthy.html",
+      "widths": [
+        375
+      ],
+      "mobile": true
+    },
+    {
+      "id": "healthy-768",
+      "spec": "layout.json",
+      "url": "healthy.html",
+      "widths": [
+        768
+      ]
+    },
+    {
+      "id": "healthy-1280",
+      "spec": "layout.json",
+      "url": "healthy.html",
+      "widths": [
+        1280
+      ]
+    },
+    {
+      "id": "broken-320",
+      "spec": "layout.json",
+      "url": "broken.html",
+      "widths": [
+        320
+      ],
+      "mobile": true
+    },
+    {
+      "id": "broken-375",
+      "spec": "layout.json",
+      "url": "broken.html",
+      "widths": [
+        375
+      ],
+      "mobile": true
+    },
+    {
+      "id": "broken-768",
+      "spec": "layout.json",
+      "url": "broken.html",
+      "widths": [
+        768
+      ],
+      "colorScheme": "dark"
+    },
+    {
+      "id": "broken-1280",
+      "spec": "layout.json",
+      "url": "broken.html",
+      "widths": [
+        1280
+      ]
+    },
+    {
+      "id": "gallery-375",
+      "spec": "gallery.json",
+      "url": "gallery.html",
+      "widths": [
+        375
+      ],
+      "mobile": true
+    },
+    {
+      "id": "gallery-430",
+      "spec": "gallery.json",
+      "url": "gallery.html",
+      "widths": [
+        430
+      ],
+      "mobile": true,
+      "locale": "ar"
+    },
+    {
+      "id": "gallery-768",
+      "spec": "gallery.json",
+      "url": "gallery.html",
+      "widths": [
+        768
+      ]
+    },
+    {
+      "id": "gallery-1280",
+      "spec": "gallery.json",
+      "url": "gallery.html",
+      "widths": [
+        1280
+      ],
+      "reducedMotion": true
+    },
+    {
+      "id": "gallery-broken-375",
+      "spec": "gallery.json",
+      "url": "gallery-broken.html",
+      "widths": [
+        375
+      ],
+      "mobile": true
+    },
+    {
+      "id": "gallery-broken-430",
+      "spec": "gallery.json",
+      "url": "gallery-broken.html",
+      "widths": [
+        430
+      ],
+      "mobile": true,
+      "locale": "ar"
+    },
+    {
+      "id": "gallery-broken-768",
+      "spec": "gallery.json",
+      "url": "gallery-broken.html",
+      "widths": [
+        768
+      ]
+    },
+    {
+      "id": "gallery-broken-1280",
+      "spec": "gallery.json",
+      "url": "gallery-broken.html",
+      "widths": [
+        1280
+      ]
+    }
+  ]
+}

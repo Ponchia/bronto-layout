@@ -141,6 +141,17 @@ boundary cases. It reports false positives and false negatives
 **for those controlled fixtures only**, not for production sites.
 See the [benchmark methodology](docs/audit-benchmark.md).
 
+## Repeatable stress/performance validation (developer opt-in)
+
+Performance must be measured separately from defect correctness. The source repository contains a bounded **16-job first-party fixture batch** and a standalone cold-process stress profiler with 500, 5,000 and 20,000-element synthetic DOMs:
+
+```sh
+npm run profile:stress -- --plan
+npm run profile:stress -- --runs 2 --parallel 2
+```
+
+The plan runs **without launching a browser**; a real profile needs an installed Chromium. The runner visits **only bundled, trusted, local HTML fixtures**, never external URLs; it does not disable Chromium's sandbox or bundle a browser. The 20,000-element case must explicitly report incomplete bounded traversal, not a clean audit. Each batch job preserves its status, including deliberately seeded failing layout contracts. JSON output includes cold-process wall times, observed coverage and caveats. These timings depend on host load and do **not** establish real-world throughput, tool superiority, peak memory or detector precision/recall. See [the validation methodology](docs/validation.md).
+
 ## Zero-configuration layout audit (experimental)
 
 Run `audit` against an ordinary web page **without writing a
