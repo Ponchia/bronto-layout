@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    { "id": "approved-healthy", "spec": "layout.json", "url": "healthy.html", "widths": [375] },
+    { "id": "automatic-broken", "mode": "audit", "url": "audit-broken.html", "widths": [375], "domLimit": 25000 }
+  ]
+}

@@ -191,6 +191,39 @@ boundary cases. It reports false positives and false negatives
 **for those controlled fixtures only**, not for production sites.
 See the [benchmark methodology](docs/audit-benchmark.md).
 
+## Batch layout checks and zero-contract audits
+
+The `batch` command can now run a bounded suite of **approved contract checks** and
+**automatic audits** in separate isolated Chromium processes. All existing v1
+batch manifests remain compatible: a job without `mode` is still a `check` job
+requiring a contract `spec`. To run a zero-contract audit, declare
+`"mode": "audit"` with an explicit `url` and **no** `spec`:
+
+```sh
+bronto-layout batch --manifest examples/batch-audit.json --dry-run --json
+bronto-layout batch --manifest examples/batch-audit.json --parallel 2 --json --compact
+bronto-layout batch --manifest examples/batch-mixed.json --json --compact
+```
+
+An audit job may specify `actions` (path to a validated declarative setup file),
+`widths` or `scan`/`cssBreakpoints`, `locale`, mobile/media preferences, and opt-in
+`gridGapReview`, `siblingOverlapReview`, `frameInventory`, `domLimit` and
+`failOnCoverageGaps`. Relative paths resolve from the batch manifest's directory.
+All contracts and action files are validated **before** any browser launches;
+raw JavaScript is never accepted. Child processes never run through a shell.
+A job's action values remain in its source JSON and are not echoed in batch
+JSON summaries, although screenshots can still show page content and entered
+values. Each job has its own browser profile; no login state is shared.
+
+**Exit codes:** `0` means no measured issues/violated contracts for the sampled
+states (review warnings may still exist); `1` means at least one measured issue
+or violated approved contract; `2` means at least one invalid/unverified job.
+Batch summaries keep `checksPassed`/`checksFailed` for contract rules **separate**
+from `auditMeasuredIssues`, `auditReviewWarnings`, and
+`auditIncompleteViewports`. Experimental review-only leads never become strict
+failures without explicitly approved contracts. This is not a visual QA verdict,
+real-world precision/recall benchmark, or proof of iframe/canvas coverage.
+
 ## Repeatable stress/performance validation (developer opt-in)
 
 Performance must be measured separately from defect correctness. The source repository contains a bounded **16-job first-party fixture batch** and a standalone cold-process stress profiler with 500, 5,000 and 20,000-element synthetic DOMs:

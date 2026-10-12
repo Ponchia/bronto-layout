@@ -1,10 +1,9 @@
 import { validWidth } from './contract.js';
 import { widthRange } from './sweep.js';
 
-export interface BatchJob {
+/** Shared bounded viewport and media options for both batch job modes. */
+export interface BatchJobBase {
   id: string;
-  spec: string;
-  url?: string;
   locale?: string;
   widths?: number[];
   scan?: string;
@@ -13,8 +12,38 @@ export interface BatchJob {
   reducedMotion?: boolean;
   mobile?: boolean;
   layoutShifts?: boolean;
-  stableFor?: number;
 }
+
+/** Backward-compatible v1 contract job: mode omitted still means check. */
+export interface CheckBatchJob extends BatchJobBase {
+  mode?: 'check';
+  spec: string;
+  url?: string;
+  stableFor?: number;
+  actions?: never;
+  gridGapReview?: never;
+  siblingOverlapReview?: never;
+  frameInventory?: never;
+  failOnCoverageGaps?: never;
+  domLimit?: never;
+}
+
+/** Zero-contract mechanical audit with opt-in review-only diagnostics. */
+export interface AuditBatchJob extends BatchJobBase {
+  mode: 'audit';
+  url: string;
+  spec?: never;
+  stableFor?: never;
+  /** Declarative action file path, relative to manifest (never JavaScript). */
+  actions?: string;
+  gridGapReview?: boolean;
+  siblingOverlapReview?: boolean;
+  frameInventory?: boolean;
+  failOnCoverageGaps?: boolean;
+  domLimit?: number;
+}
+
+export type BatchJob = CheckBatchJob | AuditBatchJob;
 
 export interface BatchManifest {
   schemaVersion: 1;
@@ -24,12 +53,13 @@ export interface BatchManifest {
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v);
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
-const allowed = new Set(['id', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts', 'stableFor']);
+const allowed = new Set(['id', 'mode', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts', 'stableFor',
+  'actions', 'gridGapReview', 'siblingOverlapReview', 'frameInventory', 'failOnCoverageGaps', 'domLimit']);
 const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/i;
 
 /**
- * A finite declarative suite; no scripts, arbitrary commands or concurrent
- * execution. Fail closed before launching a single browser.
+ * A finite declarative suite: no arbitrary scripts/commands; the runner
+ * uses bounded 1..4 process concurrency. Fail closed before launching Chromium.
  */
 export function parseBatchManifest(value: unknown): BatchManifest {
   if (!object(value) || value.schemaVersion !== 1 ||
@@ -49,7 +79,30 @@ export function parseBatchManifest(value: unknown): BatchManifest {
       throw new Error(label + ' must have a unique simple id');
     }
     ids.add(job.id);
-    if (!nonEmpty(job.spec)) throw new Error(label + ' requires a spec path');
+    const mode = job.mode ?? 'check';
+    if (mode !== 'check' && mode !== 'audit') throw new Error(label + ' must use mode check or audit');
+    if (mode === 'check') {
+      if (!nonEmpty(job.spec)) throw new Error(label + ' requires a spec path');
+      for (const field of ['actions','gridGapReview','siblingOverlapReview','frameInventory','failOnCoverageGaps','domLimit']) {
+        if (job[field] !== undefined) throw new Error(label + ' ' + field + ' is only supported for audit');
+      }
+    } else {
+      if (job.spec !== undefined) throw new Error(label + ' audit cannot contain a spec (zero-contract mode)');
+      if (!nonEmpty(job.url)) throw new Error(label + ' audit requires an explicit URL');
+      if (job.stableFor !== undefined) throw new Error(label + ' audit does not support stableFor without named selectors');
+      if (job.actions !== undefined && (!nonEmpty(job.actions) || job.actions.length > 1024)) {
+        throw new Error(label + ' requires a bounded declarative actions file path');
+      }
+      if (job.domLimit !== undefined && (typeof job.domLimit !== 'number' ||
+        !Number.isSafeInteger(job.domLimit) || job.domLimit < 1000 || job.domLimit > 50000)) {
+        throw new Error(label + ' domLimit must be an integer from 1000 to 50000');
+      }
+      for (const field of ['gridGapReview','siblingOverlapReview','frameInventory','failOnCoverageGaps']) {
+        if (job[field] !== undefined && typeof job[field] !== 'boolean') {
+          throw new Error(label + ' ' + field + ' must be boolean');
+        }
+      }
+    }
     if (job.url !== undefined && !nonEmpty(job.url)) throw new Error(label + ' has invalid URL');
     if (job.locale !== undefined && (!nonEmpty(job.locale) || !localePattern.test(job.locale))) {
       throw new Error(label + ' has invalid locale');

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    { "id": "covered-375", "mode": "audit", "url": "audit-healthy.html", "widths": [375] },
+    { "id": "iframe-partial", "mode": "audit", "url": "audit-iframe-coverage.html", "widths": [375], "failOnCoverageGaps": true }
+  ]
+}

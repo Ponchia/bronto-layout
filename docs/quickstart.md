@@ -237,6 +237,29 @@ nonblocking warning. The combined behavior is checked with real Chromium.
 
 It reports the observed **16px/28px** gaps versus the declared 16px CSS column gap as a *review-only warning*. Unlike an accepted contract this is not a violation and it does not establish whether the offset was intentional. The experimental analyzer is off by default and never makes the page fail CI.
 
+## Audit multiple routes before writing contracts
+
+`batch` accepts mixed manifest jobs. Explicit `mode: "audit"` jobs need a URL,
+not a spec; old jobs without a mode remain `check` and must reference a spec.
+The bundled examples show 4 independent audits (including an interacted panel
+and a nonblocking CSS-grid review warning) and a mixed contract/audit pair:
+
+```sh
+bronto-layout batch --manifest examples/batch-audit.json --dry-run --json
+bronto-layout batch --manifest examples/batch-audit.json --parallel 2 --json --compact
+bronto-layout batch --manifest examples/batch-mixed.json --json --compact
+```
+
+The dry run validates **all** specs and declarative action files before any
+Chromium instance is opened. Failed actions or missing contracts abort the
+batch with exit `2`. Each real job opens a new isolated browser, so previously
+entered input, cookies and state cannot bleed between routes. Measured audit
+issues and violated explicit contracts produce exit `1`; review-only leads
+remain warnings, and incomplete/truncated/strict iframe coverage produces exit
+`2`. The batch result records contract assertion counts **separately** from
+mechanical audit issues and warnings. See [architecture](architecture.md) and
+[the example manifest](../examples/batch-audit.json).
+
 ## Run several routes without a shared browser session
 
 ```sh

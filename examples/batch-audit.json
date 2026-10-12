@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    { "id": "clean-375", "mode": "audit", "url": "audit-healthy.html", "widths": [375] },
+    { "id": "broken-375", "mode": "audit", "url": "audit-broken.html", "widths": [375] },
+    { "id": "opened-panel-375", "mode": "audit", "url": "audit-stateful-broken.html", "actions": "audit-stateful-actions.json", "widths": [375] },
+    { "id": "grid-review-375", "mode": "audit", "url": "gallery-broken.html", "gridGapReview": true, "widths": [375] }
+  ]
+}
