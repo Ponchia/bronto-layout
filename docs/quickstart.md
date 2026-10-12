@@ -28,6 +28,13 @@ bronto-layout audit --url http://localhost:5173 --fail-on-coverage-gaps --json
 
 That policy returns exit `2` for known uninspected content. Closed shadow roots and canvas internals are always outside the supported scope even when no such surface can be positively identified. Use ordinary screenshots and human inspection for visual intent.
 
+If `coverage.status` is `truncated` because the page exceeds the default
+18,000-element DOM traversal, increase the bounded inspection allowance
+with `--dom-limit 25000` (supported 1,000–50,000, audit only). The compact
+report now also includes the actual traversal limit and visited count. An
+increased allowance may be slower, must be explicitly requested and does not
+prove visual correctness or accessibility.
+
 To investigate a frame coverage warning, use `audit --frame-inventory --json --compact`. This collects additional Chromium frame-tree and DOMSnapshot evidence without certifying layouts inside the frames. If you need strict completeness, keep `--fail-on-coverage-gaps`; it does not become a pass merely because a frame's document appeared in DOMSnapshot.
 
 For manual review beyond the first viewport, `audit --evidence-dir reports/screens --full-page-evidence` creates an additional size-bounded screenshot. Its report says whether the observed document was fully within the capture rectangle or truncated. The screenshot is evidence only: dynamic/lazy-loaded content and iframe interiors remain unverified. See the [field capture protocol](field-benchmark.md) for caps and artifact integrity.

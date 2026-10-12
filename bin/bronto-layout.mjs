@@ -673,7 +673,7 @@ async function batch(a) {
  */
 async function captureAuditAt(cdp, url, width, config, fixture, frameInventory = false, actions = []) {
   const snapshot = await measure(cdp, url, width, { page: 'body' }, config, fixture, actions);
-  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')()');
+  const observations = await cdp.eval('(' + capturePageAuditObservations.toString() + ')(' + config.auditDOMLimit + ')');
   if (!observations || !Number.isInteger(observations.visitedElements) ||
       typeof observations.truncated !== 'boolean') {
     throw new Error('Browser did not return usable DOM audit observations');
@@ -848,6 +848,7 @@ async function audit(a) {
       summary: report.summary,
       coverage: {
         visitedElements: report.coverage.visitedElements,
+        traversalLimit: report.coverage.traversalLimit,
         truncated: report.coverage.truncated,
         scope: report.coverage.scope,
         status: report.coverage.status,

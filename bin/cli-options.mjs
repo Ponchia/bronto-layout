@@ -41,6 +41,7 @@ Options:
   --refine              Bisect observed state changes to one-pixel intervals
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
+  --dom-limit N         Audit: max visited DOM elements (1000..50000; default 18000; incomplete if exceeded)
   --selector name=CSS   Named selector for inspect or suggest; can be repeated
   --draft FILE          Candidate draft for review-draft or approve
   --actions FILE        Declarative JSON interactions for suggest or audit (no JS eval; audit repeats per viewport)
@@ -78,7 +79,7 @@ const OPTIONS = {
   spec: { type: 'string' }, manifest: { type: 'string' }, parallel: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, desktop: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, 'normal-motion': { type: 'boolean' }, scan: { type: 'string' },
-  refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' },
+  refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' }, 'dom-limit': { type: 'string' },
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
@@ -147,6 +148,7 @@ export function configFromArgs(a) {
     settle: int(a.settle ?? '0', '--settle', 0, 30000),
     stableFor,
     maxSamples: int(a['max-samples'] ?? '200', '--max-samples', 1, 2000),
+    auditDOMLimit: int(a['dom-limit'] ?? '18000', '--dom-limit', 1000, 50000),
     readySelector: a['ready-selector'] ?? undefined,
     mobile: Boolean(a.mobile && !a.desktop),
     locale: a.locale ?? undefined,
@@ -194,6 +196,7 @@ export function validateCommandOptions(a) {
   if (a['dry-run'] && a.command !== 'batch') throw new Error('--dry-run applies only to batch');
   if (a['fail-on-coverage-gaps'] && a.command !== 'audit') throw new Error('--fail-on-coverage-gaps applies only to audit');
   if (a['frame-inventory'] && a.command !== 'audit') throw new Error('--frame-inventory applies only to audit');
+  if (a['dom-limit'] !== undefined && a.command !== 'audit') throw new Error('--dom-limit applies only to audit');
   if (a.actions && !['suggest', 'audit'].includes(a.command)) throw new Error('--actions applies only to suggest or audit; checks replay saved contract.actions');
   if (a.command === 'review-draft' &&
       ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',

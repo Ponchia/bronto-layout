@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Expose `audit --dom-limit N` (1,000–50,000, default 18,000) for complex DOM pages. The existing safety cap remains the default; explicit larger budgets preserve measured traversal/coverage in compact reports and can certify only that supported DOM traversal completed, not design correctness or hidden iframe contents.
+
+
 - Support declarative `audit --actions FILE` and automatic `audit --baseline ... --actions FILE` to replay user-selected UI states independently at every width, including media-query threshold scans. This exposes previously hidden overflow and failed images after opening panels; reports preserve action type/count provenance without leaking filled values. Missing selectors and malformed actions fail closed; no automatic authentication or arbitrary JS.
 - Separate strict CLI parsing, command-option validation, numeric viewport parsing and approved browser scenario precedence into browser-free `bin/cli-options.mjs`. Keep the same commands/exit behavior, add direct pure tests and require the new module in isolated npm installs.
 - Add opt-in 16-route cold CLI stress profiling with a trusted local-only mixed-state batch and synthetic 500/5,000/20,000-element DOM fixtures. Measure repeatable wall-clock times while preserving expected failing contracts and explicit audit traversal truncation; no performance or accuracy claims for production pages.

@@ -207,6 +207,26 @@ A captured frame document is **not** proof that its images, visual clipping or r
 
 Unlike named-selector `check` and `inspect` commands, automatic `audit` does not yet accept `--stable-for`: without explicitly selected child elements, a geometrically quiet body box cannot certify that its contents stopped moving.
 
+### Larger DOMs: explicit, bounded audit traversal
+
+Automatic audit inspects up to **18,000 DOM elements per viewport by default**.
+If a large page exceeds this boundary, its coverage is `truncated` and the CLI
+returns **exit 2**, not a misleading clean pass. For trusted, resource-appropriate
+applications, increase the upper bound explicitly (1,000–50,000 elements):
+
+```sh
+bronto-layout audit --url http://localhost:5173 --width 375 --dom-limit 25000 --json --compact
+```
+
+This option works on both sides of `audit --baseline`, and the actual
+`coverage.traversalLimit` and `coverage.visitedElements` are retained in full
+and compact JSON reports. Bigger limits can increase page evaluation latency
+and still cannot certify closed shadow roots, embedded frames or canvas internals.
+There is **no automatic fallback** to a higher limit, and a page above 50,000
+measurable DOM nodes will remain partially inspected. The existing
+[synthetic stress profile](docs/validation.md) deliberately exercises the
+18,000-element default truncation as a negative control.
+
 The audit uses a bounded DOM traversal and does not inspect internal
 canvas/WebGL geometry, closed Shadow DOM, nested iframe contents or
 cross-browser rendering. It is not an automated WCAG compliance verdict.
