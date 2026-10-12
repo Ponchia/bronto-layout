@@ -350,6 +350,25 @@ boundary widths from both versions to avoid missing a new responsive branch.
   because of incomplete DOM traversal, omitted or ambiguous element
   attribution, unsupported new detectors, or an ordinary runtime error.
 
+Existing **review-only** warnings can also change in magnitude without
+appearing or disappearing. When `possible-text-clipping` or opt-in
+`possible-grid-gap-anomaly` remains at the same unambiguous DOM path and its
+reported deviation changes by **more than 2 CSS px**, the comparison reports
+`review-worsened` or `review-improved` with the baseline and candidate pixel
+values. This is a *human-review lead* (`summary.reviewChanges`), never a
+measured `regression` or a failing exit code. Smaller differences are treated
+as rounding/jitter; changing element identity or missing measurements must not
+be mistaken for an exact improvement. For a bundled example:
+
+~~~sh
+bronto-layout audit --baseline examples/gallery-broken.html \
+  --url examples/gallery-broken-worse.html --width 375 --grid-gap-review --json --compact
+~~~
+
+This produces a review-only increase from a 12px spacing deviation to 24px,
+without asserting either offset was unintended. For rules that **must** remain
+consistent, the developer should explicitly approve a `uniform-gaps` contract.
+
 Compact reports keep the measured changes, their element paths and widths,
 **remaining candidate issues** and totals; unchanged passing observations
 are omitted. The full JSON report includes both underlying audits.

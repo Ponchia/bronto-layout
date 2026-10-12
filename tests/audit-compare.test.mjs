@@ -191,3 +191,73 @@ test('partially omitted opt-in grid candidate sampling cannot certify an automat
  assert.equal(result.summary.unverifiedViewports,1);
  assert.match(result.unverified[0].reasons.join(' '),/grid-gap review omitted candidate/);
 });
+
+test('the same grid spacing lead becoming materially worse is a review change, never a regression',()=>{
+ const baseline=page(375,[finding('possible-grid-gap-anomaly','#gallery',12)]);
+ const candidate=page(375,[finding('possible-grid-gap-anomaly','#gallery',24)]);
+ const result=compare(baseline,candidate);
+ assert.equal(result.summary.measuredRegressions,0);
+ assert.equal(result.summary.measuredImprovements,0);
+ assert.equal(result.summary.reviewChanges,1);
+ assert.equal(result.summary.unverifiedViewports,0);
+ assert.equal(result.changes.length,1);
+ assert.deepEqual({kind:result.changes[0].kind,path:result.changes[0].path,
+  baselineValue:result.changes[0].baselineValue,candidateValue:result.changes[0].candidateValue},
+  {kind:'review-worsened',path:'#gallery',baselineValue:12,candidateValue:24});
+ assert.match(result.changes[0].message,/increased by 12\.00 CSS px/);
+});
+
+test('persisting text clipping with a larger/smaller magnitude generates review-only changes',()=>{
+ const wide=page(375,[finding('possible-text-clipping','#title',16)]);
+ const narrow=page(375,[finding('possible-text-clipping','#title',46)]);
+ const worsened=compare(wide,narrow);
+ assert.equal(worsened.summary.reviewChanges,1);
+ assert.equal(worsened.summary.measuredRegressions,0);
+ assert.equal(worsened.changes[0].kind,'review-worsened');
+ assert.equal(worsened.changes[0].baselineValue,16);
+ assert.equal(worsened.changes[0].candidateValue,46);
+ const improved=compare(narrow,wide);
+ assert.equal(improved.summary.reviewChanges,1);
+ assert.equal(improved.summary.measuredImprovements,0);
+ assert.equal(improved.changes[0].kind,'review-improved');
+ assert.deepEqual([improved.changes[0].baselineValue,improved.changes[0].candidateValue],[46,16]);
+});
+
+test('persistent warnings ignore sub-two-pixel jitter and caller significance floors',()=>{
+ const before=page(375,[finding('possible-grid-gap-anomaly','#same-grid',12)]);
+ for(const afterValue of [12,12.5,13.99,14]){
+  const after=page(375,[finding('possible-grid-gap-anomaly','#same-grid',afterValue)]);
+  assert.equal(compare(before,after).summary.reviewChanges,0,'noise '+afterValue);
+ }
+ const materiallyChanged=page(375,[finding('possible-grid-gap-anomaly','#same-grid',15)]);
+ assert.equal(compare(before,materiallyChanged).changes[0].kind,'review-worsened');
+ assert.equal(comparePageAudits('base','candidate',[before],[materiallyChanged],5).summary.reviewChanges,0);
+});
+
+test('missing numeric evidence on a persistent warning is unverified rather than claiming no change',()=>{
+ const baseline=page(375,[finding('possible-grid-gap-anomaly','#same-grid',12)]);
+ const candidate=page(375,[finding('possible-grid-gap-anomaly','#same-grid')]);
+ const result=compare(baseline,candidate);
+ assert.equal(result.summary.reviewChanges,0);
+ assert.equal(result.summary.unverifiedViewports,1);
+ assert.match(result.unverified[0].reasons.join(' '),/numeric deviation/);
+});
+
+test('review magnitude change and new measured broken-image regression remain independent',()=>{
+ const old=page(375,[finding('possible-text-clipping','#label',30)]);
+ const next=page(375,[finding('possible-text-clipping','#label',44),finding('broken-image','#broken')]);
+ const result=compare(old,next);
+ assert.equal(result.summary.reviewChanges,1);
+ assert.equal(result.summary.measuredRegressions,1);
+ assert.equal(result.changes.find(item=>item.code==='possible-text-clipping').kind,'review-worsened');
+ assert.equal(result.changes.find(item=>item.code==='broken-image').kind,'regression');
+});
+
+test('new warning at another path is not treated as a persistent magnitude change',()=>{
+ const old=page(375,[finding('possible-text-clipping','#first',14)]);
+ const next=page(375,[finding('possible-text-clipping','#next',40)]);
+ const result=compare(old,next);
+ assert.equal(result.summary.reviewChanges,0);
+ assert.equal(result.summary.unverifiedViewports,1);
+ assert.match(result.unverified[0].reasons.join(' '),/Cannot identify/);
+});

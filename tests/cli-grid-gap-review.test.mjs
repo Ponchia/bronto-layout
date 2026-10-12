@@ -92,3 +92,27 @@ test('opt-in grid-spacing review observes explicitly opened UI states without pr
  assert.equal(found.reports[0].coverage.traversalLimit,25000,
   'DOM budget, grid-gap review and interactive actions must coexist');
 });
+
+test('existing grid spacing review lead can worsen without becoming a blocking regression',t=>{
+ const args=['audit','--baseline','examples/gallery-broken.html',
+   '--url','examples/gallery-broken-worse.html','--width','375',
+   '--grid-gap-review','--json','--compact'];
+ const r=run(args);
+ if(skipChrome(t,r))return;
+ assert.equal(r.status,0,r.stderr||r.stdout);
+ const result=JSON.parse(r.stdout);
+ assert.equal(result.summary.measuredRegressions,0);
+ assert.equal(result.summary.reviewChanges,1);
+ assert.equal(result.summary.unverifiedViewports,0);
+ assert.equal(result.changes[0].kind,'review-worsened');
+ assert.equal(result.changes[0].code,'possible-grid-gap-anomaly');
+ assert.deepEqual([result.changes[0].baselineValue,result.changes[0].candidateValue],[12,24]);
+ const reverse=run(['audit','--baseline','examples/gallery-broken-worse.html',
+   '--url','examples/gallery-broken.html','--width','375',
+   '--grid-gap-review','--json','--compact']);
+ assert.equal(reverse.status,0,reverse.stderr||reverse.stdout);
+ const improved=JSON.parse(reverse.stdout);
+ assert.equal(improved.summary.reviewChanges,1);
+ assert.equal(improved.changes[0].kind,'review-improved');
+ assert.equal(improved.summary.measuredImprovements,0);
+});
