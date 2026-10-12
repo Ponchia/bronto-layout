@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Recover from intermittent Chromium startup stalls with at most one additional isolated launch when the `DevToolsActivePort` endpoint never appears. Failed child processes and temporary profiles are cleaned up before retrying; input/navigation/check failures are never retried. Startup remains bounded and surfaces explicit errors when both launches fail.
 - Update GitHub Actions checkout/setup-node/upload-artifact to maintained Node 24-compatible v7 major tags; disable checkout credential persistence in read-only CI, macOS and manual smoke workflows. No application runtime changes.
 
 

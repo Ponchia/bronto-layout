@@ -7,7 +7,39 @@ import { CDP } from './cdp-client.mjs';
 import { findChromiumPageTarget } from './chromium-target.mjs';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Retry only Chromium processes that never publish a debugging endpoint.
+ * The failed attempt must already have shut down its process and isolated
+ * profile. Runtime, navigation, CDP and assertion errors are NOT retryable.
+ * No unbounded retry loop: two total launches, at most.
+ */
+export async function retryChromiumPortStartup(launch, maxAttempts = 2) {
+  if (typeof launch !== 'function' || !Number.isInteger(maxAttempts) ||
+      maxAttempts < 1 || maxAttempts > 2) {
+    throw new Error('Chromium port startup retry requires a launch function and 1..2 attempts');
+  }
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await launch(attempt);
+    } catch (error) {
+      if (error?.code !== 'CHROME_DEBUG_PORT_TIMEOUT') throw error;
+      if (attempt === maxAttempts) {
+        if (attempt === 1) throw error;
+        const last = error instanceof Error ? error.message : String(error);
+        const failed = new Error('Chrome debugging endpoint did not start after ' +
+          maxAttempts + ' isolated attempts; last failure: ' + last, { cause: error });
+        failed.code = 'CHROME_DEBUG_PORT_TIMEOUT';
+        throw failed;
+      }
+    }
+  }
+}
+
 export async function startBrowser(chrome, timeout, noSandbox = false) {
+  return retryChromiumPortStartup(() => startBrowserAttempt(chrome, timeout, noSandbox));
+}
+
+async function startBrowserAttempt(chrome, timeout, noSandbox = false) {
   const profile = await mkdtemp(path.join(os.tmpdir(), 'bronto-layout-'));
   const child = spawn(chrome, [
     '--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
@@ -46,8 +78,10 @@ export async function startBrowser(chrome, timeout, noSandbox = false) {
   };
   try {
     let port;
-    // Browser launch can be slower than CDP operations under shared CI load.
-    const startupTimeout = Math.max(timeout, 30000);
+    // One hung Chrome startup must not consume the entire CLI timeout budget:
+    // the retry gets a NEW process/profile. Explicit --timeout still extends
+    // the per-attempt startup allowance when the user asks for it.
+    const startupTimeout = Math.max(timeout, 15000);
     const deadline = Date.now() + startupTimeout;
     while (Date.now() < deadline) {
       if (launchError) throw new Error(`Chrome failed to launch: ${launchError.message}`);
@@ -64,8 +98,10 @@ export async function startBrowser(chrome, timeout, noSandbox = false) {
     }
     if (!port) {
       const detail = startupDiagnostics.trim().slice(-1200);
-      throw new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
+      const error = new Error('Chrome debugging endpoint did not start within ' + startupTimeout + 'ms' +
         (detail ? ': ' + detail : ''));
+      error.code = 'CHROME_DEBUG_PORT_TIMEOUT';
+      throw error;
     }
     // Independent page-target grace period: Chromium may publish its
     // debugging port before opening a usable tab on a heavily loaded runner.

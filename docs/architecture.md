@@ -214,7 +214,7 @@ The early v0.x schema may evolve; breaking changes will be documented in the cha
 
 - `bin/chrome-detect.mjs` discovers an installed browser without downloading or launching it (`doctor` also reads its version).
 - `bin/cdp-client.mjs` handles bounded DevTools WebSocket requests and events.
-- `bin/chromium-session.mjs` owns the child process, isolated temporary profile, page-target recovery and cleanup.
+- `bin/chromium-session.mjs` owns the child process, isolated temporary profile, page-target recovery and cleanup. Chromium startup can have an isolated one-time retry *only* when `DevToolsActivePort` is absent after the bounded startup window. The old profile and child are cleaned before a new attempt. `--timeout` can extend the per-attempt window; navigation failures, invalid binaries, page-target errors and layout violations never trigger automatic retries. A second startup failure remains exit code 2 with explicit diagnostics.
 - `bin/bronto-layout.mjs` retains command orchestration and reports; further command-handler extraction should be measured and regression-tested rather than rewritten speculatively.
 - Batch jobs remain isolated subprocesses, with optional 1..4 worker concurrency and serial execution as the default. Browser startup is **not** reused across independent jobs; cookies and localStorage are intentionally kept separate.
 - Approved `scenario` and `actions` fields in version-1 contracts reproduce the explicit environment and declarative interactive state captured during suggestion. The CLI can override the environment on demand.
