@@ -120,7 +120,6 @@ test('actual loopback HTTP DevTools-style endpoint returns a usable target',asyn
 });
 
 test('debugging URL must match the discovered local port and page target path',async()=>{
-  const clock=fakeClock();
   for(const candidate of [
     { ...page, webSocketDebuggerUrl:'ws://example.com:9222/devtools/page/abc' },
     { ...page, webSocketDebuggerUrl:'ws://127.0.0.1:9444/devtools/page/abc' },

@@ -28,7 +28,7 @@ test('versioned localization ground truth retains all v0.2 classification labels
   const valid = validateBenchmarkManifest(localized);
   assert.equal(valid.cases.length, 33);
   assert.deepEqual(valid.localization.codes, ['broken-image','possible-text-clipping']);
-  assert.deepEqual(valid.cases.slice(0,31).map(({ expectedLocations, ...other }) => other), original.cases);
+  assert.deepEqual(valid.cases.slice(0,31).map(({ expectedLocations: _expectedLocations, ...other }) => other), original.cases);
   assert.equal(valid.cases.filter(c => c.expectedLocations['broken-image'].length).length, 10);
   assert.equal(valid.cases.filter(c => c.expectedLocations['possible-text-clipping'].length).length, 3);
   const duplicate = valid.cases.find(c => c.id === 'open-shadow-duplicate-id-320');

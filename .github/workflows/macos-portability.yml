@@ -19,6 +19,8 @@ jobs:
           cache: npm
       - name: Install compiler and dependencies
         run: npm ci --ignore-scripts
+      - name: Static TypeScript and CLI lint checks
+        run: npm run lint
       - name: Pure contracts, reports, and CLI manifest tests
         run: npm run test:unit
       - name: Pack and install into a separate npm consumer

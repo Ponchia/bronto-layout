@@ -36,9 +36,8 @@ export class CDP {
   event(method, timeout = this.timeout) {
     let cancel;
     const promise = new Promise((resolve, reject) => {
-      let unlisten;
       const timer = setTimeout(() => { unlisten?.(); reject(new Error(`Timed out waiting for ${method} after ${timeout}ms`)); }, timeout);
-      unlisten = this.listen(method, payload => { clearTimeout(timer); unlisten(); resolve(payload); });
+      const unlisten = this.listen(method, payload => { clearTimeout(timer); unlisten(); resolve(payload); });
       cancel = () => { clearTimeout(timer); unlisten(); };
     });
     return { promise, cancel };

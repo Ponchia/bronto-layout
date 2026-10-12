@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Introduce ESLint 9 + recommended TypeScript linting as development-only dependencies; `npm run check` now enforces lint along with compilation/integration tests. Add built-in Node/V8 unit coverage thresholds for the portable core (90% lines, 85% branches, 80% functions), wired into CI. Remove stale unused helper variables/imports.
+
+
 - Stabilize the browser layout-shift regression fixtures: schedule deliberate geometry changes after the first paint and expose an explicit readiness marker only after the following render frames. Tests wait for observed state instead of assuming a load-relative timer always fires after paint on a busy runner; no change to the production Layout Instability collector.
 
 - Add static offline `field-benchmark review-gallery`, giving independent reviewers a grouped screenshot contact sheet without detector predictions or generated labels. Hash checks reject tampered/non-PNG images; manual capture artifacts include the gallery and blank review worksheet by default.
