@@ -63,8 +63,10 @@ upstream Eleventy defect: the mutation exists only on disposable generated
 output.
 
 Temporary GitHub artifacts use artifact-relative SHA-256 checksums and expire
-after seven days. The public repository never commits third-party website
-screenshots, private credentials or data collected from authenticated pages.
+after seven days. The visual evidence index deliberately distinguishes
+viewports, source revision and mutation screenshots. The public repository
+never commits third-party website screenshots, private credentials or data
+collected from authenticated pages.
 
 ## Running and interpreting
 
@@ -73,12 +75,34 @@ accepts no arbitrary repository, URL, shell command or browser-action inputs.
 It verifies the checkout SHA and generated files before running sandboxed
 Chrome and restoring the generated CSS after the negative control.
 
-**Status:** the source, tests and workflow are prepared; a complete successful
-hosted run is required before claiming actual source-build verification.
-If the healthy baseline fails, inspect source and generated output at the
-specific commit rather than weakening contracts until they pass. This is
-not part of ordinary PR or deployment CI until practical reproducibility
-and maintenance costs are understood.
+**First source-built run completed.** The
+[GitHub Actions execution 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)
+successfully checked out the reviewed Eleventy Git commit, built the genuine
+site, verified **88/88 approved responsive assertions** across the homepage
+and About page, then reproduced a **single 18 CSS px main-column centering
+failure** in temporary generated HTML. Its generic audit remained clean
+(**0 measured overflow findings**). All **four uploaded report checksums**
+were independently verified after downloading the artifact.
+
+That first run also exposed an evidence gap: Bronto Layout's
+`check --evidence-dir` saves images for *failed* constraints only, so the
+healthy initial states provided JSON but **no viewport screenshots**.
+The workflow now runs a separate read-only `audit --evidence-dir` for each of
+the **eight baseline page/width pairs**, and captures both unannotated
+and annotated screenshots of the generated 18px mutation at 1280px.
+An independent verifier requires each expected PNG, checks its recorded
+viewport width and screenshot path, normalizes references to be
+**artifact-relative**, records SHA-256 digests and creates an offline
+`index.json` for review. Tests ensure wrong widths, tampering and false
+mutation outcomes cannot silently succeed.
+
+This follow-up screenshot workflow still needs to pass a fresh hosted run
+before its visual evidence can be called verified. A clean screenshot does not
+prove the generated site has no design, keyboard, paint or accessibility
+problems. The original four-report run remains valid **mechanical** evidence.
+
+This study is not part of ordinary PR or deployment CI until maintenance costs
+and reproducibility have been evaluated.
 
 Evidence from one independently authored OSS codebase strengthens confidence
 in cross-framework portability but is **not independent human ground truth,

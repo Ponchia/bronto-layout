@@ -59,7 +59,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
-- [ ] Build and inspect the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner; verify two generated routes, 88 responsive assertions and the desktop 18px semantic alignment mutation. A controlled mutation is not independent detector accuracy.
+- [x] Build the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner ([run 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)): **88/88 responsive checks**, one induced **18px semantic alignment failure**, and **0 generic audit issues**; all four initial JSON report hashes verified. This is mechanical, not human-labeled accuracy.
+- [ ] Capture and independently inspect Eleventy's **8 baseline and 2 mutation screenshots** with portable source-pinned hashes; the first successful run captured only JSON, and the improved visual evidence workflow has not yet been hosted-run verified.
 
 - [x] Complete the [fixed external deep-scroll study](oss-scroll-state-study.md) against Vite and Docusaurus: **4/4 verified scroll states**, **12/12 responsive contract evaluations**, and **13/13 portable artifact hashes** in [run 38415585449](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449). The previous Vite 10px clipped-root width observation remains, without a claim of user-visible overflow or independent whole-page correctness.
 - [x] Run the [fixed open-source mobile-navigation state cohort](oss-mobile-state-study.md) in sandboxed Chrome: **5/5 opened states**, **15/15 passing explicit assertions**, **0 measured errors**, and 21/21 evidence hashes verified in [run 38383862119](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119). This is automated state validation, not independently human-labelled design quality.

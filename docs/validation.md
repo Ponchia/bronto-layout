@@ -1,5 +1,25 @@
 # Validation notes
 
+## 2026-10-13: independent pinned Eleventy source build
+
+The [manual source build 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)
+checked out the MIT-licensed Eleventy base-blog from immutable source revision
+`94bd3b71d454da5b88eb505b8db6aea1cd0e9754` and built the generated
+website on an ephemeral sandboxed-Chrome runner. The homepage and About
+page passed **88/88** reviewed geometry checks across eight states. A
+controlled generated-HTML-only 18px displacement failed exactly one
+semantic centering requirement, while the independent zero-contract audit
+reported **zero measured issues**. All **four downloaded JSON report hashes**
+were verified.
+
+The first artifact contained no PNGs because success-path `check` does not
+emit screenshots. A subsequent evidence-packaging refinement adds an
+explicit audit screenshot per baseline state plus paired mutation screenshots
+and strict PNG/path/size checks. This has controlled tests; fresh hosted
+visual verification is still pending. This is first-party-generated evidence
+of an independent OSS website, **not** human-origin detector labels.
+
+
 ## 2026-10-13: fixed external deep-scroll headings verified below 6,000px
 
 The [sandboxed source-reviewed Vite/Docusaurus run](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449)
