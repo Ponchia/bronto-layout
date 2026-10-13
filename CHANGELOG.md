@@ -10,6 +10,7 @@
   auto-selected development Chromium aborted at startup.
   The Node 22 CI matrix now exercises default browser launch without any
   sandbox bypass and checks selection of stable Chrome when both are present.
+- Document the first downstream BrontoUI integration through its required deployment gate: 159/159 passing responsive contract evaluations on three website documents, a detected 3px mobile overflow and a detected 8px dashboard misalignment that a generic audit misses. These are first-party browser observations, not independently labeled accuracy.
 
 - Add a manual npm alpha-release runbook covering publisher authorization, reviewed SemVer prereleases, isolated package verification, privacy checks and registry validation. No publishing workflow, tag, or package release is created automatically.
 
