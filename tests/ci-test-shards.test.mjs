@@ -33,6 +33,8 @@ test('both supported Node versions run each half, with separate lint, package an
   const workflow = readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
   assert.match(workflow, /node: \[22, 24\]/);
   assert.match(workflow, /shard: \[1, 2\]/);
+  assert.ok(workflow.includes('Chromium (shard ' + String.fromCharCode(36) + '{{ matrix.shard }}/2)'),
+    'Each isolated shard needs a distinct CI check name for reliable PR status reporting');
   assert.match(workflow, /scripts\/ci-test-shards\.mjs --shard/);
   assert.match(workflow, /npm run lint/);
   assert.match(workflow, /npm run coverage:unit/);
