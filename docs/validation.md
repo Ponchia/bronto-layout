@@ -1,5 +1,15 @@
 # Validation notes
 
+## 2026-10-13: long-page OSS captures disclose bounded screenshot coverage
+
+The [20-state documentation-only full-page run](https://github.com/Ponchia/bronto-layout/actions/runs/38381065788)
+completed all cases and verified all **60** report/initial/full-page image
+SHA-256 hashes. The existing **6,000 CSS-pixel screenshot limit** truncated
+8/20 cases: Docusaurus and Vite at each of four widths. Docusaurus's
+320px document was about **14,623px** high. The bounded evidence
+does not establish below-the-fold interactive correctness, full rendering
+of lazy media or any independently reviewed defect.
+
 ## 2026-10-13: unrelated open-source website audit drives coverage improvements
 
 The separate [external OSS cohort](oss-field-study.md) covers Astro Docs
