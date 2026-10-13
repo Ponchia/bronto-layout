@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No root document overflow from intentionally scrollable code</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { overflow-y: scroll; }
+    body { margin: 0; min-height: 1400px; font: 16px system-ui, sans-serif; }
+    #page { width: calc(100% - 36px); margin-inline: 18px; }
+    #headline { width: 100%; height: 70px; background: #b6c7c1; }
+    #nested-scroll { width: 100%; overflow-x: auto; margin: 34px 0; background: #eee; }
+    #nested-scroll code { display: block; min-width: 800px; white-space: pre; }
+  </style>
+</head>
+<body>
+  <main id="page">
+    <h1 id="headline">Overhanging heading</h1>
+    <p>This heading is too wide for the root scrollport. The code below is
+      intentionally horizontally scrollable and should not be named as its cause.</p>
+    <pre id="nested-scroll"><code>one-long-code-line-with-no-breaks-one-long-code-line-with-no-breaks-one-long-code-line-with-no-breaks</code></pre>
+  </main>
+</body>
+</html>

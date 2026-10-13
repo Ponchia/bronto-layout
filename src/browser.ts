@@ -72,6 +72,30 @@ export function captureDOMGeometry(
   const scrollportHeight = root.clientHeight || window.innerHeight;
   const docWidth = Math.max(root.scrollWidth, body?.scrollWidth ?? 0);
   const overflowCandidates: NonNullable<LayoutSnapshot['overflowCandidates']> = [];
+  function parentOrShadowHost(element: Element): Element | null {
+    if (element.parentElement) return element.parentElement;
+    const tree = element.getRootNode();
+    return tree instanceof ShadowRoot ? tree.host : null;
+  }
+  function clippedByContainedAncestor(element: Element): boolean {
+    // A long code line inside an intentionally scrolling/clipped box can have
+    // a huge client rect even when it does NOT create document-wide overflow.
+    // Ignore that *candidate*, not the independent root-scrollWidth finding.
+    for (let ancestor = parentOrShadowHost(element);
+      ancestor && ancestor !== root && ancestor !== body;
+      ancestor = parentOrShadowHost(ancestor)) {
+      const overflowX = window.getComputedStyle(ancestor).overflowX;
+      if (overflowX !== 'auto' && overflowX !== 'scroll' &&
+          overflowX !== 'hidden' && overflowX !== 'clip') continue;
+      const bounds = ancestor.getBoundingClientRect();
+      // Only suppress a descendant when the clipping container itself fits.
+      // If the container extends beyond the viewport, keep its evidence.
+      if (bounds.width > 0 && bounds.left >= -1 && bounds.right <= scrollportWidth + 1) {
+        return true;
+      }
+    }
+    return false;
+  }
   if (docWidth > scrollportWidth + 1) {
     // A lead is not necessarily a cause. An element can visually overhang but be
     // intentionally clipped by an ancestor. Report evidence; don't accuse CSS.
@@ -86,7 +110,9 @@ export function captureDOMGeometry(
       const bounds = element.getBoundingClientRect();
       const rightOverflow = Math.max(0, bounds.right - scrollportWidth);
       const leftOverflow = Math.max(0, -bounds.left);
-      if ((rightOverflow > 1 || leftOverflow > 1) && bounds.width > 0 && bounds.height > 0) {
+      if ((rightOverflow > 1 || leftOverflow > 1) &&
+          bounds.width > 0 && bounds.height > 0 &&
+          !clippedByContainedAncestor(element)) {
         overflowCandidates.push({ path: domPath(element), rect: { x: bounds.x, y: bounds.y,
           width: bounds.width, height: bounds.height },
           rightOverflow, leftOverflow, position: style.position, overflowX: style.overflowX });
@@ -94,7 +120,7 @@ export function captureDOMGeometry(
       if (element.shadowRoot) walk.push(...Array.from(element.shadowRoot.children));
       walk.push(...Array.from(element.children));
     }
-    // Prefer tighter implicated elements before broad wrappers (html/body/main).
+    // Rank observed viewport excess, using narrower elements only to break ties.
     overflowCandidates.sort((a, b) => Math.max(b.rightOverflow, b.leftOverflow) - Math.max(a.rightOverflow, a.leftOverflow)
       || a.rect.width - b.rect.width || a.path.localeCompare(b.path));
     overflowCandidates.splice(12);
