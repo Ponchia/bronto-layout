@@ -28,7 +28,8 @@
     "profile:cli": "node scripts/profile-cli.mjs",
     "lint": "eslint src bin scripts tests",
     "coverage:unit": "npm run build && node scripts/test-unit.mjs --coverage",
-    "profile:stress": "npm run build && node scripts/profile-stress.mjs"
+    "profile:stress": "npm run build && node scripts/profile-stress.mjs",
+    "test:shard": "node scripts/ci-test-shards.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

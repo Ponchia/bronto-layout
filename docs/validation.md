@@ -1,5 +1,49 @@
 # Validation notes
 
+## 2026-10-13: deterministic CI test sharding (candidate)
+
+The existing Node 22 and Node 24 Chromium jobs spend approximately seven
+minutes (426 and 428 seconds in
+[CI run 38350904433](https://github.com/Ponchia/bronto-layout/actions/runs/38350904433))
+on compilation, lint, and one serial browser test process. The full Node 24
+job also includes another two minutes of controlled benchmarks and packaging.
+These are **measured GitHub Actions wall-clock durations**, not field accuracy
+or a stable-host throughput benchmark.
+
+The candidate CI workflow partitions every `tests/*.test.mjs` file into
+two deterministic, approximately weighted lists per Node version using
+`scripts/ci-test-shards.mjs`. Every current test file is scheduled **once per
+Node version**, across two independent ephemeral runners; one runner never
+starts overlapping Chromium test files (each shard still uses
+`--test-concurrency=1`). A new test file is discovered automatically on the
+next run. The original `npm test` and `npm run check` remain full unsharded
+local developer gates. The portable-core coverage threshold, versioned
+field manifests, controlled fixture benchmarks, and independently installed
+npm-package verification are retained, assigned to the first shard of the
+appropriate Node version. No test coverage, browser assertions or npm release
+conditions are deliberately skipped.
+
+The first sharded CI candidate (PR #72 run
+[38353016664](https://github.com/Ponchia/bronto-layout/actions/runs/38353016664))
+completed **all four Node/shard tests and hosted macOS successfully**.
+Observed elapsed durations: Node 22 shards **4m14s / 3m38s**; Node 24
+shards **6m44s / 3m33s**; hosted macOS **1m03s**. Compared with the
+earlier serial run (Node 22 **7m29s**, Node 24 **9m41s**) the longest
+required Node 24 job was roughly three minutes shorter, although this is
+only a **single-run** comparison. The Node 24 first shard includes all
+remaining benchmark/package gates; the second was idle early. The
+long-running localized browser benchmark is now being reassigned to Node
+24 **shard 2** for a more balanced required-gate completion time.
+Repeat CI must pass again before treating the new distribution as proven.
+
+This is a **CI scheduling experiment**. Faster elapsed PR feedback and
+stability must be demonstrated by completed fresh GitHub Actions runs before
+claiming a speedup. The extra independent runner may increase setup overhead
+or runner consumption, and GitHub's ephemeral runner contention can dominate.
+If either shard fails, PR CI fails. It must not turn skipped/missing browser
+evidence into success.
+
+
 ## 2026-10-13: versioned v0.2 cohort catches 320px BrontoUI overflow
 
 The **v0.2 field cohort** preserves the original 30 cases and adds two public

@@ -53,6 +53,22 @@ an instruction by the CLI, which never fetches the schema URL. Parser-side
 selector alias resolution and cross-field numeric validation remain the final
 authority, as JSON Schema does not prove those relationships.
 
+## CI test partitions
+
+CI can run the same full suite across two isolated runner shards for each
+supported Node version. This reduces local browser-process contention
+without dropping any `tests/*.test.mjs` files. Inspect the exact partition
+with `node scripts/ci-test-shards.mjs --plan`. To reproduce one part locally,
+after `npm run build`, use `npm run test:shard -- --shard 1/2` or
+`npm run test:shard -- --shard 2/2`. These **do not** replace the complete
+`npm run check` gate before merging a contribution.
+
+The Node 24 first shard also handles portable coverage thresholds and
+versioned controlled benchmarks; the first shard on Node 22/24 verifies the
+packed npm consumer. A passing half is **not** a passing suite; all shards
+must succeed. Keep new browser tests in the full tests directory and avoid
+splitting a test file across concurrent processes.
+
 ## Fast development loop
 
 Use `npm run test:unit` for pure TypeScript/Node tests without launching a browser. The full `npm run check` and package test are still required before proposing a merge. Use `npm run profile:cli -- --runs 2` for **trusted local fixture** cold-process timings; do not interpret them as real-world diagnostic quality or browser-reuse measurements. See [release checklist](docs/release-checklist.md).

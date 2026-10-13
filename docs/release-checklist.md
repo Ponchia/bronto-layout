@@ -18,6 +18,11 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Repeatable technical gates
 
+- [ ] Independently verify the two-shard Node 22/24 browser CI partition
+  preserves every test and passes both shards with the normal package and
+  controlled-benchmark gates. Compare repeated GitHub run durations to the
+  original serial baseline before claiming a speed improvement.
+
 - [x] Dependency-free Node CLI uses installed Chromium/CDP rather than bundling a browser.
 - [x] Verify copied/relocated paired viewport screenshots through a bounded offline `verify-evidence` command, using recorded SHA-256 hashes and exact local filenames. A copied comparison report still needs a trusted origin; this does not verify design quality.
 - [x] Opt-in baseline/candidate viewport screenshots have SHA-256 metadata and never overwrite prior reviewer evidence. The screenshot directory also gets a static offline comparison gallery with CSP-blocked scripts and network access. These do not establish visual intent or human ground truth.

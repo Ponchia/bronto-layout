@@ -7,12 +7,13 @@ permissions:
   contents: read
 jobs:
   test:
-    name: Node ${{ matrix.node }} + Chromium
+    name: Node ${{ matrix.node }} + Chromium (shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         node: [22, 24]
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -26,30 +27,37 @@ jobs:
       - name: Check browser availability
         run: |
           command -v google-chrome || command -v chromium
-      - name: Typecheck, build and run tests
+      - name: Typecheck, lint and execute complete test shard
         env:
           BRONTO_REQUIRE_CHROME: '1'
           BRONTO_CHROME_NO_SANDBOX: '1'
           BRONTO_TEST_INLINE_FIXTURE: '1'
-        run: npm run check
+        run: |
+          npm run build
+          npm run lint
+          node scripts/ci-test-shards.mjs --shard "${{ matrix.shard }}/2"
       - name: Enforce portable pure-engine coverage floor
-        if: matrix.node == 24
+        if: matrix.node == 24 && matrix.shard == 1
         run: npm run coverage:unit
       - name: Validate proposed real-world benchmark manifest (no live network)
+        if: matrix.shard == 1
         run: npm run field:validate
       - name: Verify labeled automatic-audit benchmark
-        if: matrix.node == 24
+        if: matrix.node == 24 && matrix.shard == 1
         env:
           # Trusted HTML fixtures on an ephemeral CI runner only.
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: npm run benchmark:audit
+      # v0.3 localized Chromium benchmark is the longest post-test gate.
+      # Put it on the lighter second shard, keeping every benchmark required.
       - name: Verify localized controlled audit benchmark
-        if: matrix.node == 24
+        if: matrix.node == 24 && matrix.shard == 2
         env:
           # Local, labeled and trusted HTML fixtures only.
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: npm run benchmark:audit:locations
       - name: Verify the installed npm tarball and CLI
+        if: matrix.shard == 1
         env:
           BRONTO_REQUIRE_CHROME: '1'
           # Only bundled trusted fixtures run with this explicit sandbox override
