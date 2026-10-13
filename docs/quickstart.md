@@ -194,8 +194,26 @@ A bounded JSON report includes only `stateSetup.actionCount` and `actionTypes`,
 if it contains information you should not share. Do not use production credentials
 in these test fixtures.
 
-Actions allow only `click`, `fill`, `wait-for`, `scroll-into-view` and bounded
-`pause` (maximum 30 steps), without accepting arbitrary JavaScript. An absent
+Actions allow only `click`, `pointer-click`, `fill`, `wait-for`,
+`scroll-into-view` and bounded `pause` (maximum 30 steps), without accepting
+arbitrary JavaScript. **Existing `click` is a programmatic DOM click:** it can
+invoke a hidden/obstructed button's handler without proving someone could
+physically click it. For explicit **mouse-pointer hit testing**, use the
+opt-in `pointer-click` action:
+
+```json
+[
+  { "type": "scroll-into-view", "selector": "#open" },
+  { "type": "pointer-click", "selector": "#open" }
+]
+```
+
+`pointer-click` refuses a missing, disabled, fully transparent, covered or
+offscreen control; it rechecks the target after hover and sends real Chrome
+mouse events. It does **not** scroll without a preceding declared action,
+choose additional links on its own, prove touch/keyboard accessibility, or guarantee
+all points on the button are clickable. Only use approved controls on pages
+you are authorized to test: real pointer events can have real side effects. An absent
 action selector or invalid file returns exit `2`, not a passing result. Use
 `--ready-selector`, an explicit `wait-for` or bounded `pause` when the application
 requires hydration/network settling. The observed state is only the configured

@@ -4,6 +4,15 @@ name: External OSS mobile navigation states
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Original DOM click or opt-in true mouse pointer hit-test'
+        required: true
+        type: choice
+        options:
+          - dom
+          - pointer
+        default: dom
 
 permissions:
   contents: read
@@ -44,27 +53,45 @@ jobs:
       - name: Open approved menus and capture the resulting page state
         env:
           CHROME_PATH: /usr/bin/google-chrome
+          INTERACTION_MODE: ${{ inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
+          case "$INTERACTION_MODE" in
+            dom|pointer) ;;
+            *) echo "::error::Invalid fixed menu interaction mode" >&2; exit 2 ;;
+          esac
           out="reports/oss-mobile-$GITHUB_RUN_ID"
           mkdir -p "$out"
+          echo "interactionMode=$INTERACTION_MODE" > "$out/results.txt"
           failed=0
           for spec in benchmarks/oss-states/*.json; do
             id=$(basename "$spec" .json)
             dir="$out/$id"
             mkdir -p "$dir/screens"
-            node - "$spec" "$dir/actions.json" <<'NODE'
+            effective_spec="$spec"
+            if [ "$INTERACTION_MODE" = pointer ]; then effective_spec="$dir/pointer-spec.json"; fi
+            node - "$spec" "$dir/actions.json" "$effective_spec" "$INTERACTION_MODE" <<'NODE'
           const fs = require('node:fs');
-          const [source, dest] = process.argv.slice(2);
+          const [source, actionsDest, specDest, mode] = process.argv.slice(2);
           const contract = JSON.parse(fs.readFileSync(source, 'utf8'));
-          fs.writeFileSync(dest, JSON.stringify(contract.actions, null, 2) + '\n');
+          if (contract.actions?.[0]?.type !== 'click' ||
+              contract.actions?.[1]?.type !== 'pause')
+            throw new Error('Expected fixed original reviewed menu-click scenario');
+          if (mode === 'pointer') {
+            contract.actions[0].type = 'pointer-click';
+            fs.writeFileSync(specDest, JSON.stringify(contract, null, 2) + '\n');
+          } else if (mode !== 'dom') {
+            throw new Error('Unapproved menu interaction mode');
+          }
+          fs.writeFileSync(actionsDest, JSON.stringify(contract.actions, null, 2) + '\n');
           NODE
+            node bin/bronto-layout.mjs validate --spec "$effective_spec" --json >/dev/null
             url=$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).url)' "$spec")
             width=$(node -e 'const fs=require("fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).widths[0]))' "$spec")
 
             set +e
-            node bin/bronto-layout.mjs check --spec "$spec" \
+            node bin/bronto-layout.mjs check --spec "$effective_spec" \
               --settle 650 --timeout 30000 --json > "$dir/check.json"
             checked=$?
             node bin/bronto-layout.mjs audit --url "$url" \
@@ -101,7 +128,7 @@ jobs:
             process.exit(2);
           }
           NODE
-            echo "case=$id check=$checked audit=$audited" >> "$out/results.txt"
+            echo "case=$id interaction=$INTERACTION_MODE check=$checked audit=$audited" >> "$out/results.txt"
           done
 
           # Build outside the scanned directory to avoid hashing a manifest

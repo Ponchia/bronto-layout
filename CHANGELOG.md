@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Permit manual OSS menu validation to compare the original DOM-click baseline against a temporary, opt-in `pointer-click` version of the **same five fixed public scenarios**, without mutating the historical cohort or broadening URL inputs.
+- Add opt-in `pointer-click` browser actions with Chrome mouse input and viewport/overlay hit-testing, including open Shadow DOM support and a post-hover recheck. Preserve legacy DOM `click` semantics for backward compatibility. Source-reviewed fixtures distinguish a genuinely clickable button from obstructed and offscreen buttons; no claims of touch or keyboard accessibility.
+
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic
   misalignment caught with zero generic overflow findings), and add a

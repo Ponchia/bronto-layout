@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "url": "pointer-click-hover-cover.html",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "pointer-click",
+      "selector": "#open"
+    }
+  ],
+  "selectors": {
+    "panel": "#panel:not([hidden])"
+  },
+  "rules": [
+    {
+      "id": "panel-must-open",
+      "type": "selector-count",
+      "element": "panel",
+      "exactly": 1
+    }
+  ]
+}

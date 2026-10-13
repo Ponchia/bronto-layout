@@ -66,6 +66,7 @@ You can:
 - Run conservative **zero-contract audits** and review potential layout leads separately from confirmed measurements.
 - **Compare baseline and candidate revisions** using stable contract rules, JSON/SARIF reports and optional visual evidence.
 - Test **multiple widths, breakpoints and routes**, including RTL, open Shadow DOM and declared interactions.
+- Use optional **real browser pointer-click** checks when a DOM event alone would falsely “open” an obscured or offscreen control; separate mouse hit testing from keyboard/touch usability.
 - **Inspect element geometry and matched CSS** without fabricating a source-level root cause.
 - Use the **pure TypeScript evaluation engine** with host-provided geometry, without Chromium or a framework dependency.
 

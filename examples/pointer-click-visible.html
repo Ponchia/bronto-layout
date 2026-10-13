@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pointer action fixture: visible target</title>
+  <style>
+    body { margin:0; font:16px system-ui; }
+    #open { position:relative; margin:30px; width:190px; height:62px; font:inherit; }
+    #panel { width:210px; padding:12px; background:#dde; }
+  </style>
+</head>
+<body>
+  <button id="open">Open a panel</button>
+  <section id="panel" hidden>Interactive panel</section>
+  <script>
+    document.getElementById('open').addEventListener('click', event => {
+      const panel = document.getElementById('panel');
+      panel.hidden = false;
+      panel.dataset.trusted = String(event.isTrusted);
+    });
+  </script>
+</body>
+</html>

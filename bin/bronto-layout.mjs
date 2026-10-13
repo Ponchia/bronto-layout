@@ -17,6 +17,7 @@ import { describeSuggestedContracts, describeProposalReview, describeApprovedCon
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { parseContract, validWidth } from '../dist/contract.js';
 import { parseLayoutActions } from '../dist/actions.js';
+import { pointerClick } from './pointer-click.mjs';
 import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
 import { toSarif } from '../dist/sarif.js';
@@ -164,6 +165,8 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
 }
 /** Execute only explicitly declared browser actions; no arbitrary JS from the contract. */
 async function runAction(cdp, action, timeout) {
+  if (action.type === 'pointer-click')
+    return pointerClick(cdp, action.selector, timeout, queryComposedElements);
   const args = JSON.stringify(action);
   const resolveSelector = queryComposedElements.toString();
   await cdp.eval(`(async () => {
