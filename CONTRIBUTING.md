@@ -74,6 +74,11 @@ splitting a test file across concurrent processes.
 Use `npm run test:unit` for pure TypeScript/Node tests without launching a browser. The full `npm run check` and package test are still required before proposing a merge. Use `npm run profile:cli -- --runs 2` for **trusted local fixture** cold-process timings; do not interpret them as real-world diagnostic quality or browser-reuse measurements. See [release checklist](docs/release-checklist.md).
 
 
+For developers trying the tool for the first time, the optional
+[independent first-use trial](docs/first-use-trial.md) collects workflow
+feedback without requiring private website URLs or screenshots. It is
+separate from human-labeled field accuracy work.
+
 ## Reporting a real-world layout problem
 
 Use the [layout bug issue form](.github/ISSUE_TEMPLATE/bug.yml) with a **minimal, shareable reproduction** and the intended relationship. A measured browser fact, a review-only candidate and an approved semantic contract failure are distinct; say which one you observed. Include viewport width, relevant UI state, Chrome/Node versions and the smallest JSON evidence that makes the result verifiable.
