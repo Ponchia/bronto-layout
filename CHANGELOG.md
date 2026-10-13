@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Verify fixed deep-scroll OSS states in a sandboxed Chrome run: four
+  Docusaurus/Vite mobile and desktop heading checks, 12/12 passing
+  assertions, 4,296–12,055 CSS px offsets and 13/13 portable checksums.
+  The known Vite clipped-root width finding remains separately reported.
+- Confirm five-site mobile-menu artifacts verify directly after download
+  (21/21 SHA-256 hashes, all 15 menu-state assertions passing).
+
 - First five-site external mobile-navigation run passed **15/15** post-click
   DOM-state assertions with zero measured audit issues. Preserve the two
   nonblocking Astro pending-image warnings and separate human usability

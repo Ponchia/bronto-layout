@@ -59,7 +59,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
-- [ ] Run the [fixed external deep-scroll study](oss-scroll-state-study.md) against Vite and Docusaurus (two widths each), verify the actual browser offsets and screenshot hashes, and investigate site-state drift before claiming any source defect.
+- [x] Complete the [fixed external deep-scroll study](oss-scroll-state-study.md) against Vite and Docusaurus: **4/4 verified scroll states**, **12/12 responsive contract evaluations**, and **13/13 portable artifact hashes** in [run 38415585449](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449). The previous Vite 10px clipped-root width observation remains, without a claim of user-visible overflow or independent whole-page correctness.
 - [x] Run the [fixed open-source mobile-navigation state cohort](oss-mobile-state-study.md) in sandboxed Chrome: **5/5 opened states**, **15/15 passing explicit assertions**, **0 measured errors**, and 21/21 evidence hashes verified in [run 38383862119](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119). This is automated state validation, not independently human-labelled design quality.
 - [ ] Obtain independent human usability/keyboard review of the opened menus; the current DOM-state and viewport checks cannot certify focus order or touch ergonomics.
 
