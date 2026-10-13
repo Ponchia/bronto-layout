@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Narrow root with intentional clipped horizontal code</title>
+  <style>
+    * { box-sizing:border-box; }
+    html { overflow-y:scroll; overflow-x:clip; }
+    body { margin:0; min-width:320px; min-height:1500px; overflow-x:clip; }
+    #top-bar { background:lightblue; height:60px; width:100%; }
+    #editor { overflow-x:auto; width:100%; border:1px solid transparent; }
+    #editor code { display:block; width:900px; white-space:pre; }
+  </style>
+</head>
+<body>
+  <header id="top-bar">Narrow body intentionally extends beyond its usable
+    scrollport when the browser reserves a vertical scrollbar</header>
+  <pre id="editor"><code>really-long-code-that-is-intentionally-locally-scrolled-not-root-content</code></pre>
+  <main><p>The overflow report should point to the top-level boxes,
+    not the 900px code descendant that is clipped by its pre element.</p></main>
+</body>
+</html>

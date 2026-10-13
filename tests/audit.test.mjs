@@ -36,6 +36,18 @@ test('document overflow is measured relative to usable scrollport, not nominal w
   assert.equal(report.findings[0].classification, 'measured');
   assert.equal(report.findings[0].overflowCandidates[0].path, '#wide');
 });
+test('explicit root clipping remains a measured extent, but the report avoids asserting visible scrolling', () => {
+  const snapshot=snap(320, 320);
+  snapshot.viewport.contentWidth=310;
+  snapshot.document.rootOverflowX='clip';
+  snapshot.document.bodyOverflowX='clip';
+  const report=analyzePageAudit(snapshot,obs());
+  assert.equal(report.summary.errors,1);
+  assert.equal(report.findings[0].classification,'measured');
+  assert.equal(report.findings[0].measuredPx,10);
+  assert.match(report.findings[0].message,/does not by itself prove user-visible scrolling/);
+});
+
 test('review-only text clipping and pending loading never become certain layout failures', () => {
   const observations = obs();
   observations.textClipCount = 1;

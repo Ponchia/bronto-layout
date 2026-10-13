@@ -23,13 +23,20 @@ container even though it does not itself cause root-level scrolling. If
 another element truly extends the page, listing that clipped line as the
 largest apparent culprit can misdirect both developers and coding agents.
 
-Candidate collection now walks ancestors (crossing explicitly open shadow
-roots) and excludes the **descendant candidate** when a horizontally
-clipping/scrolling ancestor (`auto`, `scroll`, `hidden`, or `clip`) itself fits
-within the usable viewport. The page-level measured overflow and its exit
-status are never suppressed. An ancestor that extends outside the scrollport
-is not assumed to be harmless; element leads remain observational evidence,
-not authoritative CSS root-cause attribution.
+Candidate collection walks ancestors (crossing explicitly open shadow
+roots) and excludes ordinary **descendant candidates** within a horizontally
+clipping/scrolling ancestor (`auto`, `scroll`, `hidden`, or `clip`). The clipping
+container itself remains a candidate, **even when it extends slightly outside**
+the usable scrollport: a 320px minimum-width code panel in a 310px scrollport
+might contribute 10px of root extent while its nested 900px code line must
+not be blamed for a 590px root overflow. Fixed/absolutely positioned elements
+are conservatively retained as possible escaping candidates.
+
+The page-level measured overflow and its exit status are **never suppressed**.
+If the root or body declares `overflow-x: clip` or `hidden`, the diagnostic
+explicitly says the measured scroll-width excess does **not** establish
+user-visible horizontal scrolling. These are observed CSS and geometry facts,
+not an authoritative source-level cause or an inference of design intent.
 
 The controlled fixtures `overflow-clipped-control.html` and
 `overflow-clipped-leads.html` test the distinction in real Chromium. The

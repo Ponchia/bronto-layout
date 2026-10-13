@@ -78,21 +78,20 @@ export function captureDOMGeometry(
     return tree instanceof ShadowRoot ? tree.host : null;
   }
   function clippedByContainedAncestor(element: Element): boolean {
-    // A long code line inside an intentionally scrolling/clipped box can have
-    // a huge client rect even when it does NOT create document-wide overflow.
-    // Ignore that *candidate*, not the independent root-scrollWidth finding.
+    // Nested code/content can extend hundreds of CSS px inside a local
+    // horizontal scroller without causing that much ROOT overflow. The
+    // clipping ancestor itself remains a candidate if its box exceeds the
+    // viewport by 10px (e.g. a minimum-width body on a scrollbar viewport).
+    // Do not suppress position:fixed/absolute elements: those may escape
+    // an ancestor's containing or clipping context, so keep them as leads.
+    const position = window.getComputedStyle(element).position;
+    if (position === 'fixed' || position === 'absolute') return false;
     for (let ancestor = parentOrShadowHost(element);
       ancestor && ancestor !== root && ancestor !== body;
       ancestor = parentOrShadowHost(ancestor)) {
       const overflowX = window.getComputedStyle(ancestor).overflowX;
-      if (overflowX !== 'auto' && overflowX !== 'scroll' &&
-          overflowX !== 'hidden' && overflowX !== 'clip') continue;
-      const bounds = ancestor.getBoundingClientRect();
-      // Only suppress a descendant when the clipping container itself fits.
-      // If the container extends beyond the viewport, keep its evidence.
-      if (bounds.width > 0 && bounds.left >= -1 && bounds.right <= scrollportWidth + 1) {
-        return true;
-      }
+      if (overflowX === 'auto' || overflowX === 'scroll' ||
+          overflowX === 'hidden' || overflowX === 'clip') return true;
     }
     return false;
   }
@@ -132,7 +131,11 @@ export function captureDOMGeometry(
       locale: Intl.DateTimeFormat().resolvedOptions().locale,
       colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
       reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches },
-    document: { width: docWidth, height: Math.max(root.scrollHeight, body?.scrollHeight ?? 0) },
+    document: {
+      width: docWidth, height: Math.max(root.scrollHeight, body?.scrollHeight ?? 0),
+      rootOverflowX: window.getComputedStyle(root).overflowX,
+      ...(body ? { bodyOverflowX: window.getComputedStyle(body).overflowX } : {})
+    },
     selectors: entries, selectorCounts, ...(overflowCandidates.length ? { overflowCandidates } : {})
   };
 }

@@ -96,13 +96,23 @@ This was a misleading review lead rather than a genuine clipped label.
 
 The original overflow candidates on Vite also contained long code elements
 far below the first viewport. Candidate DOM paths are diagnostic hints, **not
-proven root causes**. The independent source review motivates two safe
-refinements: explicitly mark CSS-visible canvases as uninspected paint
-rather than clean geometry, and recognize deliberately clipped assistive-only
-controls without hiding ordinary, visibly truncated text. These fixes must
-be proven by targeted positive and negative browser fixtures, then checked
-against the exact external cohort on a new capture. The historical screenshots
-and audit reports are immutable evidence, not retroactively relabeled.
+proven root causes**. Vite's clipped-root geometry remains a **measured 10px
+width fact**; the audit now describes declared root/body clipping rather than
+claiming that it necessarily causes user-visible horizontal scrolling.
+A controlled regression keeps the clipping container as a candidate but
+excludes an enormous locally scrollable code descendant—even when its
+container itself overhangs the scrollport. These improvements change the
+evidence explanation and attribution, **not** the numerical measurement or
+the strict contract exit code.
+
+The external source inspection also motivated two separately tested changes:
+canvas paint is now explicitly marked uninspected rather than clean, and
+visually hidden accessibility controls are filtered from clipped-text leads
+without suppressing genuinely truncated visible text. The controlled
+positive and negative browser fixtures passed; a second sandboxed external
+capture is needed to confirm the same behavior on deployed websites.
+Historical screenshots and reports remain immutable evidence, not
+retroactively rewritten accuracy labels.
 
 ## Limits
 

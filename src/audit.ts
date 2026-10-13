@@ -114,7 +114,12 @@ export function analyzePageAudit(
     code: 'document-horizontal-overflow', classification: 'measured', severity: 'error',
     measuredPx: Number(overflow.toFixed(2)),
     message: 'Document scroll width exceeds the usable viewport by ' + overflow.toFixed(2) +
-      ' CSS px. This may be intentional; review the component before changing it.',
+      ' CSS px. ' + (
+        [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX].some(
+          style => style === 'clip' || style === 'hidden')
+          ? 'Root or body CSS declares horizontal clipping; this width difference does not by itself prove user-visible scrolling. Review intentional clipping before making changes.'
+          : 'This may be intentional; review the component before changing it.'
+      ),
     ...(snapshot.overflowCandidates?.length ? { overflowCandidates: snapshot.overflowCandidates.slice(0, 8) } : {})
   });
   for (const image of evidence.brokenImages) findings.push({
