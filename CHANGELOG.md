@@ -8,6 +8,8 @@
   independently of the host's installed browser. Motivated by a real
   GitHub Actions consumer where stable Chrome launched securely but the
   auto-selected development Chromium aborted at startup.
+  The Node 22 CI matrix now exercises default browser launch without any
+  sandbox bypass and checks selection of stable Chrome when both are present.
 
 - Add a manual npm alpha-release runbook covering publisher authorization, reviewed SemVer prereleases, isolated package verification, privacy checks and registry validation. No publishing workflow, tag, or package release is created automatically.
 

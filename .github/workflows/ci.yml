@@ -36,6 +36,35 @@ jobs:
           npm run build
           npm run lint
           node scripts/ci-test-shards.mjs --shard "${{ matrix.shard }}/2"
+      # The regular fixtures intentionally use a no-sandbox override on
+      # ephemeral runners. This separate preflight checks that automatic
+      # detection actually selects a usable sandboxed browser.
+      - name: Verify default Chrome can launch without a sandbox bypass
+        if: matrix.node == 22 && matrix.shard == 1
+        run: |
+          node bin/bronto-layout.mjs doctor --verify-launch --json | tee "$RUNNER_TEMP/chrome-preflight.json"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const report = JSON.parse(fs.readFileSync(
+            path.join(process.env.RUNNER_TEMP, 'chrome-preflight.json'), 'utf8'
+          ));
+          if (report.status !== 'launch-verified' ||
+              report.browser?.launch?.connected !== true ||
+              report.browser?.launch?.sandboxBypassRequested !== false) {
+            console.error('Automatic sandboxed Chrome launch was not verified');
+            process.exit(1);
+          }
+          const stable = '/usr/bin/google-chrome';
+          if (fs.existsSync(stable) && fs.existsSync('/usr/bin/chromium') &&
+              report.browser.path !== stable) {
+            console.error('Stable Chrome was not preferred over developer Chromium',
+              report.browser.path);
+            process.exit(1);
+          }
+          console.log('Verified sandboxed startup with installed browser', report.browser.path);
+          NODE
+
       - name: Enforce portable pure-engine coverage floor
         if: matrix.node == 24 && matrix.shard == 1
         run: npm run coverage:unit

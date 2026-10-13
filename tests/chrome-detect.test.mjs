@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { chromeExecutable, linuxBrowserPriority } from '../bin/chrome-detect.mjs';
@@ -31,4 +31,18 @@ test('explicit --chrome path wins over CHROME_PATH, and environment overrides au
     else process.env.CHROME_PATH = previous;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+
+test('Node 22 GitHub CI verifies autodetection without a sandbox bypass', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('- name: Verify default Chrome can launch without a sandbox bypass');
+  const end = workflow.indexOf('- name: Enforce portable pure-engine coverage floor', start);
+  assert.ok(start > 0 && end > start);
+  const section = workflow.slice(start, end);
+  assert.match(section, /matrix.node == 22 && matrix.shard == 1/);
+  assert.match(section, /doctor --verify-launch --json/);
+  assert.match(section, /sandboxBypassRequested !== false/);
+  assert.match(section, /report.browser.path !== stable/);
+  assert.doesNotMatch(section, /BRONTO_CHROME_NO_SANDBOX|--no-sandbox/);
 });
