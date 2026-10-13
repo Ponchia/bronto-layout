@@ -75,7 +75,8 @@ test('scroll evidence requires an actual >1000 CSS px offset, correct fixed URL 
 test('compact agent scroll state independently verifies deep positions and rejects missing metadata', () => {
   const spec = plan[0];
   const original = { status: 0, output: JSON.stringify({
-    mode: 'check', format: 'compact', summary: { passed: 6, failed: 0, skipped: 0 },
+    mode: 'check', format: 'compact', url: spec.url,
+    summary: { passed: 6, failed: 0, skipped: 0 },
     sampledWidths: [320, 1280],
     scrollOffsets: [
       { width: 320, scrollX: 0, scrollY: 12055 },
@@ -90,6 +91,10 @@ test('compact agent scroll state independently verifies deep positions and rejec
     { ...original, output: original.output.replace('scrollOffsets', 'omittedOffsets') }), /lost approved scroll/);
   assert.throws(() => validateCompactScroll(spec, 320,
     { ...original, output: original.output.replace('12055', '0') }), /did not preserve/);
+  assert.throws(() => validateCompactScroll(spec, 320,
+    { ...original, output: original.output.replace(spec.url, 'https://example.com/') }), /reviewed public page/);
+  assert.throws(() => validateCompactScroll(spec, 320,
+    { ...original, output: original.output.replace('320,1280', '320,1280,1440') }), /lost approved scroll/);
   assert.throws(() => validateCompactScroll(spec, 320, { ...original, status: 2 }), /failed with exit/);
 });
 

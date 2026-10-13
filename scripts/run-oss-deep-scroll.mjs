@@ -130,8 +130,16 @@ export function validateCompactScroll(spec, width, checked) {
       data.summary?.failed !== 0 || data.summary?.skipped !== 0 ||
       !Array.isArray(data.scrollOffsets) ||
       !Array.isArray(data.sampledWidths) ||
-      !spec.widths.every(w => data.sampledWidths.includes(w)))
+      !Array.isArray(spec.widths) ||
+      data.sampledWidths.length !== spec.widths.length ||
+      !spec.widths.every((w, index) => w === data.sampledWidths[index]) ||
+      data.scrollOffsets.length !== spec.widths.length ||
+      !spec.widths.every(w => data.scrollOffsets.some(x => x.width === w)))
     throw new Error('Compact agent report lost approved scroll-state evidence');
+  const actual = new URL(data.url || '');
+  const expected = new URL(spec.url);
+  if (actual.origin !== expected.origin || actual.pathname !== expected.pathname)
+    throw new Error('Compact agent report was not captured from the reviewed public page');
   const state = data.scrollOffsets.find(item => item.width === width);
   if (!state || !Number.isFinite(state.scrollY) || state.scrollY <= 1000 ||
       !Number.isFinite(state.scrollX))
