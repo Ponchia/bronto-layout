@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "external-oss-deep-scroll-v0_1",
+  "allowedHosts": [
+    "docusaurus.io",
+    "vite.dev"
+  ],
+  "contracts": [
+    "benchmarks/oss-scroll/docusaurus.json",
+    "benchmarks/oss-scroll/vite.json"
+  ]
+}

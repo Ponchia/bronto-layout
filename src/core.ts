@@ -31,7 +31,9 @@ export interface OverflowCandidate {
   overflowX: string;
 }
 export interface LayoutSnapshot {
-  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; contentWidth?: number; contentHeight?: number; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string; colorScheme?: 'light' | 'dark'; reducedMotion?: boolean };
+  viewport: { width: number; height: number; direction: 'ltr' | 'rtl'; contentWidth?: number; contentHeight?: number; deviceScaleFactor?: number; coarsePointer?: boolean; locale?: string; colorScheme?: 'light' | 'dark'; reducedMotion?: boolean;
+    /** Actual browser document scroll offsets after declared state actions (CSS px); not a visual-quality claim. */
+    scrollX?: number; scrollY?: number; };
   document: {
     width: number; height: number;
     /** Browser-computed root/body overflow styles are diagnostic context, not design intent. */

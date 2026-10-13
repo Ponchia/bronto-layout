@@ -1,0 +1,10 @@
+[
+  {
+    "type": "scroll-into-view",
+    "selector": "#deep-heading"
+  },
+  {
+    "type": "pause",
+    "milliseconds": 120
+  }
+]

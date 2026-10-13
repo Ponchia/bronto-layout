@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Deep scroll-state geometry and viewport metadata</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px system-ui,sans-serif; }
+    main { width:min(100%,880px); margin:0 auto; padding:15px; }
+    .intro { height:5100px; background:linear-gradient(180deg,#d4e7e5,#f7efde); }
+    #deep-heading { width:80%; margin:12px 0; padding:20px;
+      background:#6d9a9a; color:white; }
+    .after { height:650px; background:#f1f1f1; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="intro">Read-only fixture with a heading after the first 5,100 CSS pixels.</div>
+    <h2 id="deep-heading">Deep target beyond the first viewport</h2>
+    <div class="after">Footer content</div>
+  </main>
+</body>
+</html>

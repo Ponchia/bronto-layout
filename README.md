@@ -92,6 +92,7 @@ You can:
 | [Benchmarks](docs/audit-benchmark.md) and [field validation](docs/field-benchmark.md) | Controlled fixtures versus independently labeled sites |
 | [External open-source website study](docs/oss-field-study.md) | Separate OSS cohort, limitations and independent-review protocol |
 | [External mobile-navigation states](docs/oss-mobile-state-study.md) | Fixed anonymous menu-opening experiments, post-click assertions and screenshots |
+| [External below-the-fold states](docs/oss-scroll-state-study.md) | Fixed Vite/Docusaurus section targets, actual scroll offsets and bounded screenshot evidence |
 | [Contributing](CONTRIBUTING.md) and [security](SECURITY.md) | Local tests, reporting issues and safety |
 
 ## Contribute

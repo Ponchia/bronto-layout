@@ -136,6 +136,7 @@ export function captureDOMGeometry(
   }
   return {
     viewport: { width: window.innerWidth, height: window.innerHeight, contentWidth: scrollportWidth, contentHeight: scrollportHeight, direction,
+      scrollX: window.scrollX, scrollY: window.scrollY,
       deviceScaleFactor: window.devicePixelRatio, coarsePointer: window.matchMedia('(pointer: coarse)').matches,
       locale: Intl.DateTimeFormat().resolvedOptions().locale,
       colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',

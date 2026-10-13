@@ -38,7 +38,7 @@ try {
     'bin/bronto-layout.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html',
-    'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
+    'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/scroll-deep.html', 'examples/scroll-deep.json', 'examples/scroll-deep-top-control.json', 'examples/scroll-deep-actions.json', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
     'examples/audit-visible-canvas.html', 'examples/audit-focus-skiplink.html',
     'examples/layout.json',
     'examples/healthy.html', 'examples/portfolio-alignment.json', 'examples/portfolio-alignment-healthy.html', 'examples/portfolio-alignment-broken.html',

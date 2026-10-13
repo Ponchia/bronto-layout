@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "url": "https://docusaurus.io/docs/",
+  "widths": [
+    320,
+    1280
+  ],
+  "actions": [
+    {
+      "type": "scroll-into-view",
+      "selector": "#something-missing"
+    },
+    {
+      "type": "pause",
+      "milliseconds": 180
+    }
+  ],
+  "selectors": {
+    "target": "#something-missing",
+    "main": "main"
+  },
+  "rules": [
+    {
+      "id": "deep-section-exists",
+      "type": "selector-count",
+      "element": "target",
+      "exactly": 1
+    },
+    {
+      "id": "deep-section-visible-in-viewport",
+      "type": "contained",
+      "element": "target",
+      "in": "viewport",
+      "axis": "y",
+      "tolerance": 5
+    },
+    {
+      "id": "main-document-exists",
+      "type": "selector-count",
+      "element": "main",
+      "exactly": 1
+    }
+  ]
+}
