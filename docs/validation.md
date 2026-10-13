@@ -1,5 +1,42 @@
 # Validation notes
 
+## 2026-10-13: versioned v0.2 cohort catches 320px BrontoUI overflow
+
+The **v0.2 field cohort** preserves the original 30 cases and adds two public
+BrontoUI pages at six viewport widths each. On PR branch `9fe8fd9`,
+[field capture run 38348760404](https://github.com/Ponchia/bronto-layout/actions/runs/38348760404)
+completed **42/42 states**. All **84 audit-report/screenshot SHA-256 values**
+matched the downloaded index. These are evidence-integrity checks, **not
+independent human field labels**; accuracy is still unknown.
+
+The companion [live smoke run 38348758382](https://github.com/Ponchia/bronto-layout/actions/runs/38348758382)
+deliberately **failed** because the BrontoUI homepage measured **3 CSS pixels
+of horizontal document overflow at 320px width**. Both the explicit
+`no-horizontal-overflow` contract and zero-contract auditor reported the
+same issue. The four established site contracts passed; the BrontoUI operations
+outer-shell contract passed; the homepage contract passed at 375, 768 and
+1280px. A browser-evidence candidate is `#hero-title` (right edge about
+313.19px versus a usable scrollport of 310px). The overflow report also
+listed a code element within an intentionally scrollable code panel, which
+is **only a diagnostic candidate**, not an established cause of document
+overflow. See [BrontoUI issue #248](https://github.com/Ponchia/bronto-ui/issues/248).
+Do **not** relax Bronto Layout's overflow tolerance or reclassify this
+measurement as a clean audit merely to make CI green.
+
+The BrontoUI homepage also had nonblocking `pending-image` warnings at
+mobile widths. The operations example reported
+`embedded-frame-uninspected` at 768 and 1280px, and Chiara's preview
+retains six such warnings across the field cohort. Those interiors are not
+verified. Optional grid/overlap candidate omissions remain on Sense6 in
+the opt-in review modes. These warnings and unknown surfaces do not establish
+human-verified visual defects.
+
+Until the BrontoUI site is fixed and deployed, the manually dispatched
+six-site smoke is expected to report the measured failure. The manual
+external-site workflow is deliberately separate from normal PR CI because
+public websites can change independently of the library.
+
+
 ## 2026-10-13: multi-site pre-alpha browser checks and field evidence
 
 Two **manually dispatched** GitHub Actions workflows checked the published public, first-party URLs with isolated Chromium. They ran on `main` commit `1f76c53` **before** the README/portfolio fixture improvements in this preparation branch. These are browser measurements, not independent assessments of design quality.

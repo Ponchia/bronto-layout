@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+  "widths": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "header": ".site-header",
+    "main": "#main",
+    "intro": ".page-intro",
+    "frame": ".iframe-frame",
+    "detail": ".example-detail"
+  },
+  "rules": [
+    {
+      "id": "no-horizontal-overflow",
+      "type": "document-overflow",
+      "tolerance": 2
+    },
+    {
+      "id": "header-present",
+      "type": "selector-count",
+      "element": "header",
+      "exactly": 1
+    },
+    {
+      "id": "page-main-present",
+      "type": "selector-count",
+      "element": "main",
+      "exactly": 1
+    },
+    {
+      "id": "example-intro-present",
+      "type": "selector-count",
+      "element": "intro",
+      "exactly": 1
+    },
+    {
+      "id": "frame-shell-present",
+      "type": "selector-count",
+      "element": "frame",
+      "exactly": 1
+    },
+    {
+      "id": "frame-shell-horizontal-fit",
+      "type": "contained",
+      "element": "frame",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "header-horizontal-fit",
+      "type": "contained",
+      "element": "header",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    }
+  ]
+}
