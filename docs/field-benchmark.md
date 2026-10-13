@@ -26,8 +26,13 @@ allowlist; URLs with credentials, query strings or fragments are rejected.
 the original 30 entries are unchanged, followed by 12 BrontoUI states
 (homepage and operations example, six widths each) for **42 proposed states**.
 The operations page embeds a demo; its iframe interior remains uninspected and
-must never be scored as a whole-page clean result. Neither cohort contains
-independent human labels. Prefer v0.2 for new breadth experiments; retain
+must never be scored as a whole-page clean result. A
+[42/42 capture run](https://github.com/Ponchia/bronto-layout/actions/runs/38348760404)
+completed with verified artifact hashes. The expanded cohort observed measured
+320px document overflow on BrontoUI's homepage
+([issue #248](https://github.com/Ponchia/bronto-ui/issues/248)).
+It remains unscored until an independent human reviewer supplies appropriate
+ground-truth labels. Neither cohort currently has independent field labels. Prefer v0.2 for new breadth experiments; retain
 v0.1 for historical reproducibility and scoring.
 
 The manually dispatched **Manual first-party field benchmark capture** workflow
