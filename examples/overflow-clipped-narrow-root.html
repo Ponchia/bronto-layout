@@ -9,10 +9,12 @@
     body { margin:0; min-width:320px; min-height:1500px; overflow-x:clip; }
     #top-bar { background:lightblue; height:60px; width:100%; }
     #editor { overflow-x:auto; width:100%; border:1px solid transparent; }
+    #closed-sidebar { position:fixed; left:-275px; width:240px; height:620px; background:#ddd; }
     #editor code { display:block; width:900px; white-space:pre; }
   </style>
 </head>
 <body>
+  <aside id="closed-sidebar" aria-hidden="true">Intentionally offscreen closed menu</aside>
   <header id="top-bar">Narrow body intentionally extends beyond its usable
     scrollport when the browser reserves a vertical scrollbar</header>
   <pre id="editor"><code>really-long-code-that-is-intentionally-locally-scrolled-not-root-content</code></pre>

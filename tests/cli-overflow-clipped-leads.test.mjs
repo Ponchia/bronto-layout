@@ -63,6 +63,26 @@ test('minimum-width clipped root retains true extent without blaming oversized c
   assert.match(lead.message, /horizontal clipping; this width difference does not by itself prove user-visible scrolling/);
   assert.ok(lead.overflowCandidates?.some(c => c.path === '#top-bar'),
     'The actual root-width header should remain an overflow observation');
+  assert.ok(lead.overflowCandidates?.[0]?.rightOverflow > 1,
+    'A right-side root-width observation should outrank a far-offscreen fixed menu');
+  assert.notEqual(lead.overflowCandidates?.[0]?.path, '#closed-sidebar',
+    'A left-offscreen closed menu must not be the leading candidate for a right root extent');
   assert.ok(!lead.overflowCandidates?.some(c => c.path.includes('code')),
     'Clip-contained 900px code must not be ranked as a root-overflow culprit');
+});
+
+test('RTL inline-end extent outranks a far-offscreen opposing right menu', t => {
+  const r = run('overflow-rtl-directional-leads');
+  if (shouldSkip(t, r)) return;
+  assert.equal(r.status, 1, r.stderr || r.stdout);
+  const audit = JSON.parse(r.stdout);
+  assert.equal(audit.summary.measuredIssues, 1);
+  const finding = audit.reports[0].findings.find(f => f.code === 'document-horizontal-overflow');
+  assert.ok(finding.measuredPx > 5);
+  assert.equal(audit.reports[0].direction, 'rtl');
+  assert.ok(finding.overflowCandidates?.some(c => c.path === '#left-overhang'),
+    'The intended RTL left overhang must remain among the browser evidence');
+  assert.ok(finding.overflowCandidates?.[0]?.leftOverflow > 1,
+    'RTL left overhang should rank before a larger offscreen right-side drawer');
+  assert.notEqual(finding.overflowCandidates?.[0]?.path, '#right-offscreen');
 });

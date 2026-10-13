@@ -105,14 +105,29 @@ container itself overhangs the scrollport. These improvements change the
 evidence explanation and attribution, **not** the numerical measurement or
 the strict contract exit code.
 
-The external source inspection also motivated two separately tested changes:
-canvas paint is now explicitly marked uninspected rather than clean, and
-visually hidden accessibility controls are filtered from clipped-text leads
-without suppressing genuinely truncated visible text. The controlled
-positive and negative browser fixtures passed; a second sandboxed external
-capture is needed to confirm the same behavior on deployed websites.
-Historical screenshots and reports remain immutable evidence, not
-retroactively rewritten accuracy labels.
+The external source inspection motivated two separately tested changes:
+canvas paint is explicitly marked uninspected rather than clean, and visually
+hidden accessibility controls are filtered from clipped-text leads without
+suppressing genuinely truncated visible text. Controlled positive and negative
+Chromium fixtures passed, including a narrow root with a locally scrolled
+code line and RTL overhang with an opposing offscreen menu.
+
+The [second sandboxed external browser run](https://github.com/Ponchia/bronto-layout/actions/runs/38376329176)
+completed **24/24 states** with **48/48 hashes verified** again. On Vite
+all four spurious skip-link warnings disappeared, while the originally
+measured 10px extent at 320px was **preserved**, now with an explicit CSS
+clipping caveat. On Excalidraw all four states had **two CSS-visible canvases**
+and were correctly marked `known-uninspected-content` with nonblocking
+`canvas-content-uninspected` warnings. The six Astro pending-image states
+remained review-only, not automatically upgraded to defects.
+
+The same follow-up found that offscreen mobile sidebars could be ranked ahead
+of a small inline-end overflow. A controlled LTR/RTL refinement now ranks
+inline-end candidates before unrelated offscreen opposite-side elements,
+without suppressing the original numeric finding; that candidate ordering
+requires a separate external verification. Neither browser run provides
+independently labeled precision/recall. Original captures remain immutable
+historical evidence, not retroactively rewritten accuracy labels.
 
 ## Limits
 

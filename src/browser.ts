@@ -71,6 +71,7 @@ export function captureDOMGeometry(
   const scrollportWidth = root.clientWidth || window.innerWidth;
   const scrollportHeight = root.clientHeight || window.innerHeight;
   const docWidth = Math.max(root.scrollWidth, body?.scrollWidth ?? 0);
+  const direction = window.getComputedStyle(root).direction === 'rtl' ? 'rtl' : 'ltr';
   const overflowCandidates: NonNullable<LayoutSnapshot['overflowCandidates']> = [];
   function parentOrShadowHost(element: Element): Element | null {
     if (element.parentElement) return element.parentElement;
@@ -119,12 +120,20 @@ export function captureDOMGeometry(
       if (element.shadowRoot) walk.push(...Array.from(element.shadowRoot.children));
       walk.push(...Array.from(element.children));
     }
-    // Rank observed viewport excess, using narrower elements only to break ties.
-    overflowCandidates.sort((a, b) => Math.max(b.rightOverflow, b.leftOverflow) - Math.max(a.rightOverflow, a.leftOverflow)
+    // Root scrollWidth excess normally extends the document's inline-end
+    // edge. An intentionally translated, fixed offscreen menu on the
+    // opposite side can overhang by hundreds of pixels without accounting
+    // for a measured 10px inline-end root width excess. Prioritize the
+    // inline-end excess, then keep other-side candidates as fallback.
+    const inlineEnd = (lead: (typeof overflowCandidates)[number]) =>
+      direction === 'rtl' ? lead.leftOverflow : lead.rightOverflow;
+    const inlineStart = (lead: (typeof overflowCandidates)[number]) =>
+      direction === 'rtl' ? lead.rightOverflow : lead.leftOverflow;
+    overflowCandidates.sort((a, b) => inlineEnd(b) - inlineEnd(a)
+      || inlineStart(b) - inlineStart(a)
       || a.rect.width - b.rect.width || a.path.localeCompare(b.path));
     overflowCandidates.splice(12);
   }
-  const direction = window.getComputedStyle(root).direction === 'rtl' ? 'rtl' : 'ltr';
   return {
     viewport: { width: window.innerWidth, height: window.innerHeight, contentWidth: scrollportWidth, contentHeight: scrollportHeight, direction,
       deviceScaleFactor: window.devicePixelRatio, coarsePointer: window.matchMedia('(pointer: coarse)').matches,

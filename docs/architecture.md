@@ -37,6 +37,10 @@ If the root or body declares `overflow-x: clip` or `hidden`, the diagnostic
 explicitly says the measured scroll-width excess does **not** establish
 user-visible horizontal scrolling. These are observed CSS and geometry facts,
 not an authoritative source-level cause or an inference of design intent.
+Root scroll-width excess also ranks DOM candidates by inline-end overhang
+first (LTR: right; RTL: left), then by the opposite side. This preserves
+a right-extending 10px content box ahead of a fixed menu translated 275px
+off the left edge. Both remain observational leads, not proven causes.
 
 The controlled fixtures `overflow-clipped-control.html` and
 `overflow-clipped-leads.html` test the distinction in real Chromium. The
