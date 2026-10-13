@@ -1,5 +1,18 @@
 # Validation notes
 
+## 2026-10-13: multi-site pre-alpha browser checks and field evidence
+
+Two **manually dispatched** GitHub Actions workflows checked the published public, first-party URLs with isolated Chromium. They ran on `main` commit `1f76c53` **before** the README/portfolio fixture improvements in this preparation branch. These are browser measurements, not independent assessments of design quality.
+
+- [Live-site CLI smoke run 38345314679](https://github.com/Ponchia/bronto-layout/actions/runs/38345314679): four route contracts (personal site, Sense6 English, Sense6 Arabic, Sense6 Learn), each at 320/375/768/1280 CSS px. **80 approved contract evaluations passed**, 0 failed and 0 skipped. Across the 16 zero-contract audit viewport observations, there were **0 measured findings, 0 review warnings and 0 incomplete top-level traversals**.
+- Optional `--grid-gap-review` and `--sibling-overlap-review` were enabled on that run. The personal site and Sense6 Learn reported **no known review-candidate omissions** at those sampled widths. Sense6 English and Arabic each reported **4 omitted grid candidates and 4 omitted sibling-overlap candidates** across four widths (16 omitted candidate/viewport inspections total). **Zero warnings is not complete review coverage**.
+- [First-party capture run 38345316815](https://github.com/Ponchia/bronto-layout/actions/runs/38345316815): **30/30 successful screenshot/report captures**, six widths (320, 360, 375, 430, 768, 1280) across five first-party routes. The only emitted review code was `embedded-frame-uninspected` on the Chiara preview (**6 warnings**, one per width). Frame inventory was enabled, but it does **not** verify inner-frame layout.
+- Field capture artifacts include a read-only contact sheet, editable offline reviewer console, blank pending-first labels and worksheet. **No independent labels were supplied**, so real-world precision, recall and confirmed false negatives are still **unknown**. Screenshots may represent only initial viewports, not below-fold or open-menu states; do not count any page as independently clean.
+- The release-preparation work adds a **separate, intentionally broken local portfolio fixture** with an 18px desktop image/paragraph misalignment. Its real Chromium tests distinguish baseline passing, mobile intentionally skipped and desktop contract regression. As an authored fixture it contributes **zero external ground-truth cases**.
+
+Artifacts have short retention (seven days) and were downloaded to ignored local `reports/` for inspection. Do not commit raw screenshots or append captured data to a public repository; keep any permitted copies private. Future validation should independently review historical portfolio states (including inner routes and scroll) and add confirmed positive defects before making detector-accuracy claims.
+
+
 ## 2026-10-12: live optional grid/flex review coverage observations
 
 An allowlisted, manually dispatched first-party smoke run on disposable GitHub Actions ([run 38302974027](https://github.com/Ponchia/bronto-layout/actions/runs/38302974027)) enabled `--grid-gap-review` and `--sibling-overlap-review` together on the public personal site and Sense6 English, Arabic and Learn routes at 320/375/768/1280 CSS px (16 states). The recorded top-document audits observed **0 measured issues and 0 grid/flex warnings** in those states. This does **not** mean the pages are independently judged defect-free. The original compact report states the DOM traversal completed for all sampled top-level scopes but also explicitly omitted **one candidate grid and one candidate overlap container per width** on both Sense6 English and Arabic (8 omitted candidate observations per language across four widths).

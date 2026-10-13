@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "url": "portfolio-alignment-healthy.html",
+  "widths": [
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "paragraph": ".copy > p:first-child",
+    "image": ".artwork .image",
+    "hero": ".hero"
+  },
+  "rules": [
+    {
+      "id": "page-stays-in-viewport",
+      "type": "document-overflow",
+      "tolerance": 1
+    },
+    {
+      "id": "artwork-exists",
+      "type": "selector-count",
+      "element": "image",
+      "exactly": 1
+    },
+    {
+      "id": "image-top-aligns-to-paragraph",
+      "description": "On desktop, the first artwork image and first paragraph start at the same vertical position.",
+      "type": "align-edge",
+      "a": "paragraph",
+      "b": "image",
+      "edgeA": "top",
+      "tolerance": 2,
+      "minWidth": 768
+    },
+    {
+      "id": "artwork-horizontal-fit",
+      "type": "contained",
+      "element": "image",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 1
+    }
+  ]
+}
