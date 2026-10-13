@@ -96,10 +96,23 @@ viewport width and screenshot path, normalizes references to be
 `index.json` for review. Tests ensure wrong widths, tampering and false
 mutation outcomes cannot silently succeed.
 
-This follow-up screenshot workflow still needs to pass a fresh hosted run
-before its visual evidence can be called verified. A clean screenshot does not
-prove the generated site has no design, keyboard, paint or accessibility
-problems. The original four-report run remains valid **mechanical** evidence.
+The [follow-up hosted visual run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662)
+has now succeeded at Bronto Layout commit `bda1df8`. It produced
+**all 8 baseline screenshots plus 2 mutation screenshots**, the
+source-pinned reviewer `index.json` and **23 checksum-verified artifact files**.
+The downloaded PNGs were inspected at mobile and desktop widths: no obvious
+defect was found in the sampled healthy viewports, while the deliberately
+displaced homepage and annotated evidence show the content-column change.
+A pixel-level comparison of the two 1280px screenshots confirms that rendered
+pixels differ in the content-column region; the approved geometry rule measures
+the induced **18px centering deviation** exactly.
+
+The screenshots and source build are retained in a separate private,
+post-download verified archive. They are not published with the source
+repository. These observations do **not** certify all responsive widths,
+the full browsing experience, keyboard behavior, paint order or accessible
+semantics. The original four-report run remains valid **mechanical** evidence,
+not independent reviewer ground truth.
 
 This study is not part of ordinary PR or deployment CI until maintenance costs
 and reproducibility have been evaluated.

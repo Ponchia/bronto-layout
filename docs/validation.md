@@ -13,11 +13,14 @@ reported **zero measured issues**. All **four downloaded JSON report hashes**
 were verified.
 
 The first artifact contained no PNGs because success-path `check` does not
-emit screenshots. A subsequent evidence-packaging refinement adds an
-explicit audit screenshot per baseline state plus paired mutation screenshots
-and strict PNG/path/size checks. This has controlled tests; fresh hosted
-visual verification is still pending. This is first-party-generated evidence
-of an independent OSS website, **not** human-origin detector labels.
+emit screenshots. The [visual follow-up run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662)
+now verifies **8/8 real baseline PNGs**, **2/2 mutation PNGs**, an
+artifact-relative evidence index and **23/23 downloaded SHA-256 digests**.
+Browser PNG widths and screenshot paths match every approved viewport.
+Visual inspection confirms the deliberate desktop content displacement while
+the generic audit remains free of measured document overflow.
+This is first-party-generated evidence of an independent OSS website,
+**not** human-origin detector labels.
 
 
 ## 2026-10-13: fixed external deep-scroll headings verified below 6,000px
