@@ -68,6 +68,42 @@ Results should focus on *why* a finding is useful/misleading or a surface
 is unverified, and what we should change: detector, CLI presentation,
 coverage metadata, selector handling or documentation.
 
+## Observed external run — 13 October 2026
+
+The first sandboxed [browser run 38372326004](https://github.com/Ponchia/bronto-layout/actions/runs/38372326004)
+completed **24/24 initial-viewport states**, with **48/48 SHA-256 audit
+and screenshot hashes verified**. These establish successful browser captures
+and evidence integrity, not independent human correctness labels.
+
+| External project | Original observation | How to interpret it |
+| --- | --- | --- |
+| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Avatar images were still loading during capture, not proven broken. |
+| Docusaurus | 4 states without findings | No measured issue observed; not complete visual quality. |
+| Vite Guide | **10px document extent beyond usable scrollport at 320px**, plus 4 skip-link text clipping warnings | Vite's deployed CSS sets the body minimum to 320px and intentionally clips root overflow. Unwanted user-visible scrolling has **not** been established. |
+| Svelte Docs | 4 states without findings | No measured issue in this initial browser state. |
+| Excalidraw | 4 states without findings | DOM traversal completion alone did not represent its canvas/whiteboard paint coverage. |
+
+Source inspection of Vite's
+[published stylesheet](https://vite.dev/assets/style.DKMfOyQO.css)
+confirmed `body{min-width:320px;overflow-x:clip}`, while the 320px
+session's scrollbar left a **310px content scrollport**. Keep the numerical
+width observation without claiming that Vite should change that design.
+The 88px `possible-text-clipping` paths all referred to
+`.VPSkipLink.visually-hidden`. The skip link is deliberately clipped by
+`clip-path:inset(50%)` and `clip:rect(0 0 0 0)` until focused; its
+positioning and padding make its outer rectangle larger than 1×1px.
+This was a misleading review lead rather than a genuine clipped label.
+
+The original overflow candidates on Vite also contained long code elements
+far below the first viewport. Candidate DOM paths are diagnostic hints, **not
+proven root causes**. The independent source review motivates two safe
+refinements: explicitly mark CSS-visible canvases as uninspected paint
+rather than clean geometry, and recognize deliberately clipped assistive-only
+controls without hiding ordinary, visibly truncated text. These fixes must
+be proven by targeted positive and negative browser fixtures, then checked
+against the exact external cohort on a new capture. The historical screenshots
+and audit reports are immutable evidence, not retroactively relabeled.
+
 ## Limits
 
 - One captured viewport misses below-fold and unobserved interaction states.

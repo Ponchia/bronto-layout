@@ -39,6 +39,7 @@ export function capturePageAuditObservations(
   let intentionalEllipses = 0;
   let visuallyHiddenTextExcluded = 0;
   let embeddedFrames = 0;
+  let visibleCanvases = 0;
 
   const escapeID = (id: string) =>
     typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id.replace(/[^\w-]/g, '_');
@@ -99,6 +100,7 @@ export function capturePageAuditObservations(
     if (!(rect.width > 0 && rect.height > 0) || !el.getClientRects().length) continue;
     visibleElements++;
     if (el.tagName === 'IFRAME' || el.tagName === 'FRAME') embeddedFrames++;
+    if (el.tagName === 'CANVAS') visibleCanvases++;
     // Optional, conservative, bounded review of directly declared CSS grid
     // column gaps. Not an automatic design verdict: intentional transforms,
     // spans, dense placement, etc. are not reliably inferable from rectangles.
@@ -231,9 +233,13 @@ export function capturePageAuditObservations(
       // Visually hidden, screen-reader-only text is commonly a 1x1 absolute
       // box with clipped overflow. The overflowing label is its purpose,
       // not a visual truncation defect. Rely on geometry/style, not class names.
-      const assistiveOnly = rect.width <= 2 && rect.height <= 2 &&
-        (style.position === 'absolute' || style.position === 'fixed') &&
-        (style.overflowX === 'hidden' || style.overflowX === 'clip');
+      // Focusable skip links can have large padding, so their outer rect is
+      // not necessarily 1x1. Detect almost-total CSS clipping rather than
+      // using the class name or final padded rectangle alone.
+      const focusOnlyClip = /^inset\(\s*50%(?:\s+50%){0,3}\s*\)$/.test(style.clipPath) ||
+        /^rect\(\s*0(?:px)?[\s,]+0(?:px)?[\s,]+0(?:px)?[\s,]+0(?:px)?\s*\)$/.test(style.clip);
+      const assistiveOnly = (style.position === 'absolute' || style.position === 'fixed') &&
+        ((rect.width <= 2 && rect.height <= 2) || focusOnlyClip);
       if (assistiveOnly) visuallyHiddenTextExcluded++;
       else if (style.textOverflow === 'ellipsis') intentionalEllipses++;
       else {
@@ -254,7 +260,7 @@ export function capturePageAuditObservations(
     omittedBrokenImages: Math.max(0, brokenImageCount - brokenImages.length),
     textClipCount, textClips,
     omittedTextClips: Math.max(0, textClipCount - textClips.length),
-    intentionalEllipses, visuallyHiddenTextExcluded, embeddedFrames,
+    intentionalEllipses, visuallyHiddenTextExcluded, embeddedFrames, visibleCanvases,
     ...(includeGridGapReview ? {
       gridGapCount, gridGapLeads, gridContainersInspected, gridContainersOmitted
     } : {}),

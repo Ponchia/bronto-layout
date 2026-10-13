@@ -1,5 +1,28 @@
 # Validation notes
 
+## 2026-10-13: unrelated open-source website audit drives coverage improvements
+
+The separate [external OSS cohort](oss-field-study.md) covers Astro Docs
+EN/ES, Docusaurus Docs, Vite Guide, Svelte Docs and Excalidraw at four widths
+(24 cases). Its [first sandboxed browser run](https://github.com/Ponchia/bronto-layout/actions/runs/38372326004)
+completed **24/24 captures** with **48/48 audit and screenshot SHA256 hashes**
+verified. There was one measured 10px document-width excess on Vite at 320px,
+four review-only skip-link text clipping leads on Vite and six review-only
+pending-image leads on Astro EN/ES.
+
+Independent inspection found Vite's body has `min-width:320px` and root
+`overflow-x:clip`, while the usable 320px session scrollport was 310px.
+That is observed browser geometry, not proof of an unwanted upstream bug.
+The Vite skip link was deliberately visually clipped until focus, exposing
+a noise case in the existing optional text-clipping heuristic. Excalidraw
+showed why a complete top-level DOM walk cannot mean its canvas paint was
+verified. These prompted controlled tests for deliberate assistive-only
+clipping and known uninspected canvas content.
+
+No independent human field labels exist. Neither capture integrity nor
+automatically inferred warning counts are a precision/recall estimate.
+
+
 ## 2026-10-13: deployed BrontoUI regression repaired and verified
 
 BrontoUI's 3 CSS-pixel document-level overflow at **320px** was fixed by

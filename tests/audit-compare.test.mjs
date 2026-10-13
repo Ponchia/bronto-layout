@@ -301,3 +301,17 @@ test('bounded overlap inspection omissions exclude ambiguous before-after accura
  assert.equal(result.summary.unverifiedViewports,1);
  assert.match(result.unverified[0].reasons.join(' '),/sibling overlap review omitted candidate/);
 });
+
+
+test('canvas coverage leads compare as bounded review count, not unknown regression semantics', () => {
+  const before = page(375, [], { coverage: { visibleCanvases: 0 } });
+  const after = page(375,
+    [{ ...finding('canvas-content-uninspected'), count: 2 }],
+    { coverage: { visibleCanvases: 2 }, summary: { verified: false, supportedScopeMeasured: true } });
+  const result = compare(before, after);
+  assert.equal(result.summary.unverifiedViewports, 0);
+  assert.equal(result.summary.measuredRegressions, 0);
+  assert.equal(result.summary.reviewChanges, 1);
+  assert.equal(result.changes[0].code, 'canvas-content-uninspected');
+  assert.deepEqual([result.changes[0].baselineValue, result.changes[0].candidateValue], [0, 2]);
+});

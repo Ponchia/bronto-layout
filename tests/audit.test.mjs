@@ -237,3 +237,18 @@ test('DOM traversal truncation also makes bounded optional review coverage unava
  assert.equal(summary.viewportsWithUnavailableEvidence,1);
  assert.equal(summary.totalOmissions,0);
 });
+
+
+test('visible canvas is a review-only known paint gap, never a verified clean page', () => {
+  const observation = {...obs(), visibleCanvases: 2};
+  const report = analyzePageAudit(snap(), observation);
+  assert.equal(report.summary.errors, 0);
+  assert.equal(report.summary.warnings, 1);
+  assert.equal(report.summary.supportedScopeMeasured, true);
+  assert.equal(report.summary.verified, false);
+  assert.equal(report.coverage.status, 'known-uninspected-content');
+  assert.equal(report.coverage.visibleCanvases, 2);
+  assert.equal(report.findings[0].code, 'canvas-content-uninspected');
+  assert.equal(report.findings[0].classification, 'review');
+  assert.equal(report.findings[0].count, 2);
+});
