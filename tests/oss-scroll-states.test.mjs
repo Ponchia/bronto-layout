@@ -6,7 +6,9 @@ import {
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
-import { fixedScrollPlan, validateBrowserResult, writeChecksums } from '../scripts/run-oss-deep-scroll.mjs';
+import {
+  fixedScrollPlan, validateBrowserResult, validateCompactScroll, writeChecksums
+} from '../scripts/run-oss-deep-scroll.mjs';
 
 const workflow = readFileSync(
   new URL('../.github/workflows/oss-scroll-state-smoke.yml', import.meta.url), 'utf8'
@@ -68,6 +70,27 @@ test('scroll evidence requires an actual >1000 CSS px offset, correct fixed URL 
   assert.throws(() => validateBrowserResult(spec, width, checked,
     { ...audited, output: audited.output.replace(spec.url, 'https://example.com/') }), /redirected/);
   assert.throws(() => validateBrowserResult(spec, width, { ...checked, status: 2 }, audited), /CLI check exit/);
+});
+
+test('compact agent scroll state independently verifies deep positions and rejects missing metadata', () => {
+  const spec = plan[0];
+  const original = { status: 0, output: JSON.stringify({
+    mode: 'check', format: 'compact', summary: { passed: 6, failed: 0, skipped: 0 },
+    sampledWidths: [320, 1280],
+    scrollOffsets: [
+      { width: 320, scrollX: 0, scrollY: 12055 },
+      { width: 1280, scrollX: 0, scrollY: 6980 }
+    ]
+  }) };
+  assert.deepEqual(validateCompactScroll(spec, 320, original),
+    { compactCheckScrollX: 0, compactCheckScrollY: 12055 });
+  assert.deepEqual(validateCompactScroll(spec, 1280, original),
+    { compactCheckScrollX: 0, compactCheckScrollY: 6980 });
+  assert.throws(() => validateCompactScroll(spec, 320,
+    { ...original, output: original.output.replace('scrollOffsets', 'omittedOffsets') }), /lost approved scroll/);
+  assert.throws(() => validateCompactScroll(spec, 320,
+    { ...original, output: original.output.replace('12055', '0') }), /did not preserve/);
+  assert.throws(() => validateCompactScroll(spec, 320, { ...original, status: 2 }), /failed with exit/);
 });
 
 test('archived SHA256 evidence is portable and detects tampered files after relocation', () => {

@@ -118,6 +118,27 @@ export function validateBrowserResult(spec, width, checked, audited) {
   };
 }
 
+/** Compact coding-agent output must independently prove the same target
+ * scroll state. It is a separate public navigation and may differ slightly
+ * in pixels as remote website assets hydrate; never fabricate consistency.
+ */
+export function validateCompactScroll(spec, width, checked) {
+  if (checked.status !== 0)
+    throw new Error('Compact check failed with exit=' + checked.status + '; ' + checked.error);
+  const data = JSON.parse(checked.output);
+  if (data.format !== 'compact' || data.mode !== 'check' ||
+      data.summary?.failed !== 0 || data.summary?.skipped !== 0 ||
+      !Array.isArray(data.scrollOffsets) ||
+      !Array.isArray(data.sampledWidths) ||
+      !spec.widths.every(w => data.sampledWidths.includes(w)))
+    throw new Error('Compact agent report lost approved scroll-state evidence');
+  const state = data.scrollOffsets.find(item => item.width === width);
+  if (!state || !Number.isFinite(state.scrollY) || state.scrollY <= 1000 ||
+      !Number.isFinite(state.scrollX))
+    throw new Error('Compact agent output did not preserve a verified deep scroll position');
+  return { compactCheckScrollY: state.scrollY, compactCheckScrollX: state.scrollX };
+}
+
 export function main(args = process.argv.slice(2)) {
   const plan = fixedScrollPlan();
   if (args.length === 1 && args[0] === '--plan') {
@@ -141,6 +162,9 @@ export function main(args = process.argv.slice(2)) {
     writeJSON(actionsFile, spec.actions);
     const checked = runCli(['check', '--spec', spec.contractFile, '--settle', '750', '--timeout', '30000']);
     writeFileSync(path.join(dir, 'check.json'), checked.output);
+    const compactChecked = runCli(['check', '--spec', spec.contractFile,
+      '--settle', '750', '--timeout', '30000', '--compact']);
+    writeFileSync(path.join(dir, 'check-compact.json'), compactChecked.output);
     for (const width of spec.widths) {
       const screenDir = path.join(dir, 'screens-' + width);
       mkdirSync(screenDir, { recursive: true });
@@ -150,10 +174,12 @@ export function main(args = process.argv.slice(2)) {
       writeFileSync(path.join(dir, 'audit-' + width + '.json'), audited.output);
       let record;
       try {
-        record = { site: spec.id, ...validateBrowserResult(spec, width, checked, audited), status: 'verified' };
+        record = { site: spec.id, ...validateBrowserResult(spec, width, checked, audited),
+          ...validateCompactScroll(spec, width, compactChecked), status: 'verified' };
       } catch (e) {
         record = { site: spec.id, width, status: 'unverified', reason: String(e).slice(0, 600),
-          checkExitCode: checked.status, auditExitCode: audited.status };
+          checkExitCode: checked.status, compactCheckExitCode: compactChecked.status,
+          auditExitCode: audited.status };
       }
       results.push(record);
       process.stdout.write(JSON.stringify(record) + '\n');

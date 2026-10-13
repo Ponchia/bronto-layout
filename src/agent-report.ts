@@ -26,6 +26,22 @@ const compactShifts = (reports: readonly LayoutReport[]) => reports
     };
   });
 
+/** Only emit scroll context if a sampled state actually moved; zero-only
+ * reports remain compact, while comparisons can still distinguish an
+ * observed zero baseline from a deeply scrolled candidate.
+ */
+const hasScrolled = (reports: readonly LayoutReport[]) => reports.some(r =>
+  (Number.isFinite(r.viewport.scrollY) && Math.abs(r.viewport.scrollY!) > .5) ||
+  (Number.isFinite(r.viewport.scrollX) && Math.abs(r.viewport.scrollX!) > .5));
+
+const compactScrollOffsets = (reports: readonly LayoutReport[]) => reports
+  .filter(r => Number.isFinite(r.viewport.scrollY) || Number.isFinite(r.viewport.scrollX))
+  .map(r => ({
+    width: r.viewport.width,
+    ...(Number.isFinite(r.viewport.scrollX) ? { scrollX: r.viewport.scrollX } : {}),
+    ...(Number.isFinite(r.viewport.scrollY) ? { scrollY: r.viewport.scrollY } : {})
+  }));
+
 const MAX_ITEMS = 100;
 const bounded = <T>(items: readonly T[]) => ({
   values: items.slice(0, MAX_ITEMS),
@@ -75,6 +91,7 @@ export function compactCheckReport(result: CheckData) {
     url: result.url,
     summary: result.summary,
     sampledWidths: result.reports.map(r => r.viewport.width),
+    ...(hasScrolled(result.reports) ? { scrollOffsets: compactScrollOffsets(result.reports) } : {}),
     ...(result.reports.some(r => r.stabilization) ? { stabilization: result.reports
       .filter(r => r.stabilization).map(r => ({ width: r.viewport.width, ...r.stabilization })) } : {}),
     ...(result.reports.some(r => r.layoutShifts) ? { layoutShifts: compactShifts(result.reports) } : {}),
@@ -104,6 +121,11 @@ export function compactCompareReport(result: LayoutComparison & {
     candidateUrl: result.candidateUrl,
     summary: result.summary,
     sampledWidths: result.candidate.map(r => r.viewport.width),
+    ...(hasScrolled(result.baseline) || hasScrolled(result.candidate)
+      ? { scrollOffsets: {
+        baseline: compactScrollOffsets(result.baseline),
+        candidate: compactScrollOffsets(result.candidate)
+      } } : {}),
     ...(result.candidate.some(r => r.stabilization) ? { stabilization: {
       baseline: result.baseline.filter(r => r.stabilization)
         .map(r => ({ width: r.viewport.width, ...r.stabilization })),

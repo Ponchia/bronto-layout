@@ -634,8 +634,13 @@ Compact check reports include all failure and unmeasurable counts, up to 100
 individual findings in each category, omitted counts when capped, factual
 element geometry, sampled widths and CSS breakpoint metadata. Compact compares
 also preserve *existing candidate failures* separately from newly verified
-regressions. These are **observations at sampled widths only** and do not prove
-continuous correctness between samples.
+regressions. If any viewport was actually scrolled, compact `check` includes
+observed `scrollOffsets` as `{width, scrollX, scrollY}` records; compact
+`compare` distinguishes `baseline` and `candidate` offsets, including
+measured zero baselines. Pure top-of-page checks omit this extra metadata.
+Offsets are browser measurements, **not** proof that every part of a long
+page was inspected. These are **observations at sampled widths only** and
+do not prove continuous correctness between samples.
 
 Fatal errors under `--json` now produce a JSON error envelope on stdout with
 `mode: "error"`, `exitCode: 2`, and the diagnostic message. An explicit
