@@ -34,6 +34,7 @@ export function capturePageAuditObservations(
   let visibleElements = 0;
   let totalImages = 0;
   let unloadedImages = 0;
+  let deferredOffscreenLazyImages = 0;
   let brokenImageCount = 0;
   let textClipCount = 0;
   let intentionalEllipses = 0;
@@ -216,8 +217,15 @@ export function capturePageAuditObservations(
       const src = el.getAttribute('src') || el.getAttribute('srcset') || el.currentSrc;
       if (src) {
         totalImages++;
-        if (!el.complete) unloadedImages++;
-        else if (el.naturalWidth === 0 || el.naturalHeight === 0) {
+        if (!el.complete) {
+          // loading=lazy deliberately defers image fetches outside the
+          // observed viewport. CSS-visible below-fold content is NOT a
+          // pending *viewport image* defect, but its paint remains unknown.
+          const outsideViewport = rect.bottom <= 0 || rect.top >= window.innerHeight ||
+            rect.right <= 0 || rect.left >= window.innerWidth;
+          if (el.loading === 'lazy' && outsideViewport) deferredOffscreenLazyImages++;
+          else unloadedImages++;
+        } else if (el.naturalWidth === 0 || el.naturalHeight === 0) {
           brokenImageCount++;
           if (brokenImages.length < MAX_LEADS) brokenImages.push({
             path: pathFor(el), source: sanitizedSource(el),
@@ -255,7 +263,7 @@ export function capturePageAuditObservations(
   const truncated = stack.length > 0;
   return {
     visitedElements, traversalLimit: MAX_ELEMENTS, truncated,
-    visibleElements, totalImages, unloadedImages,
+    visibleElements, totalImages, unloadedImages, deferredOffscreenLazyImages,
     brokenImageCount, brokenImages,
     omittedBrokenImages: Math.max(0, brokenImageCount - brokenImages.length),
     textClipCount, textClips,

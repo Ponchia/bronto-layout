@@ -45,6 +45,10 @@ export interface PageAuditObservations {
   visibleElements: number;
   totalImages: number;
   unloadedImages: number;
+  /** Unfinished explicit loading=lazy images fully outside the sampled viewport.
+   * Their paint is unobserved, but deferral alone is not an image failure.
+   */
+  deferredOffscreenLazyImages?: number;
   brokenImageCount: number;
   brokenImages: ImageLead[];
   omittedBrokenImages: number;
@@ -182,10 +186,11 @@ export function analyzePageAudit(
   if (evidence.unloadedImages > 0) findings.push({
     code: 'pending-image', classification: 'review', severity: 'warning',
     count: evidence.unloadedImages,
-    message: evidence.unloadedImages + ' visible image(s) had not finished loading during the inspection'
+    message: evidence.unloadedImages + ' CSS-visible image(s) were still pending during inspection (offscreen deferred lazy images are excluded)'
   });
   const coverageStatus: AuditCoverageStatus = evidence.truncated ? 'truncated'
-    : evidence.embeddedFrames > 0 || (evidence.visibleCanvases ?? 0) > 0
+    : evidence.embeddedFrames > 0 || (evidence.visibleCanvases ?? 0) > 0 ||
+      (evidence.deferredOffscreenLazyImages ?? 0) > 0
       ? 'known-uninspected-content' : 'supported-scope-measured';
   return {
     viewport: snapshot.viewport,
@@ -196,6 +201,8 @@ export function analyzePageAudit(
         'Closed shadow roots cannot be inspected or counted reliably',
         'Canvas/WebGL and visual paint-order relationships are not analyzed',
         'Only the measured viewport and navigation state are observed',
+        ...((evidence.deferredOffscreenLazyImages ?? 0) > 0 ?
+          [evidence.deferredOffscreenLazyImages + ' offscreen loading=lazy image(s) did not finish loading; their paint is uninspected, not a broken-image finding'] : []),
         ...(evidence.gridContainersOmitted ? ['Grid gap review omitted ' + evidence.gridContainersOmitted + ' candidate containers due to bounded inspection limits'] : []),
         ...(evidence.overlapContainersOmitted ? ['Sibling overlap review omitted ' + evidence.overlapContainersOmitted + ' candidate containers due to bounded inspection limits'] : [])
       ]

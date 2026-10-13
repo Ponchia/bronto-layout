@@ -40,6 +40,8 @@ try {
     'examples/audit-healthy.html', 'examples/audit-broken.html',
     'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/scroll-deep.html', 'examples/scroll-deep.json', 'examples/scroll-deep-top-control.json', 'examples/scroll-deep-actions.json', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
     'examples/audit-visible-canvas.html', 'examples/audit-focus-skiplink.html',
+    'examples/audit-offscreen-lazy.html', 'examples/audit-visible-pending.html',
+    'examples/deferred-probe.svg', 'examples/audit-offscreen-lazy-actions.json',
     'examples/layout.json',
     'examples/healthy.html', 'examples/portfolio-alignment.json', 'examples/portfolio-alignment-healthy.html', 'examples/portfolio-alignment-broken.html',
     'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'package.json', 'docs/quickstart.md', 'docs/cli-reference.md', 'docs/portfolio-regression-case-study.md', 'docs/assets/portfolio-alignment-768.png', 'docs/release-checklist.md',

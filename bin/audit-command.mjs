@@ -289,6 +289,7 @@ export function createAuditCommand({
           embeddedFrames: report.coverage.embeddedFrames,
           visibleCanvases: report.coverage.visibleCanvases ?? 0,
           totalImages: report.coverage.totalImages,
+          deferredOffscreenLazyImages: report.coverage.deferredOffscreenLazyImages ?? 0,
           brokenImageCount: report.coverage.brokenImageCount,
           omittedBrokenImages: report.coverage.omittedBrokenImages,
           textClipCount: report.coverage.textClipCount,
