@@ -37,6 +37,8 @@ test('manual OSS capture cannot target arbitrary websites or bypass sandbox', ()
   assert.match(workflow, /\non:\n\s+workflow_dispatch:/);
   assert.doesNotMatch(workflow, /\n\s+pull_request:\n|\n\s+push:\n|\n\s+schedule:\n/);
   assert.match(workflow, /options:\n\s+- all\n\s+- docs-only\n\s+- excalidraw-only/);
+  assert.match(workflow, /- astro-only/);
+  assert.match(workflow, /m.cases.filter\(x=>x.id.startsWith\('astro-'\)\)/);
   assert.match(workflow, /case "\$COHORT" in/);
   assert.match(workflow, /Unexpected fixed cohort choice/);
   assert.match(workflow, /manifest=benchmarks\/oss-sites\.v0\.1\.json/);

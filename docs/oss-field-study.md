@@ -83,7 +83,7 @@ and evidence integrity, not independent human correctness labels.
 
 | External project | Original observation | How to interpret it |
 | --- | --- | --- |
-| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Avatar images were still loading during capture, not proven broken. |
+| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Published markup includes 3 explicit `loading="lazy"` images per language. The original audit did not distinguish unfinished **offscreen** lazy media; these warnings cannot establish visible loading failures. |
 | Docusaurus | 4 states without findings | No measured issue observed; not complete visual quality. |
 | Vite Guide | **10px document extent beyond usable scrollport at 320px**, plus 4 skip-link text clipping warnings | Vite's deployed CSS sets the body minimum to 320px and intentionally clips root overflow. Unwanted user-visible scrolling has **not** been established. |
 | Svelte Docs | 4 states without findings | No measured issue in this initial browser state. |
@@ -110,6 +110,17 @@ excludes an enormous locally scrollable code descendant—even when its
 container itself overhangs the scrollport. These improvements change the
 evidence explanation and attribution, **not** the numerical measurement or
 the strict contract exit code.
+
+The published Astro EN/ES HTML was also inspected for the persistent
+`pending-image` leads: **41 `<img>` elements per language**, of which
+**38 declared `loading="eager"` and 3 declared `loading="lazy"`**.
+At mobile widths, Bronto Layout's original walker counted CSS-visible
+but completely offscreen lazy images among generic pending images.
+The proposed reclassification retains their uninspected paint as a known
+coverage gap without calling intentionally delayed loading a defect.
+A fresh sandboxed capture is still needed to confirm how many original
+warnings are actually deferred media. A lazily loaded image intersecting
+the viewport must remain reviewable as pending.
 
 The external source inspection motivated two separately tested changes:
 canvas paint is explicitly marked uninspected rather than clean, and visually

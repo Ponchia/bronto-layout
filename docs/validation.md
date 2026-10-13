@@ -1,5 +1,28 @@
 # Validation notes
 
+## 2026-10-13: separate offscreen lazy media from visible image warnings (candidate)
+
+Astro's published English and Spanish HTML each contained **41 images**,
+including **three `loading="lazy"` images** per language. Six states in
+the historical independent OSS capture produced pending-image review warnings;
+the old detector counted CSS-visible images anywhere in the document without
+distinguishing the sampled viewport. This does not prove a broken image.
+
+Controlled real-Chromium fixtures now establish that an unfinished,
+offscreen `loading="lazy"` image is **not an ordinary pending viewport image**,
+but its unknown paint is counted as `deferredOffscreenLazyImages` with
+`known-uninspected-content` coverage. Scrolling the same image into view
+and waiting for it to load restores the supported-scope state. A deliberately
+unfinished image intersecting the viewport still produces a `pending-image`
+review warning. Strict coverage checks and human field-scoring do not count
+the deferred paint as a verified whole-page true negative.
+
+The release gate is a fresh sandboxed **Astro-only eight-state browser run**
+using the same immutable external v0.1 dataset, followed by screenshot/hash
+inspection. Until that run, a reduction in Astro review noise is a controlled
+test expectation rather than a verified deployed-site result.
+
+
 ## 2026-10-13: independent pinned Eleventy source build
 
 The [manual source build 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)

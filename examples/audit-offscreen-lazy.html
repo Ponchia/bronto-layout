@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Offscreen lazy image is uninspected paint, not a pending viewport warning</title>
+  <style>
+    * {box-sizing:border-box}
+    body {margin:0;font:16px system-ui,sans-serif}
+    main {padding:12px;max-width:880px;margin:0 auto}
+    .spacer {height:3600px;background:linear-gradient(#edf8f5,#d0d9f1)}
+    img {display:block;width:240px;height:140px}
+  </style>
+</head>
+<body>
+  <main>
+    <p>Initial viewport: the source image below should not have been fetched yet.</p>
+    <div class="spacer"></div>
+    <img id="deferred" loading="lazy" src="deferred-probe.svg" width="240" height="140" alt="Deferred illustration">
+    <p>The image's paint can be inspected after an explicit scroll to this state.</p>
+  </main>
+</body>
+</html>

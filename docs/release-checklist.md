@@ -59,6 +59,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
+- [ ] Re-capture the [Astro-only eight-state external cohort](oss-field-study.md) after separating unfinished offscreen `loading=lazy` images from pending visible media; inspect screenshots and confirm known uninspected paint remains explicit without inventing human labels.
+
 - [x] Build the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner ([run 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)): **88/88 responsive checks**, one induced **18px semantic alignment failure**, and **0 generic audit issues**; all four initial JSON report hashes verified. This is mechanical, not human-labeled accuracy.
 - [x] Capture and inspect Eleventy's **8 baseline and 2 mutation screenshots** with a verified, portable evidence index in [run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662). All artifact SHA-256 checks passed and the 18px alignment displacement is visible. This is a first-party reviewer inspection, **not independent human accuracy labeling**.
 
