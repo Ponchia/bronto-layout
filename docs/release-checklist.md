@@ -8,6 +8,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Replace oversized root README with a short CLI/contract demonstration, move older extended material into `docs/cli-reference.md`, preserve detailed docs.
 - [x] Include a realistic *controlled* portfolio alignment regression with baseline, intentional 18px failure, responsive contract, walkthrough and Chromium test.
 - [x] Add `SECURITY.md`, reproducible bug/feature issue forms, PR review checklist and safe contribution guidelines; enable GitHub private vulnerability reports.
+- [x] Provide a GitHub funding link with optional Ko-fi support, CI/License status badges, and guard against standalone incompatible TypeScript and ESLint major dependency updates while retaining patch/minor Dependabot checks.
 - [x] Run four first-party route contracts and four-width audits on a disposable Actions runner: 80/80 contract evaluations passed, zero confirmed measured audit findings; **known omitted optional candidates** on both Sense6 locales ([run](https://github.com/Ponchia/bronto-layout/actions/runs/38345314679)).
 - [x] Recapture the 30-state first-party cohort on a disposable Actions runner, **30 captures complete** with six Chiara embedded-frame coverage warnings and no independent human labels ([run](https://github.com/Ponchia/bronto-layout/actions/runs/38345316815)).
 - [ ] Obtain a first-time *external* user trying the new README on a non-first-party local site; record confusion/commands needed without collecting private browsing evidence.
