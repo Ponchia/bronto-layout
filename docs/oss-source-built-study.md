@@ -57,7 +57,7 @@ The explicit `site-main-centered` contract must reject the shift by
 approximately **18px**. This distinguishes semantic design-intent checking
 from simply verifying that nothing protrudes beyond the document.
 
-### Additional proposed mobile-width regression
+### Additional verified mobile-width regression
 
 Once the first mutation has been measured, the workflow restores the original
 generated homepage HTML, then adds a **separate** CSS rule at widths up to
@@ -126,17 +126,36 @@ A pixel-level comparison of the two 1280px screenshots confirms that rendered
 pixels differ in the content-column region; the approved geometry rule measures
 the induced **18px centering deviation** exactly.
 
-The proposed extended workflow adds **two more 320px mutation screenshots**
-(one generic-audit viewport image and one annotated contract failure) and
-makes them required by the evidence verifier. Its human-review index will
-record both distinct negative controls, including the measured overflow
-and exact `site-document-no-overflow` rule failure. All four mutation
-screenshots are SHA-256 verified and normalized to artifact-relative paths.
+The [expanded pinned Eleventy run 38431210856](https://github.com/Ponchia/bronto-layout/actions/runs/38431210856)
+has now succeeded at Bronto Layout source commit `72b4670`. The exact
+pinned Eleventy repository was rebuilt from source, and all **88/88 approved
+healthy responsive evaluations** passed. The two independent induced
+faults behaved differently:
 
-The new mobile-width control has local verifier tests and still requires
-a fresh hosted browser run on the pinned Eleventy build. Until that run
-succeeds, the previously published 23-file evidence result must not be
-treated as proof of the additional control.
+- At **1280px**, the main column was translated **18 CSS px** without
+  leaving the viewport. The generic audit reported **0 measured issues**;
+  the explicit `site-main-centered` rule correctly failed by 18px.
+- At **320px**, the restored homepage acquired a 360px minimum-width main
+  element. Its effective usable viewport was smaller than 320px because of
+  the reserved scrollbar; the browser measured **55 CSS px of horizontal
+  document overflow**. The generic audit reported exactly **one measured
+  overflow finding** and the approved `site-document-no-overflow` contract
+  failed by **55px**. Two other consumer rules also failed, so the
+  overall semantic check had three failures, not just one.
+
+Both fault types were deliberately introduced into **generated HTML only**;
+they are not Eleventy source defects. The expanded artifact contains
+**8 healthy screenshots and 4 mutation screenshots** (unannotated and
+annotated for each mutation), with an offline source-pinned index.
+I downloaded the artifact and verified **27/27 SHA-256 file entries** plus
+all four image dimensions and mutation report measurements. The original
+23-file run remains valid historical evidence but does not include the
+new mobile control.
+
+This confirms a second behavior class on an independently authored website
+while retaining the same limitations: no independent human truth labels,
+pixel-quality judgment, accessible navigation assessment, or cross-browser
+agreement is inferred.
 
 The screenshots and source build are retained in a separate private,
 post-download verified archive. They are not published with the source

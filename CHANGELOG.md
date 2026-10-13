@@ -2,12 +2,14 @@
 
 ## Unreleased
 
-- Extend the pinned Eleventy source-built website study with a second,
-  isolated 320px **actual document-width overflow** mutation. Require
-  both zero-contract audit and approved semantic overflow rule to reject
-  the generated CSS defect; capture and verify two additional 320px images
-  without modifying the upstream source or relaxing the original 18px
-  non-overflowing centering control.
+- Extend the pinned Eleventy source-built study with two distinct and
+  independently verified generated-CSS regressions: a non-overflowing 18px
+  desktop centering defect caught only by its approved semantic contract,
+  and a 55px mobile document overflow detected by both generic audit and
+  strict layout contracts. Healthy source checks remain 88/88; the second
+  sandboxed source-build run delivered 12 source-pinned screenshots and
+  27/27 verified file hashes. No upstream Eleventy defect or independent
+  human correctness label is implied.
 
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic
