@@ -282,6 +282,17 @@ are involved.
 
 `bin/bronto-layout.mjs` uses built-in Node.js modules, an installed Chromium-family browser, and the Chrome DevTools Protocol over WebSocket. It does not depend on Playwright or Puppeteer. In restricted Linux CI/devbox environments where user namespaces are disabled, the opt-in `--no-sandbox` flag (or `BRONTO_CHROME_NO_SANDBOX=1`) allows execution, but reduces browser isolation and should only be used in a trusted, isolated environment. For a locally supplied HTML file it serves the file and its relative assets over loopback HTTP. For existing sites it navigates normally.
 
+**Browser selection on Linux:** Without an explicit path, discovery prefers
+an installed stable Google Chrome executable over a development Chromium
+binary. This was motivated by a first-party GitHub Actions consumer whose
+development Chromium aborted at sandbox startup even though its installed
+Google Chrome launched with sandbox bypass **not requested**. Explicit
+`--chrome PATH` and `CHROME_PATH` continue to take priority. The discovery
+order does not silently retry with weaker isolation or guarantee all sandbox
+policies are enabled on every OS; use `doctor --verify-launch` to test the
+actual chosen binary.
+
+
 A command can execute explicit declarative actions to reach an application state before measuring it. Arbitrary JavaScript is deliberately not accepted in contracts. Browser automation for authentication, iframes, and complex dragging is not part of the current CLI.
 
 ## Non-goals and limitations
