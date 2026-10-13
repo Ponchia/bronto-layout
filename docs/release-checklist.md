@@ -59,7 +59,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
-- [ ] Independently verify the [fixed open-source mobile-navigation states](oss-mobile-state-study.md) in a manual sandboxed browser run, then review any failures against the public sites and source. This is state-coverage research, not human-labelled detector accuracy.
+- [x] Run the [fixed open-source mobile-navigation state cohort](oss-mobile-state-study.md) in sandboxed Chrome: **5/5 opened states**, **15/15 passing explicit assertions**, **0 measured errors**, and 21/21 evidence hashes verified in [run 38383862119](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119). This is automated state validation, not independently human-labelled design quality.
+- [ ] Obtain independent human usability/keyboard review of the opened menus; the current DOM-state and viewport checks cannot certify focus order or touch ergonomics.
 
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.

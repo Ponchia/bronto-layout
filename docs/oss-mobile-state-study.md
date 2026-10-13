@@ -54,6 +54,33 @@ An automatic audit exit `1` reports measured geometry but does not by itself
 prove unwanted scroll or bad user experience. Coverage warnings and canvas
 paint gaps remain explicit.
 
+## First live observations — 13 October 2026
+
+The [first manual OSS mobile-menu run](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119)
+completed successfully on merged commit `a144dcb`. All **five public menus**
+reached their expected post-click states at 375 CSS pixels, with **15/15
+explicit DOM-state assertions passing**, **zero measured audit errors**, and
+no incomplete top-level browser traversals. The menu panels are also visible
+in the captured initial-viewport screenshots.
+
+The run yielded two nonblocking `pending-image` review warnings: one visible
+pending image on Astro EN and three on Astro ES. These are *counts inside two
+warnings*, not four independently confirmed defective images. Docusaurus,
+Vite and Svelte reported no measured issues or review warnings in these
+opened-menu states. No new upstream website defects have been established.
+
+All **21 original artifact-file hashes** were verified after relocating the
+first captured archive. This exposed a portability issue: the generated
+checksum manifest used paths relative to the original GitHub Actions workspace
+rather than the extracted artifact root. The workflow now emits relocatable
+relative paths and verifies its checksum manifest before upload. A subsequent
+manual run is required to confirm this updated artifact format in GitHub.
+
+These are **automation-assisted measurements**, not external human design
+labels. In particular, selector-count success and a screenshot that shows
+an opened menu cannot certify its keyboard behavior, focus management or
+touch ergonomics.
+
 This study is *not* an independent human-labeled detector accuracy benchmark.
 It is a reproducible exercise in testing actual **user interaction states**
 and observing how reliably Bronto Layout identifies those states. If one

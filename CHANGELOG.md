@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- First five-site external mobile-navigation run passed **15/15** post-click
+  DOM-state assertions with zero measured audit issues. Preserve the two
+  nonblocking Astro pending-image warnings and separate human usability
+  review from browser-state success. Improve temporary capture checksums
+  to use portable artifact-relative paths, independently verified on upload.
+
 - Add a manual five-route external OSS mobile-menu study: fixed public URLs, click-only state setup, sandboxed Chrome, explicit post-click assertions and temporary screenshots. Experimental state coverage, not independent accuracy proof.
 
 - Prioritize observed root-overflow candidates on the inline-end side
