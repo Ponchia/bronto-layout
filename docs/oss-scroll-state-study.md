@@ -43,6 +43,14 @@ viewport-containment rule. An automatic audit can still exit `1` on
 unrelated measured geometry, such as Vite's known 10px root-width
 difference; only invalid/unsupported audit exit `2` stops the study.
 
+For coding-agent consumers, `check --json --compact` now also preserves
+`scrollOffsets: [{width, scrollX, scrollY}]` **only when a sampled viewport
+actually scrolled**. Top-of-page reports remain short. Compact `compare`
+keeps separate baseline and candidate scroll offsets (including an observed
+zero baseline) so an agent does not mistake a change in scroll state for a
+verified geometry regression. Missing historical scroll offsets remain
+unknown rather than being fabricated as zeros.
+
 These checks do **not** establish that all content below the fold loaded,
 that the site is visually correct at every scroll location, that a fixed
 header does not cover some other text, or that every interaction works.

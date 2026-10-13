@@ -32,6 +32,7 @@ test('compact checks include actionable findings and exact tested widths, but no
     cssBreakpointScan: { thresholds: [640], widths: [639, 640, 641], addedWidths: [639, 640, 641] }
   });
   assert.deepEqual(compact.sampledWidths, [320, 768]);
+  assert.equal('scrollOffsets' in compact, false, 'No extra metadata for an unscrolled legacy report');
   assert.equal(compact.failures.length, 1);
   assert.equal(compact.failures[0].deviation, 19);
   assert.equal(compact.unmeasurable.length, 1);
@@ -63,4 +64,55 @@ test('compact comparison differentiates new regressions from existing failures',
   assert.equal(compact.changes[0].ruleId, 'new');
   assert.deepEqual(new Set(compact.remainingFailures.map(f => f.id)), new Set(['new', 'old']));
   assert.equal('baseline' in compact, false);
+});
+
+
+test('compact check retains actual deep scroll positions while omitting zero-only runs', () => {
+  const baseline = report(375, [finding('deep', 'pass', 'constraint')]);
+  baseline.viewport.scrollX = 0;
+  baseline.viewport.scrollY = 0;
+  const scrolled = report(1280, [finding('deep', 'pass', 'constraint')]);
+  scrolled.viewport.scrollX = 0;
+  scrolled.viewport.scrollY = 5200.5;
+  const zeroOnly = compactCheckReport({
+    url: 'http://fixture.test/', reports: [baseline],
+    summary: { passed: 1, failed: 0, skipped: 0 }, transitions: []
+  });
+  assert.equal('scrollOffsets' in zeroOnly, false);
+  const compact = compactCheckReport({
+    url: 'http://fixture.test/', reports: [baseline, scrolled],
+    summary: { passed: 2, failed: 0, skipped: 0 }, transitions: []
+  });
+  assert.deepEqual(compact.scrollOffsets, [
+    { width: 375, scrollX: 0, scrollY: 0 },
+    { width: 1280, scrollX: 0, scrollY: 5200.5 }
+  ]);
+  assert.equal(compact.failures.length, 0);
+});
+
+test('compact compare distinguishes baseline and candidate scroll states instead of conflating their geometry', () => {
+  const before = [report(375, [finding('deep', 'pass', 'constraint')])];
+  before[0].viewport.scrollY = 5000;
+  before[0].viewport.scrollX = 0;
+  const after = [report(375, [finding('deep', 'pass', 'constraint')])];
+  after[0].viewport.scrollY = 4600;
+  after[0].viewport.scrollX = 0;
+  const comparison = compareReports('https://before.test/', 'https://after.test/', before, after);
+  const compact = compactCompareReport(comparison);
+  assert.deepEqual(compact.scrollOffsets, {
+    baseline: [{ width: 375, scrollX: 0, scrollY: 5000 }],
+    candidate: [{ width: 375, scrollX: 0, scrollY: 4600 }]
+  });
+  const zeroBaseline = [report(375, [finding('deep', 'pass', 'constraint')])];
+  zeroBaseline[0].viewport.scrollX = 0;
+  zeroBaseline[0].viewport.scrollY = 0;
+  const movedCandidate = compareReports('https://before.test/', 'https://after.test/',
+    zeroBaseline, after);
+  assert.deepEqual(compactCompareReport(movedCandidate).scrollOffsets, {
+    baseline: [{ width: 375, scrollX: 0, scrollY: 0 }],
+    candidate: [{ width: 375, scrollX: 0, scrollY: 4600 }]
+  }, 'Comparison must preserve an observed top-of-page baseline');
+  const legacyComparison = compareReports('https://before.test/', 'https://after.test/',
+    [report(375, [])], [report(375, [])]);
+  assert.equal('scrollOffsets' in compactCompareReport(legacyComparison), false);
 });

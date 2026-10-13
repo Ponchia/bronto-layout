@@ -70,6 +70,29 @@ test('automatic audit preserves scrolled viewport evidence without declaring com
 });
 
 
+test('agent compact check retains the actual deep browser state without reintroducing passing geometry', t => {
+  const r = run(['check', '--spec', 'examples/scroll-deep.json', '--compact']);
+  if (skipMissingChrome(t, r)) return;
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const checked = JSON.parse(r.stdout);
+  assert.equal(checked.format, 'compact');
+  assert.equal(checked.summary.failed, 0);
+  assert.deepEqual(checked.sampledWidths, [375, 1280]);
+  assert.equal(checked.failures.length, 0);
+  assert.deepEqual(checked.scrollOffsets?.map(x => x.width), [375, 1280]);
+  for (const sample of checked.scrollOffsets) {
+    assert.equal(sample.scrollX, 0);
+    assert.ok(sample.scrollY > 4500);
+  }
+
+  const control = run(['check', '--spec', 'examples/scroll-deep-top-control.json', '--compact']);
+  if (skipMissingChrome(t, control)) return;
+  assert.equal(control.status, 1, control.stderr || control.stdout);
+  const original = JSON.parse(control.stdout);
+  assert.equal('scrollOffsets' in original, false,
+    'A top-of-page compact report should not imply a scrolled browser state');
+});
+
 test('compact external audit retains the actual document scroll offset', t => {
   const r = run([
     'audit', '--url', 'examples/scroll-deep.html', '--width', '375',
