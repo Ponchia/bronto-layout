@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Experiment with deterministic two-way CI test partitions on separate
+  GitHub runners for Node 22 and 24. Retain every full-suite test file,
+  browser fixture isolation, core coverage, package-consumer smoke and
+  controlled audit benchmark gates; local `npm run check` still runs all
+  tests. A faster feedback claim requires measured CI confirmation.
+
 - Add a versioned 42-state first-party validation cohort (preserving all historical v0.1 cases), BrontoUI documentation/operations layout contracts and opt-in allowlisted GitHub Actions smoke/capture coverage. Embedded-demo iframe content remains explicitly unverified; this is coverage expansion, not independent accuracy evidence. The first v0.2 run captured all 42 states and exposed a measured 3px document overflow on the published BrontoUI homepage at 320px, tracked in BrontoUI issue #248.
 - Keep actual page overflow detection strict while excluding diagnostic
   element candidates fully clipped by their own viewport-contained horizontal
