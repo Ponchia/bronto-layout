@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Introduce a separate manual 24-state open-source website cohort (Astro EN/ES, Docusaurus, Vite, Svelte, Excalidraw) with sandboxed Chrome, strict host allowlists and human review. No accuracy claims follow from capture success alone.
+
 - Prefer installed stable Chrome before optional development Chromium in
   automatic Linux browser selection. Preserve explicit command-line and
   CHROME_PATH overrides, do not retry with no-sandbox, and test selection

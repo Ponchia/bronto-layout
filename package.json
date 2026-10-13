@@ -23,7 +23,7 @@
     "benchmark:audit": "node scripts/benchmark-audit.mjs --assert",
     "benchmark:audit:expanded": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.2.json --assert",
     "benchmark:audit:locations": "node scripts/benchmark-audit.mjs --manifest benchmarks/audit-controlled-v0.3.json --assert",
-    "field:validate": "node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json && node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.2.json",
+    "field:validate": "node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.1.json && node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.2.json && node scripts/field-benchmark.mjs validate --manifest benchmarks/oss-sites.v0.1.json",
     "test:unit": "npm run build && node scripts/test-unit.mjs",
     "profile:cli": "node scripts/profile-cli.mjs",
     "lint": "eslint src bin scripts tests",
