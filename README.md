@@ -93,6 +93,7 @@ You can:
 | [External open-source website study](docs/oss-field-study.md) | Separate OSS cohort, limitations and independent-review protocol |
 | [External mobile-navigation states](docs/oss-mobile-state-study.md) | Fixed anonymous menu-opening experiments, post-click assertions and screenshots |
 | [External below-the-fold states](docs/oss-scroll-state-study.md) | Fixed Vite/Docusaurus section targets, actual scroll offsets and bounded screenshot evidence |
+| [Pinned source-built Eleventy study](docs/oss-source-built-study.md) | Independent project build, responsive contracts, controlled semantic fault |
 | [Contributing](CONTRIBUTING.md) and [security](SECURITY.md) | Local tests, reporting issues and safety |
 
 ## Contribute
