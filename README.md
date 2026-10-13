@@ -83,6 +83,7 @@ You can:
 | Start here | Details |
 | --- | --- |
 | [10-minute first-run guide](docs/quickstart.md) | Audit, suggest, approve, state replay and batch |
+| [Independent first-use trial](docs/first-use-trial.md) | Short, privacy-conscious feedback exercise for new developers |
 | [Portfolio regression case study](docs/portfolio-regression-case-study.md) | A known, deliberately introduced defect with healthy/broken pages |
 | [CLI reference](docs/cli-reference.md) | Extended commands, scenarios, screenshots and examples |
 | [Architecture](docs/architecture.md) | Core, browser adapters, CDP process lifecycle, evidence and coverage |

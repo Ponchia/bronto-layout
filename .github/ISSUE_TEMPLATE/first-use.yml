@@ -1,0 +1,63 @@
+name: First-use experience feedback
+description: Share sanitized feedback after trying the public CLI (no private URLs, tokens or screenshots)
+title: "first-use: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Bronto Layout without a maintainer walkthrough.
+        We value failures and confusion as much as successful runs.
+        Do not share private pages, credentials, authentication details, screenshots
+        or full unredacted JSON reports. This is usability feedback, not a
+        human-labeled field-accuracy score.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where did you get to?
+      options:
+        - Installation / npm ci
+        - Chromium launch / doctor
+        - Bundled healthy or broken contract
+        - Audit of a permitted local page
+        - Suggested contract relationships
+        - Report interpretation / something else
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Approximate time to first useful result (optional)
+      placeholder: "e.g., 8 minutes; never got a result; stopped at browser launch"
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: General environment (optional)
+      description: OS, Node major version, browser family; no identifying machine details
+      placeholder: "macOS, Node 24, Chrome"
+    validations:
+      required: false
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What happened?
+      description: Describe the result, confusion or blocker. Sanitized commands and measurements are welcome.
+      placeholder: "I got the intentional failing contract; I could not tell why the 768px rule was failing..."
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What should we improve? (optional)
+      description: One change that would make this easier for a first-time developer
+    validations:
+      required: false
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Safe public feedback
+      options:
+        - label: I checked this report for private URLs, passwords, tokens, screenshots, personal information and security vulnerabilities.
+          required: true
