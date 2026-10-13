@@ -56,3 +56,16 @@ authority, as JSON Schema does not prove those relationships.
 ## Fast development loop
 
 Use `npm run test:unit` for pure TypeScript/Node tests without launching a browser. The full `npm run check` and package test are still required before proposing a merge. Use `npm run profile:cli -- --runs 2` for **trusted local fixture** cold-process timings; do not interpret them as real-world diagnostic quality or browser-reuse measurements. See [release checklist](docs/release-checklist.md).
+
+
+## Reporting a real-world layout problem
+
+Use the [layout bug issue form](.github/ISSUE_TEMPLATE/bug.yml) with a **minimal, shareable reproduction** and the intended relationship. A measured browser fact, a review-only candidate and an approved semantic contract failure are distinct; say which one you observed. Include viewport width, relevant UI state, Chrome/Node versions and the smallest JSON evidence that makes the result verifiable.
+
+Do **not** attach private authenticated screenshots, private page text or tokens. Follow [SECURITY.md](SECURITY.md) for sensitive issues and avoid disabling Chromium sandboxing when visiting unknown websites.
+
+## Public alpha contributions
+
+Prioritize demonstrable false negatives/positives, stable selector behavior and first-run usability over new speculative heuristics. Controlled fixtures should include intentional negative controls. Never promote tool-generated predictions into independent human benchmark labels. A new detector should be evaluated on human-reviewed, separately sourced evidence before advertising real-world accuracy.
+
+For a compact example of the desired contribution quality, see [the portfolio regression case study](docs/portfolio-regression-case-study.md) and its dedicated Chromium test.

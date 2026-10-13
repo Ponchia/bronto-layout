@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Studio portfolio — controlled layout regression</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { font-family: system-ui, sans-serif; color: #262729; background: #fcfaf7; }
+    body { margin: 0; }
+    .shell { width: min(1090px, calc(100% - 36px)); margin: 0 auto; }
+    header { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #d4cec7; padding: 22px 0; }
+    header span { font-size: 13px; letter-spacing: .15em; }
+    .hero { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(20px, 4vw, 60px); margin-top: 65px; }
+    .copy { min-width: 0; font-size: 15px; line-height: 1.7; }
+    .copy p:first-child { margin-top: 0; }
+    .copy p { max-width: 48ch; }
+    .artwork { min-width: 0; margin: 0; }
+    .image { width: 100%; aspect-ratio: 4 / 3; background: linear-gradient(135deg, #c1b1a1, #7d8779 52%, #363f43); }
+    .artwork p { margin: 9px 0 0; font-size: 11px; }
+    @media (max-width: 767px) {
+      .hero { grid-template-columns: minmax(0,1fr); gap: 24px; margin-top: 38px; }
+    }
+    @media (min-width: 768px) {
+      body.regressed .artwork { transform: translateY(18px); }
+    }
+  </style>
+</head>
+<body class="regressed">
+  <div class="shell">
+    <header><span>STUDIO / WORK</span><span>Selected projects</span></header>
+    <main class="hero">
+      <section class="copy">
+        <p>This image and the first line of body text must share their top edge on desktop. The relationship is intentional and can be tested as a versioned layout contract.</p>
+        <p>On smaller screens the content stacks, so the alignment requirement is deliberately disabled.</p>
+      </section>
+      <figure class="artwork">
+        <div class="image" role="img" aria-label="Decorative artwork placeholder"></div>
+        <p>Untitled (sample), 2026</p>
+      </figure>
+    </main>
+  </div>
+</body>
+</html>

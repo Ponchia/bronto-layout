@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Prepare public-repository onboarding: replace the oversized README with a concise reproduction-first guide, preserve extended CLI information in `docs/cli-reference.md`, add a controlled portfolio alignment regression and four browser tests plus a real annotated fixture screenshot, and document the multi-site first-party validation run separately from independent real-world accuracy.
+- Add responsible vulnerability disclosure guidance, enable private vulnerability reporting and add bounded weekly Dependabot checks, structured safe reproduction issue templates and a PR checklist; update contribution advice to prioritize confirmed false negatives/positives without sensitive browser evidence.
+
+
 - Ship JSON Schema Draft 2020-12 editor hints for v1 contracts, bounded batch manifests and standalone declarative action files, with optional non-fetching `$schema` metadata, schema-enabled examples, parser/schema parity tests and npm package exports. Runtime aliases, cross-field constraints and actual browser behavior remain validated by the CLI.
 
 - Add offline `bronto-layout verify-evidence --comparison FILE --evidence-dir DIR` to recheck relocated baseline/candidate screenshot SHA-256 digests, PNG headers and strict file provenance without browser/network access, rejecting missing, tampered or symlinked review artifacts. Verification never infers visual correctness; comparison input is protected against CLI output overwrites.

@@ -88,6 +88,8 @@
     "bin",
     "dist",
     "README.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
     "LICENSE",
     "examples",
     "docs",

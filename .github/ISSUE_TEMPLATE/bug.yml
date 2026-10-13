@@ -1,0 +1,54 @@
+name: Layout bug / unexpected diagnosis
+description: Report a reproducible error or misleading finding (no private screenshots or credentials)
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for investigating a layout problem. Please use only public, non-sensitive
+        examples here. For security issues see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: CLI version, commit SHA or `node bin/bronto-layout.mjs --version`
+      placeholder: "v0.4.0 / commit ..."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Local HTML/CSS or a public URL you own or have permission to test, exact command, viewport width and page state.
+      placeholder: "At width 768px, running check --spec ... on a minimal public fixture..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected relationship / result
+      description: Describe the intended alignment, containment, gap or coverage. Is this an automatically measured failure or a review-only lead?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Observed result and evidence
+      description: Include error code, measured deviation and safe redacted JSON; don't paste session cookies, sensitive page text or private screenshots.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Node 24, Chrome 149, Linux x64, locale ar, viewport 375x900"
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Safe disclosure
+      options:
+        - label: I checked the content for private data and this is not a security vulnerability.
+          required: true

@@ -1,0 +1,24 @@
+name: Feature / use case
+description: Suggest a developer workflow with a concrete layout-verification problem
+title: "idea: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What layout-verification problem are you trying to solve?
+      description: Describe the current workflow and why screenshots, tests or human review are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: intended_behavior
+    attributes:
+      label: What would successful behavior look like?
+      description: Include relevant viewport widths, UI states and whether a strict contract or a review-only diagnosis is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing tools and workarounds (optional)
+      description: Include safe public examples if available; please do not include private application screenshots.
