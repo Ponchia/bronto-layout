@@ -79,7 +79,7 @@ jobs:
               failed=1
             fi
 
-            node - "$spec" "$dir/audit.json" <<'NODE'
+            node - "$spec" "$dir/audit.json" <<'NODE' || failed=1
           const fs = require('node:fs');
           const [specFile, auditFile] = process.argv.slice(2);
           const spec = JSON.parse(fs.readFileSync(specFile, 'utf8'));

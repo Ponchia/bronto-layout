@@ -68,4 +68,6 @@ test('manual OSS workflow rejects arbitrary targets and browser sandbox bypass',
   assert.doesNotMatch(workflow, /inputs\.(?:url|host|manifest|path|command)/);
   assert.doesNotMatch(workflow, /curl -X POST|fill.*password|workflow_call/);
   assert.match(workflow, /Navigation left approved public path/);
+  assert.match(workflow, /<<'NODE' \|\| failed=1/,
+    'An invalid capture must not prevent independent remaining routes being observed');
 });
