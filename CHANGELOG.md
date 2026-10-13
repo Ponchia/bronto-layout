@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Prefer installed stable Chrome before optional development Chromium in
+  automatic Linux browser selection. Preserve explicit command-line and
+  CHROME_PATH overrides, do not retry with no-sandbox, and test selection
+  independently of the host's installed browser. Motivated by a real
+  GitHub Actions consumer where stable Chrome launched securely but the
+  auto-selected development Chromium aborted at startup.
+  The Node 22 CI matrix now exercises default browser launch without any
+  sandbox bypass and checks selection of stable Chrome when both are present.
+
 - Add a manual npm alpha-release runbook covering publisher authorization, reviewed SemVer prereleases, isolated package verification, privacy checks and registry validation. No publishing workflow, tag, or package release is created automatically.
 
 - Record published BrontoUI fix verification: six responsive captures with no measured root overflow, and 136/136 approved layout checks passing across six first-party routes; field labels and unsupported iframe interiors remain pending.
