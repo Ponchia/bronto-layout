@@ -73,8 +73,10 @@ All **21 original artifact-file hashes** were verified after relocating the
 first captured archive. This exposed a portability issue: the generated
 checksum manifest used paths relative to the original GitHub Actions workspace
 rather than the extracted artifact root. The workflow now emits relocatable
-relative paths and verifies its checksum manifest before upload. A subsequent
-manual run is required to confirm this updated artifact format in GitHub.
+relative paths and verifies its checksum manifest before upload. The [subsequent merged-main run 38413008874](https://github.com/Ponchia/bronto-layout/actions/runs/38413008874)
+confirmed the fix: **21/21 hashes verified directly** with
+`sha256sum --check SHA256SUMS` from the extracted artifact root, while
+all five opened-menu states still passed.
 
 These are **automation-assisted measurements**, not external human design
 labels. In particular, selector-count success and a screenshot that shows

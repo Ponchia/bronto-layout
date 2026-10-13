@@ -1,5 +1,26 @@
 # Validation notes
 
+## 2026-10-13: fixed external deep-scroll headings verified below 6,000px
+
+The [sandboxed source-reviewed Vite/Docusaurus run](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449)
+completed all four targeted states (320 and 1280 CSS px per website).
+Every declared deep heading was present and vertically contained in
+the viewport: **12/12 passing selector/containment assertions**, zero
+skipped rules. Each real browser document scrolled over 1,000 CSS px,
+verified in the independent `check` and compact automatic `audit` reports.
+
+Measured document scroll offsets: Docusaurus **12,055px mobile**,
+**6,980px desktop**; Vite **6,715px mobile**, **4,296px desktop**.
+All **13** artifact-file hashes verified directly after extraction and
+the four screenshots visibly showed the intended deep heading.
+Supported top-level DOM traversals completed; this does not establish
+complete below-fold rendering or independent correctness labels.
+
+Vite at 320px still reports its previously documented **10px clipped-root
+width measurement** as a measured audit finding (audit exit 1). The
+specific deep heading containment check correctly passes separately.
+
+
 ## 2026-10-13: separate five-site mobile menu opened-state verification
 
 A [manual sandboxed Chrome run](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119)
@@ -7,8 +28,9 @@ visited five unrelated OSS documentation routes at **375px**. All **15/15
 approved post-click DOM-state assertions** passed, with **zero measured
 audit issues** and **zero incomplete top-level captures**. Two nonblocking
 Astro pending-image warnings remained. The original 21 artifact-file hashes
-were verified after relocation; the checksum script is being refined to
-produce directly portable manifests on later runs.
+were verified after relocation; the [follow-up main-branch run 38413008874](https://github.com/Ponchia/bronto-layout/actions/runs/38413008874)
+also passed five menus and **verified all 21 hashes directly** from
+the downloaded artifact's portable `SHA256SUMS` without rewriting paths.
 
 Captured screenshots visibly show the opened menus but do not establish
 complete usability, accessibility, below-fold correctness or independent

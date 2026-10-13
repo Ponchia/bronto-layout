@@ -49,6 +49,35 @@ header does not cover some other text, or that every interaction works.
 They also do not inspect paint inside canvases, closed Shadow DOM or
 uninspected iframe interiors.
 
+## Confirmed external run — 13 October 2026
+
+The [manual GitHub Actions run 38415585449](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449)
+completed all **4/4 fixed scrolled states**, with **12/12 approved
+vertical-containment and selector assertions passing**, **13/13 artifact
+SHA-256 checks verified**, and **zero incomplete top-level traversals**.
+The original extracted artifact's `SHA256SUMS` verified directly without
+path rewriting.
+
+| Public page | 320px recorded scrollY | 1280px recorded scrollY |
+| --- | ---: | ---: |
+| Docusaurus Docs | 12,055 CSS px | 6,980 CSS px |
+| Vite Guide | 6,715 CSS px | 4,296 CSS px |
+
+For each case the contract and the separate automatic audit independently
+reported the **same scrollY** (after replaying the fixed state setup).
+Screenshot review confirmed the intended **Something missing?** and
+**Command Line Interface** headings were visible at both widths.
+
+Only Vite's 320px automatic audit returned a measured layout error, for
+its **previously documented 10px clipped-root width difference**. The
+deep-section containment contract still passed; the width finding was not
+silenced or treated as a new independently confirmed upstream bug.
+
+This is **verified scrolled-state coverage**, not independent human labeling
+of the complete page, its keyboard interactions, all lazy media, or pixel
+rendering at arbitrary offsets. Temporary third-party screenshots remain
+outside the public source repository in a private checksum-verified archive.
+
 ## Reproducing the controls
 
 The repository includes a self-contained
