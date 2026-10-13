@@ -1,0 +1,121 @@
+# Manual mobile menu inspection of only pre-reviewed public OSS websites.
+# No arbitrary URLs, authentication, website writes, or sandbox bypasses.
+name: External OSS mobile navigation states
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oss-mobile-state-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mobile-states:
+    name: Validate fixed OSS mobile menus
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Validate fixed-source mobile state contracts
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run oss:states:validate
+
+      - name: Verify sandboxed stable Chrome startup
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          set -euo pipefail
+          test -x "$CHROME_PATH"
+          node bin/bronto-layout.mjs doctor --verify-launch --json
+
+      - name: Open approved menus and capture the resulting page state
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="reports/oss-mobile-$GITHUB_RUN_ID"
+          mkdir -p "$out"
+          failed=0
+          for spec in benchmarks/oss-states/*.json; do
+            id=$(basename "$spec" .json)
+            dir="$out/$id"
+            mkdir -p "$dir/screens"
+            node - "$spec" "$dir/actions.json" <<'NODE'
+          const fs = require('node:fs');
+          const [source, dest] = process.argv.slice(2);
+          const contract = JSON.parse(fs.readFileSync(source, 'utf8'));
+          fs.writeFileSync(dest, JSON.stringify(contract.actions, null, 2) + '\n');
+          NODE
+            url=$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).url)' "$spec")
+            width=$(node -e 'const fs=require("fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).widths[0]))' "$spec")
+
+            set +e
+            node bin/bronto-layout.mjs check --spec "$spec" \
+              --settle 650 --timeout 30000 --json > "$dir/check.json"
+            checked=$?
+            node bin/bronto-layout.mjs audit --url "$url" \
+              --width "$width" --actions "$dir/actions.json" \
+              --settle 650 --timeout 30000 --json --compact \
+              --evidence-dir "$dir/screens" > "$dir/audit.json"
+            audited=$?
+            set -e
+
+            if [ "$checked" -ne 0 ] || [ "$audited" -gt 1 ]; then
+              echo "::warning::$id failed opened-state contract/capture (check=$checked audit=$audited)"
+              failed=1
+            fi
+
+            node - "$spec" "$dir/audit.json" <<'NODE'
+          const fs = require('node:fs');
+          const [specFile, auditFile] = process.argv.slice(2);
+          const spec = JSON.parse(fs.readFileSync(specFile, 'utf8'));
+          try {
+            const audit = JSON.parse(fs.readFileSync(auditFile, 'utf8'));
+            const actual = new URL(audit.browser?.actualUrl || '');
+            const expected = new URL(spec.url);
+            if (actual.origin !== expected.origin || actual.pathname !== expected.pathname)
+              throw new Error('Navigation left approved public path');
+            if (audit.reports?.length !== 1 ||
+                audit.reports[0].width !== spec.widths[0] ||
+                audit.reports[0].summary?.supportedScopeMeasured !== true)
+              throw new Error('Incomplete top-level browser inspection');
+            console.log(specFile, 'findings:',
+              audit.reports[0].findings?.map(x => x.code),
+              'coverage:', audit.reports[0].coverage?.status);
+          } catch (e) {
+            console.error('Unsafe/invalid state evidence', specFile, String(e));
+            process.exit(2);
+          }
+          NODE
+            echo "case=$id check=$checked audit=$audited" >> "$out/results.txt"
+          done
+
+          find "$out" -type f ! -name SHA256SUMS -print0 |
+            sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::Some public menu states unverified; inspect evidence before defect claims."
+            exit 1
+          fi
+
+      - name: Upload temporary review evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bronto-layout-oss-mobile-navigation
+          path: reports/oss-mobile-*/
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "external-oss-mobile-nav-v0_1",
+  "allowedHosts": [
+    "docs.astro.build",
+    "docusaurus.io",
+    "vite.dev",
+    "svelte.dev"
+  ],
+  "contracts": [
+    "benchmarks/oss-states/astro-en-375.json",
+    "benchmarks/oss-states/astro-es-375.json",
+    "benchmarks/oss-states/docusaurus-375.json",
+    "benchmarks/oss-states/vite-375.json",
+    "benchmarks/oss-states/svelte-375.json"
+  ]
+}

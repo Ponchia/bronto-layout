@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "url": "https://docusaurus.io/docs/",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "click",
+      "selector": "button.navbar__toggle"
+    },
+    {
+      "type": "pause",
+      "milliseconds": 350
+    }
+  ],
+  "selectors": {
+    "opened": ".navbar-sidebar--show",
+    "button": "button.navbar__toggle",
+    "content": "main"
+  },
+  "rules": [
+    {
+      "id": "menu-open-state",
+      "type": "selector-count",
+      "element": "opened",
+      "exactly": 1
+    },
+    {
+      "id": "mobile-menu-button",
+      "type": "selector-count",
+      "element": "button",
+      "exactly": 1
+    },
+    {
+      "id": "main-document-present",
+      "type": "selector-count",
+      "element": "content",
+      "exactly": 1
+    }
+  ]
+}

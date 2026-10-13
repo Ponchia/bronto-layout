@@ -25,6 +25,10 @@ for **24 distinct initial-viewport states**. This is not a claim that the
 deployed revision matches current repository main; verify any possible bug
 against the correct source revision before contacting its maintainers.
 
+A separate [mobile-state study](oss-mobile-state-study.md) explores
+approved opened-menu states on the same public projects. It is not part of
+the original 24-case initial-viewport denominator.
+
 ## Execution and evidence policy
 
 Use the [manual external OSS GitHub Actions workflow](../.github/workflows/oss-field-capture.yml).

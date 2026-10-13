@@ -59,6 +59,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
+- [ ] Independently verify the [fixed open-source mobile-navigation states](oss-mobile-state-study.md) in a manual sandboxed browser run, then review any failures against the public sites and source. This is state-coverage research, not human-labelled detector accuracy.
+
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.
 - [x] `review-packet` command generates an independent worksheet, never auto-populating labels. `review-gallery` provides a static, hash-verified visual contact sheet with no predictions, included in manual field artifacts.
