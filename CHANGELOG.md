@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Prepare public-repository onboarding: replace the oversized README with a concise reproduction-first guide, preserve extended CLI information in `docs/cli-reference.md`, add a controlled portfolio alignment regression and four browser tests, and document the multi-site first-party validation run separately from independent real-world accuracy.
+- Prepare public-repository onboarding: replace the oversized README with a concise reproduction-first guide, preserve extended CLI information in `docs/cli-reference.md`, add a controlled portfolio alignment regression and four browser tests plus a real annotated fixture screenshot, and document the multi-site first-party validation run separately from independent real-world accuracy.
 - Add responsible vulnerability disclosure guidance, enable private vulnerability reporting and add bounded weekly Dependabot checks, structured safe reproduction issue templates and a PR checklist; update contribution advice to prioritize confirmed false negatives/positives without sensitive browser evidence.
 
 

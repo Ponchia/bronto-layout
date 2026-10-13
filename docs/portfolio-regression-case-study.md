@@ -33,6 +33,8 @@ node bin/bronto-layout.mjs compare --spec examples/portfolio-alignment.json \
 
 Observe that no other semantic contract must fail. A generic audit may return no measured failures because nothing is necessarily overflowing or broken: **it cannot know the desired alignment without the authored rule**.
 
+To preserve the annotated Chromium screenshot yourself, add `--evidence-dir reports/portfolio-evidence` to the failing `check` command and inspect `check-768px.png`. A cropped, unmodified CLI capture is included in [the example image](assets/portfolio-alignment-768.png); the image is evidence from this **local fixture only**, not an independent label.
+
 ## Try a real site
 
 Replace the fixture URL with your development server while keeping a project-specific contract checked into your own repository. Prefer stable selectors (well-named classes or `data-testid`) instead of auto-generated DOM paths. Start with a few meaningful constraints and validate those at widths where the design requires them.

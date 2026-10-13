@@ -29,6 +29,10 @@ node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json \
 
 The included contract checks 375, 768 and 1280 CSS-pixel viewports. The alignment applies only at desktop/tablet widths; mobile deliberately stacks its content. See [the complete walkthrough](docs/portfolio-regression-case-study.md).
 
+![Chromium-generated Bronto Layout evidence highlighting the image and paragraph whose top edges differ by 18 pixels](docs/assets/portfolio-alignment-768.png)
+
+*Real CLI screenshot, cropped from the self-contained intentionally broken 768px fixture—not a production-site finding or an accuracy claim.*
+
 ## Try your own site
 
 ```sh
