@@ -104,8 +104,20 @@ jobs:
             echo "case=$id check=$checked audit=$audited" >> "$out/results.txt"
           done
 
-          find "$out" -type f ! -name SHA256SUMS -print0 |
-            sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
+          # Build outside the scanned directory to avoid hashing a manifest
+          # while it is being written. Downloaded archives can run
+          # sha256sum --check SHA256SUMS from their extracted artifact root.
+          manifest="$RUNNER_TEMP/oss-mobile-SHA256SUMS"
+          (
+            cd "$out"
+            find . -type f ! -name SHA256SUMS -print0 |
+              sort -z | xargs -0 sha256sum > "$manifest"
+          )
+          cp "$manifest" "$out/SHA256SUMS"
+          (
+            cd "$out"
+            sha256sum --check SHA256SUMS
+          )
           if [ "$failed" -ne 0 ]; then
             echo "::error::Some public menu states unverified; inspect evidence before defect claims."
             exit 1

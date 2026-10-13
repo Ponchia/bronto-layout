@@ -1,5 +1,20 @@
 # Validation notes
 
+## 2026-10-13: separate five-site mobile menu opened-state verification
+
+A [manual sandboxed Chrome run](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119)
+visited five unrelated OSS documentation routes at **375px**. All **15/15
+approved post-click DOM-state assertions** passed, with **zero measured
+audit issues** and **zero incomplete top-level captures**. Two nonblocking
+Astro pending-image warnings remained. The original 21 artifact-file hashes
+were verified after relocation; the checksum script is being refined to
+produce directly portable manifests on later runs.
+
+Captured screenshots visibly show the opened menus but do not establish
+complete usability, accessibility, below-fold correctness or independent
+human detector accuracy.
+
+
 ## 2026-10-13: long-page OSS captures disclose bounded screenshot coverage
 
 The [20-state documentation-only full-page run](https://github.com/Ponchia/bronto-layout/actions/runs/38381065788)

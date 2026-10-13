@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { parseContract } from '../dist/contract.js';
 
 const load = file => JSON.parse(readFileSync(new URL('../' + file, import.meta.url), 'utf8'));
@@ -68,6 +71,54 @@ test('manual OSS workflow rejects arbitrary targets and browser sandbox bypass',
   assert.doesNotMatch(workflow, /inputs\.(?:url|host|manifest|path|command)/);
   assert.doesNotMatch(workflow, /curl -X POST|fill.*password|workflow_call/);
   assert.match(workflow, /Navigation left approved public path/);
+  assert.ok(workflow.includes('cd "$out"'), 'Checksum paths must be relative to extracted artifact root');
+  assert.match(workflow, /sha256sum --check SHA256SUMS/);
   assert.match(workflow, /<<'NODE' \|\| failed=1/,
     'An invalid capture must not prevent independent remaining routes being observed');
+});
+
+
+test('actual workflow checksum block survives moving the extracted artifact and detects changes', () => {
+  const start = workflow.indexOf('          manifest="$RUNNER_TEMP/oss-mobile-SHA256SUMS"');
+  const end = workflow.indexOf('          if [ "$failed" -ne 0 ]; then', start);
+  assert.ok(start !== -1 && end > start, 'Could not locate the workflow checksum block');
+  const body = workflow.slice(start, end).split('\n')
+    .map(line => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+
+  const temp = mkdtempSync(path.join(tmpdir(), 'bronto-oss-mobile-'));
+  try {
+    const source = path.join(temp, 'ci', 'reports', 'oss-mobile-123');
+    const evidence = path.join(source, 'astro-en-375');
+    const nested = path.join(evidence, 'screens');
+    const relocated = path.join(temp, 'downloaded artifact with spaces');
+    const runtimeTemp = path.join(temp, 'runner-temp');
+    mkdirSync(nested, { recursive: true });
+    mkdirSync(runtimeTemp);
+    writeFileSync(path.join(evidence, 'audit.json'), '{"summary":{"measuredIssues":0}}\n');
+    writeFileSync(path.join(evidence, 'check.json'), '{"summary":{"passed":3}}\n');
+    writeFileSync(path.join(nested, 'audit-375px.png'), 'synthetic screenshot fixture bytes');
+    writeFileSync(path.join(source, 'results.txt'), 'case=astro-en-375 check=0 audit=0\n');
+
+    const execute = script => spawnSync('bash', ['-e', '-o', 'pipefail'], {
+      cwd: temp, encoding: 'utf8',
+      env: { ...process.env, RUNNER_TEMP: runtimeTemp },
+      input: script, timeout: 10000
+    });
+    const write = execute('out=' + JSON.stringify(source) + '\n' + body);
+    assert.equal(write.status, 0, write.stderr || write.stdout);
+    const manifest = readFileSync(path.join(source, 'SHA256SUMS'), 'utf8');
+    assert.equal(manifest.trim().split('\n').length, 4);
+    assert.ok(manifest.includes('  ./astro-en-375/screens/audit-375px.png'));
+    assert.ok(!manifest.includes(source), 'Absolute CI workspace must not be embedded');
+
+    renameSync(source, relocated);
+    const verify = execute('cd ' + JSON.stringify(relocated) + '\nsha256sum --check SHA256SUMS');
+    assert.equal(verify.status, 0, verify.stderr || verify.stdout);
+    writeFileSync(path.join(relocated, 'astro-en-375', 'check.json'), 'tampered evidence');
+    const corrupted = execute('cd ' + JSON.stringify(relocated) + '\nsha256sum --check SHA256SUMS');
+    assert.notEqual(corrupted.status, 0, 'Tampered browser evidence must be rejected');
+    assert.match(corrupted.stdout + corrupted.stderr, /FAILED/);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 });
