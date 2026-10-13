@@ -1,5 +1,35 @@
 # Validation notes
 
+## 2026-10-13: deployed BrontoUI regression repaired and verified
+
+BrontoUI's 3 CSS-pixel document-level overflow at **320px** was fixed by
+[BrontoUI PR #249](https://github.com/Ponchia/bronto-ui/pull/249) and
+published from merge commit `2d060343` via
+[GitHub Pages run 38353655959](https://github.com/Ponchia/bronto-ui/actions/runs/38353655959).
+The public stylesheet, not merely a local preview, contains the corrected
+narrow-screen heading rule.
+
+A fresh [v0.2 capture run 38353800504](https://github.com/Ponchia/bronto-layout/actions/runs/38353800504)
+observed the deployed homepage at **320, 360, 375, 430, 768, and 1280px**:
+**6/6 complete** and **12/12 screenshot/report SHA-256 hashes verified**.
+It emitted **zero measured document-horizontal-overflow findings** at those
+widths. The 320–430px states still emitted nonblocking `pending-image`
+review warnings, which are not proven design failures.
+
+The [full six-route live-site smoke 38353798145](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145)
+passed **136/136 approved layout-contract evaluations**, sampled **24 audit
+viewports**, found **zero measured audit issues** and **zero incomplete
+top-level traversals**. It retained **four review-only warnings** across
+the BrontoUI homepage and operations shell and **16 known bounded candidate
+omissions** on Sense6 English/Arabic's optional grid/overlap heuristics.
+BrontoUI operations iframe interiors remain uninspected; supported top-level
+traversal does not establish whole-page accuracy.
+
+This is an actual detect → diagnose → fix → deploy → verify loop using a
+measured real website regression. These self-collected browser observations
+must **not** be converted into independent human field labels or generalized
+precision/recall claims. The historical 30/42 capture datasets are retained
+unchanged. Private raw screenshots/reports have not been committed.
 ## 2026-10-13: deterministic CI test sharding (candidate)
 
 The existing Node 22 and Node 24 Chromium jobs spend approximately seven
