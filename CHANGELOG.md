@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a manual npm alpha-release runbook covering publisher authorization, reviewed SemVer prereleases, isolated package verification, privacy checks and registry validation. No publishing workflow, tag, or package release is created automatically.
+
 - Record published BrontoUI fix verification: six responsive captures with no measured root overflow, and 136/136 approved layout checks passing across six first-party routes; field labels and unsupported iframe interiors remain pending.
 - Experiment with deterministic two-way CI test partitions on separate
   GitHub runners for Node 22 and 24. Retain every full-suite test file,

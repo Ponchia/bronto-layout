@@ -1,5 +1,7 @@
 # Public alpha gate (v0.4 candidate; no publication authorized)
 
+See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry preflight and verification.
+
 This is a release-preparation checklist, **not** a claim of production readiness. `@ponchia/layout` has not been published to npm. Publication, a tag, version bump and public release announcement are separate decisions.
 
 ## Public repository and first-run readiness (13 October 2026)
