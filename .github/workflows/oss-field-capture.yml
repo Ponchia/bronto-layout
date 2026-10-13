@@ -1,0 +1,123 @@
+# Manual independent open-source site cohort. This read-only study navigates
+# only pre-reviewed fixed public paths; never accepts arbitrary external URLs.
+# Screenshots contain public rendered content and are retained for only 7 days.
+name: External open-source site validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      cohort:
+        description: 'Fixed route subset (never an arbitrary site or manifest path)'
+        required: true
+        type: choice
+        options:
+          - all
+          - docs-only
+          - excalidraw-only
+        default: all
+      frame_inventory:
+        description: 'Include frame inventory when feasible (not interior layout coverage)'
+        required: true
+        type: boolean
+        default: true
+      full_page_evidence:
+        description: 'Capture additional bounded below-fold screenshot (not a defect label)'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-oss-field-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: External OSS browser field cohort
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Build and validate strict public cohort
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node scripts/field-benchmark.mjs validate --manifest benchmarks/oss-sites.v0.1.json
+          node --test tests/oss-cohort.test.mjs
+
+      - name: Verify sandboxed Chrome can launch
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          set -euo pipefail
+          test -x "$CHROME_PATH"
+          node bin/bronto-layout.mjs doctor --verify-launch --json
+
+      - name: Capture fixed third-party public routes (read only)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          COHORT: ${{ inputs.cohort }}
+          FRAME_INVENTORY: ${{ inputs.frame_inventory }}
+          FULL_PAGE_EVIDENCE: ${{ inputs.full_page_evidence }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=benchmarks/oss-sites.v0.1.json
+          args=()
+          case "$COHORT" in
+            all)
+              ;;
+            docs-only)
+              ids=$(node -e "const m=require('./benchmarks/oss-sites.v0.1.json');console.log(m.cases.filter(x=>!x.id.startsWith('excalidraw-')).map(x=>x.id).join(','))")
+              args+=(--ids "$ids")
+              ;;
+            excalidraw-only)
+              ids=$(node -e "const m=require('./benchmarks/oss-sites.v0.1.json');console.log(m.cases.filter(x=>x.id.startsWith('excalidraw-')).map(x=>x.id).join(','))")
+              args+=(--ids "$ids")
+              ;;
+            *)
+              echo "::error::Unexpected fixed cohort choice" >&2
+              exit 2
+              ;;
+          esac
+          if [ "$FRAME_INVENTORY" = true ]; then args+=(--frame-inventory); fi
+          if [ "$FULL_PAGE_EVIDENCE" = true ]; then args+=(--full-page-evidence); fi
+          # No sandbox bypass. Redirects away from allowlisted origin
+          # are incomplete, never a clean measurement.
+          node scripts/field-benchmark.mjs capture \
+            --manifest "$manifest" \
+            --out "reports/oss-${GITHUB_RUN_ID}" "${args[@]}"
+
+      - name: Generate offline reviewer packet and blank labels
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="reports/oss-${GITHUB_RUN_ID}"
+          if [ -f "$dir/index.json" ]; then
+            node scripts/field-benchmark.mjs review-gallery \
+              --captures "$dir" --out "$dir/review-gallery.html"
+            node scripts/field-benchmark.mjs review-packet \
+              --captures "$dir" --out "$dir/review-worksheet.md"
+            node scripts/field-benchmark.mjs review-label-template \
+              --captures "$dir" --out "$dir/review-labels-draft.json"
+          fi
+
+      - name: Preserve public rendered evidence for limited review window
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bronto-layout-external-oss-capture
+          path: reports/oss-*/
+          if-no-files-found: warn
+          retention-days: 7

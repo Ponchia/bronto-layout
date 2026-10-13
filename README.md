@@ -90,6 +90,7 @@ You can:
 | [Architecture](docs/architecture.md) | Core, browser adapters, CDP process lifecycle, evidence and coverage |
 | [Contract discovery](docs/contract-discovery.md) | Why suggestions require human approval |
 | [Benchmarks](docs/audit-benchmark.md) and [field validation](docs/field-benchmark.md) | Controlled fixtures versus independently labeled sites |
+| [External open-source website study](docs/oss-field-study.md) | Separate OSS cohort, limitations and independent-review protocol |
 | [Contributing](CONTRIBUTING.md) and [security](SECURITY.md) | Local tests, reporting issues and safety |
 
 ## Contribute

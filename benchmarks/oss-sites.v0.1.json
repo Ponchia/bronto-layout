@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "id": "bronto-field-external-oss-v0_1",
+  "allowedHosts": [
+    "docs.astro.build",
+    "docusaurus.io",
+    "vite.dev",
+    "svelte.dev",
+    "excalidraw.com"
+  ],
+  "cases": [
+    {
+      "id": "astro-en-320",
+      "url": "https://docs.astro.build/en/getting-started/",
+      "width": 320
+    },
+    {
+      "id": "astro-en-375",
+      "url": "https://docs.astro.build/en/getting-started/",
+      "width": 375
+    },
+    {
+      "id": "astro-en-768",
+      "url": "https://docs.astro.build/en/getting-started/",
+      "width": 768
+    },
+    {
+      "id": "astro-en-1280",
+      "url": "https://docs.astro.build/en/getting-started/",
+      "width": 1280
+    },
+    {
+      "id": "astro-es-320",
+      "url": "https://docs.astro.build/es/getting-started/",
+      "width": 320,
+      "locale": "es"
+    },
+    {
+      "id": "astro-es-375",
+      "url": "https://docs.astro.build/es/getting-started/",
+      "width": 375,
+      "locale": "es"
+    },
+    {
+      "id": "astro-es-768",
+      "url": "https://docs.astro.build/es/getting-started/",
+      "width": 768,
+      "locale": "es"
+    },
+    {
+      "id": "astro-es-1280",
+      "url": "https://docs.astro.build/es/getting-started/",
+      "width": 1280,
+      "locale": "es"
+    },
+    {
+      "id": "docusaurus-320",
+      "url": "https://docusaurus.io/docs/",
+      "width": 320
+    },
+    {
+      "id": "docusaurus-375",
+      "url": "https://docusaurus.io/docs/",
+      "width": 375
+    },
+    {
+      "id": "docusaurus-768",
+      "url": "https://docusaurus.io/docs/",
+      "width": 768
+    },
+    {
+      "id": "docusaurus-1280",
+      "url": "https://docusaurus.io/docs/",
+      "width": 1280
+    },
+    {
+      "id": "vite-320",
+      "url": "https://vite.dev/guide/",
+      "width": 320
+    },
+    {
+      "id": "vite-375",
+      "url": "https://vite.dev/guide/",
+      "width": 375
+    },
+    {
+      "id": "vite-768",
+      "url": "https://vite.dev/guide/",
+      "width": 768
+    },
+    {
+      "id": "vite-1280",
+      "url": "https://vite.dev/guide/",
+      "width": 1280
+    },
+    {
+      "id": "svelte-320",
+      "url": "https://svelte.dev/docs/svelte/overview",
+      "width": 320
+    },
+    {
+      "id": "svelte-375",
+      "url": "https://svelte.dev/docs/svelte/overview",
+      "width": 375
+    },
+    {
+      "id": "svelte-768",
+      "url": "https://svelte.dev/docs/svelte/overview",
+      "width": 768
+    },
+    {
+      "id": "svelte-1280",
+      "url": "https://svelte.dev/docs/svelte/overview",
+      "width": 1280
+    },
+    {
+      "id": "excalidraw-320",
+      "url": "https://excalidraw.com/",
+      "width": 320
+    },
+    {
+      "id": "excalidraw-375",
+      "url": "https://excalidraw.com/",
+      "width": 375
+    },
+    {
+      "id": "excalidraw-768",
+      "url": "https://excalidraw.com/",
+      "width": 768
+    },
+    {
+      "id": "excalidraw-1280",
+      "url": "https://excalidraw.com/",
+      "width": 1280
+    }
+  ]
+}
