@@ -3,6 +3,12 @@
 ## Unreleased
 
 - Add a versioned 42-state first-party validation cohort (preserving all historical v0.1 cases), BrontoUI documentation/operations layout contracts and opt-in allowlisted GitHub Actions smoke/capture coverage. Embedded-demo iframe content remains explicitly unverified; this is coverage expansion, not independent accuracy evidence. The first v0.2 run captured all 42 states and exposed a measured 3px document overflow on the published BrontoUI homepage at 320px, tracked in BrontoUI issue #248.
+- Keep actual page overflow detection strict while excluding diagnostic
+  element candidates fully clipped by their own viewport-contained horizontal
+  scrolling/clipping ancestor. Preserve open-shadow traversal and add
+  controlled Chromium fixtures proving an oversized code line is not blamed
+  for an independent narrow-screen heading overflow; no automatic CSS
+  diagnosis or real-world accuracy claim is introduced.
 
 - Prepare public-repository onboarding: replace the oversized README with a concise reproduction-first guide, preserve extended CLI information in `docs/cli-reference.md`, add a controlled portfolio alignment regression and four browser tests plus a real annotated fixture screenshot, and document the multi-site first-party validation run separately from independent real-world accuracy.
 - Add responsible vulnerability disclosure guidance, enable private vulnerability reporting and add bounded weekly Dependabot checks, structured safe reproduction issue templates and a PR checklist; update contribution advice to prioritize confirmed false negatives/positives without sensitive browser evidence.

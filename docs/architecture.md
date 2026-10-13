@@ -13,6 +13,31 @@
 
 The pure modules have no Node.js or DOM imports. Applications can generate a `LayoutSnapshot` without Chromium.
 
+## Root overflow evidence and locally clipped descendants
+
+`src/browser.ts` measures page-level horizontal overflow from the actual
+document scroll extent and usable scrollport; that strict fact is **separate**
+from optional element leads. A code line can have a very wide
+`getBoundingClientRect()` inside an intentionally scrollable `overflow-x: auto`
+container even though it does not itself cause root-level scrolling. If
+another element truly extends the page, listing that clipped line as the
+largest apparent culprit can misdirect both developers and coding agents.
+
+Candidate collection now walks ancestors (crossing explicitly open shadow
+roots) and excludes the **descendant candidate** when a horizontally
+clipping/scrolling ancestor (`auto`, `scroll`, `hidden`, or `clip`) itself fits
+within the usable viewport. The page-level measured overflow and its exit
+status are never suppressed. An ancestor that extends outside the scrollport
+is not assumed to be harmless; element leads remain observational evidence,
+not authoritative CSS root-cause attribution.
+
+The controlled fixtures `overflow-clipped-control.html` and
+`overflow-clipped-leads.html` test the distinction in real Chromium. The
+control's long code line stays inside a local scroller with no root overflow.
+The broken page adds an independently overhanging heading, which still exits
+1 and names the heading without suggesting that the clipped code line is the
+root cause. Those fixtures are **not** independent external accuracy labels.
+
 ## Matched CSS source diagnostics
 
 - `src/css-sources.ts` is a portable pure normalizer for observed CDP
