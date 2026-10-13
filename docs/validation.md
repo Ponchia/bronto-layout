@@ -1,27 +1,34 @@
 # Validation notes
 
-## 2026-10-13: separate offscreen lazy media from visible image warnings (candidate)
+## 2026-10-13: Astro confirms deferred lazy images are not visible pending defects
 
-Astro's published English and Spanish HTML each contained **41 images**,
-including **three `loading="lazy"` images** per language. Six states in
-the historical independent OSS capture produced pending-image review warnings;
-the old detector counted CSS-visible images anywhere in the document without
-distinguishing the sampled viewport. This does not prove a broken image.
+Source inspection of Astro Docs English and Spanish HTML found **41 images**
+per language, including **three `loading="lazy"` images**. The older external
+run treated CSS-visible, far-below-fold lazy images as generic pending-image
+review leads, even though they were intentionally deferred from the viewport.
 
-Controlled real-Chromium fixtures now establish that an unfinished,
-offscreen `loading="lazy"` image is **not an ordinary pending viewport image**,
-but its unknown paint is counted as `deferredOffscreenLazyImages` with
-`known-uninspected-content` coverage. Scrolling the same image into view
-and waiting for it to load restores the supported-scope state. A deliberately
-unfinished image intersecting the viewport still produces a `pending-image`
-review warning. Strict coverage checks and human field-scoring do not count
-the deferred paint as a verified whole-page true negative.
+Three controlled real-Chromium fixtures confirmed that: offscreen lazy paint
+must be explicitly uninspected, scrolling it into view allows normal loading,
+and **visible** unfinished lazy media retains its `pending-image` warning.
+Strict coverage and whole-page field scoring fail closed for deferred paint.
 
-The release gate is a fresh sandboxed **Astro-only eight-state browser run**
-using the same immutable external v0.1 dataset, followed by screenshot/hash
-inspection. Until that run, a reduction in Astro review noise is a controlled
-test expectation rather than a verified deployed-site result.
+The [sandboxed Astro-only run 38442002226](https://github.com/Ponchia/bronto-layout/actions/runs/38442002226)
+then completed **8/8 responsive English/Spanish captures** with **16/16
+audit and screenshot SHA-256 checks**. Measured layout issues remained zero.
+Across the comparable named states, previously recorded pending-image
+observations totaled **15**, versus **zero** pending leads in the fresh run.
+The new run instead reported **12 explicitly deferred offscreen images
+across six mobile/tablet states**, each with `known-uninspected-content`
+coverage. Both 1280px states remained supported-scope-measured.
+A contact-sheet review showed the expected Astro page structure but is not
+an independent visual-quality label.
 
+The runs occurred at different times, so three fewer deferred than historical
+pending observations is **not** proof that each exact element retained the
+same loading state. Old captures remain immutable; the improved precision
+is the explicit distinction between normal deferral, visible pending media
+and potentially broken completed images, not a claim of improved Astro UX
+or established detector precision/recall.
 
 ## 2026-10-13: independent pinned Eleventy source build
 

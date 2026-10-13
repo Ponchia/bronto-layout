@@ -116,11 +116,20 @@ The published Astro EN/ES HTML was also inspected for the persistent
 **38 declared `loading="eager"` and 3 declared `loading="lazy"`**.
 At mobile widths, Bronto Layout's original walker counted CSS-visible
 but completely offscreen lazy images among generic pending images.
-The proposed reclassification retains their uninspected paint as a known
-coverage gap without calling intentionally delayed loading a defect.
-A fresh sandboxed capture is still needed to confirm how many original
-warnings are actually deferred media. A lazily loaded image intersecting
-the viewport must remain reviewable as pending.
+The reclassification retains their uninspected paint as a known coverage
+gap without calling intentionally delayed loading a defect. The
+[Astro-only sandboxed capture 38442002226](https://github.com/Ponchia/bronto-layout/actions/runs/38442002226)
+completed **8/8 states and verified 16/16 screenshot/report hashes**.
+The earlier observations totaled 15 pending images across six responsive
+states; the new capture had **zero** pending warnings and identified
+**12 intentionally deferred offscreen lazy images** across the corresponding
+six mobile/tablet states. Each is now `known-uninspected-content`, while
+both 1280px states stayed fully traversed without known media gaps.
+Different runs can have different loading timings, so these aggregate counts
+must not be interpreted as element-by-element transitions. A lazy image
+intersecting the viewport **still** generates a pending warning until loaded.
+A review of the new initial-viewport screenshots confirmed expected page
+structure, **not** independently labeled page-quality correctness.
 
 The external source inspection motivated two separately tested changes:
 canvas paint is explicitly marked uninspected rather than clean, and visually

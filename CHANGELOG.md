@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Distinguish deliberately deferred offscreen `loading=lazy` images from CSS-visible images still pending in the observed viewport. Preserve lazy paint as an explicit known coverage gap, keep visible pending and broken image diagnostics, and exclude uninspected media from whole-page accuracy scoring; add controlled Chromium regressions and focused Astro EN/ES verification workflow.
+- Distinguish deliberately deferred offscreen `loading=lazy` images from genuinely pending visible media while recording known uninspected paint and excluding it from whole-page accuracy scoring. Controlled Chrome fixtures and an Astro EN/ES sandboxed browser run (8/8 states, 16/16 hashes) observed 15 earlier pending-image entries versus none in the new capture, with 12 deferred-image observations; network timing differs and no independent quality labels exist.
 
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic
