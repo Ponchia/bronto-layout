@@ -104,6 +104,20 @@ jobs:
           console.log('Approved Eleventy source-built baseline',
             process.env.ROUTE, report.summary);
           NODE
+            # Passing constraints don't produce check screenshots. A separate
+            # audit creates genuine healthy viewport visual evidence.
+            for width in 320 375 768 1280; do
+              if [ "$route" = home ]; then
+                url=http://127.0.0.1:18778/
+              else
+                url=http://127.0.0.1:18778/about/
+              fi
+              node bin/bronto-layout.mjs audit \
+                --url "$url" --width "$width" \
+                --json --compact \
+                --evidence-dir "$out/$route/screens" \
+                > "$out/$route-audit-$width.json"
+            done
           done
 
           # Induce a deliberately subtle 18 CSS px alignment defect in
@@ -123,11 +137,14 @@ jobs:
           set +e
           node bin/bronto-layout.mjs audit \
             --url http://127.0.0.1:18778/ --width 1280 \
-            --json --compact > "$out/generic-mutated-audit.json"
+            --json --compact \
+            --evidence-dir "$out/mutation/screens" \
+            > "$out/generic-mutated-audit.json"
           generic_exit=$?
           node bin/bronto-layout.mjs check \
             --spec benchmarks/oss-source-built/home.json --width 1280 \
-            --json > "$out/semantic-mutated-check.json"
+            --json --evidence-dir "$out/mutation/annotated" \
+            > "$out/semantic-mutated-check.json"
           semantic_exit=$?
           set -e
 
@@ -158,6 +175,10 @@ jobs:
           console.log('Independent source-built mutation confirmed: generic audit clean,',
             failures[0].id, 'fails by', failures[0].deviation, 'CSS px.');
           NODE
+
+          # Fail if a screenshot is absent or mismatched. Normalize screenshot
+          # references to artifact-relative paths; emit human-review index.
+          node scripts/verify-oss-source-build-evidence.mjs --out "$out"
 
           manifest="$RUNNER_TEMP/source-eleventy-SHA256SUMS"
           (

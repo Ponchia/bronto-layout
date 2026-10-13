@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Complete a successful pinned, independently authored Eleventy source-build
+  study (88/88 baseline responsive assertions, 18px deliberate semantic
+  misalignment caught with zero generic overflow findings), and add a
+  reproducible screenshot-evidence verifier after the original JSON-only
+  artifact exposed missing healthy screenshots. The follow-up hosted
+  Chromium run captured 8 baseline and 2 mutation screenshots with a
+  verified portable index and 23/23 valid file hashes; image inspection
+  confirms the deliberately displaced content without implying visual
+  correctness or human-assigned accuracy labels.
+
 - Verify fixed deep-scroll OSS states in a sandboxed Chrome run: four
   Docusaurus/Vite mobile and desktop heading checks, 12/12 passing
   assertions, 4,296–12,055 CSS px offsets and 13/13 portable checksums.
