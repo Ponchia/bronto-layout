@@ -156,6 +156,16 @@ Chromium's frame-tree and DOMSnapshot data show **which frame documents were obs
 
 For captures made with the current CLI, `summary.verified=false` also covers **known uninspected iframe interiors**. `summary.supportedScopeMeasured=true` means the supported top-document/open-shadow walk completed, allowing the raw capture to remain intact; field *accuracy scoring* still excludes these frame-bearing states. Historical audit JSON without the new boolean is supported by the field capture and scorer compatibility checks.
 
+CSS-visible canvases are now known paint-coverage gaps: their DOM rectangles
+can be measured, but raster/WebGL pixels are not. The auditor emits a
+nonblocking `canvas-content-uninspected` review warning and sets
+`coverage.status=known-uninspected-content`. Whole-page field scoring
+excludes captures with an explicit positive `visibleCanvases` count,
+**even if their claimed coverage status is inconsistent**. Historical v0.4
+captures without a canvas inventory cannot establish absence of canvases;
+recapture canvas-heavy websites before interpreting them as detector negatives.
+This is a coverage warning, not a separately scored defect detector.
+
 **Capture integrity and diagnostic completeness are distinct.** The capture index may record `complete: true` when a screenshot and top-level audit were successfully acquired, even if an iframe was not inspected. `contentCoverage` documents that limitation; the field scorer excludes reviewed cases with `known-uninspected-content` from whole-page detector accuracy denominators. Historical captures without `coverage.status` still use `embeddedFrames` to avoid silently counting missing interior observations as true negatives. The scorer reports these separately under `coverageExcluded`. Labels are never inferred from Chromium data.
 
 ## Optional offline human review console

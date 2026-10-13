@@ -36,6 +36,18 @@ test('document overflow is measured relative to usable scrollport, not nominal w
   assert.equal(report.findings[0].classification, 'measured');
   assert.equal(report.findings[0].overflowCandidates[0].path, '#wide');
 });
+test('explicit root clipping remains a measured extent, but the report avoids asserting visible scrolling', () => {
+  const snapshot=snap(320, 320);
+  snapshot.viewport.contentWidth=310;
+  snapshot.document.rootOverflowX='clip';
+  snapshot.document.bodyOverflowX='clip';
+  const report=analyzePageAudit(snapshot,obs());
+  assert.equal(report.summary.errors,1);
+  assert.equal(report.findings[0].classification,'measured');
+  assert.equal(report.findings[0].measuredPx,10);
+  assert.match(report.findings[0].message,/does not by itself prove user-visible scrolling/);
+});
+
 test('review-only text clipping and pending loading never become certain layout failures', () => {
   const observations = obs();
   observations.textClipCount = 1;
@@ -236,4 +248,19 @@ test('DOM traversal truncation also makes bounded optional review coverage unava
  assert.equal(summary.status,'unavailable');
  assert.equal(summary.viewportsWithUnavailableEvidence,1);
  assert.equal(summary.totalOmissions,0);
+});
+
+
+test('visible canvas is a review-only known paint gap, never a verified clean page', () => {
+  const observation = {...obs(), visibleCanvases: 2};
+  const report = analyzePageAudit(snap(), observation);
+  assert.equal(report.summary.errors, 0);
+  assert.equal(report.summary.warnings, 1);
+  assert.equal(report.summary.supportedScopeMeasured, true);
+  assert.equal(report.summary.verified, false);
+  assert.equal(report.coverage.status, 'known-uninspected-content');
+  assert.equal(report.coverage.visibleCanvases, 2);
+  assert.equal(report.findings[0].code, 'canvas-content-uninspected');
+  assert.equal(report.findings[0].classification, 'review');
+  assert.equal(report.findings[0].count, 2);
 });

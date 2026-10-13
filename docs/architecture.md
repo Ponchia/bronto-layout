@@ -23,13 +23,24 @@ container even though it does not itself cause root-level scrolling. If
 another element truly extends the page, listing that clipped line as the
 largest apparent culprit can misdirect both developers and coding agents.
 
-Candidate collection now walks ancestors (crossing explicitly open shadow
-roots) and excludes the **descendant candidate** when a horizontally
-clipping/scrolling ancestor (`auto`, `scroll`, `hidden`, or `clip`) itself fits
-within the usable viewport. The page-level measured overflow and its exit
-status are never suppressed. An ancestor that extends outside the scrollport
-is not assumed to be harmless; element leads remain observational evidence,
-not authoritative CSS root-cause attribution.
+Candidate collection walks ancestors (crossing explicitly open shadow
+roots) and excludes ordinary **descendant candidates** within a horizontally
+clipping/scrolling ancestor (`auto`, `scroll`, `hidden`, or `clip`). The clipping
+container itself remains a candidate, **even when it extends slightly outside**
+the usable scrollport: a 320px minimum-width code panel in a 310px scrollport
+might contribute 10px of root extent while its nested 900px code line must
+not be blamed for a 590px root overflow. Fixed/absolutely positioned elements
+are conservatively retained as possible escaping candidates.
+
+The page-level measured overflow and its exit status are **never suppressed**.
+If the root or body declares `overflow-x: clip` or `hidden`, the diagnostic
+explicitly says the measured scroll-width excess does **not** establish
+user-visible horizontal scrolling. These are observed CSS and geometry facts,
+not an authoritative source-level cause or an inference of design intent.
+Root scroll-width excess also ranks DOM candidates by inline-end overhang
+first (LTR: right; RTL: left), then by the opposite side. This preserves
+a right-extending 10px content box ahead of a fixed menu translated 275px
+off the left edge. Both remain observational leads, not proven causes.
 
 The controlled fixtures `overflow-clipped-control.html` and
 `overflow-clipped-leads.html` test the distinction in real Chromium. The
@@ -168,7 +179,7 @@ fragments and embedded data.
 with the existing DOM geometry snapshot to identify top-level horizontal
 overflow and classify results into measured observations and review-only
 warnings. It does not infer CSS root causes or report all overlaps as bugs.
-`summary.supportedScopeMeasured` states only that the supported DOM traversal was not truncated. `summary.verified` is now false when a **known uninspected frame** exists as well as when traversal truncates. The default `audit` command still returns exit 0 for a review-only frame gap with no measured failures; strict `--fail-on-coverage-gaps` returns exit 2. Field capture integrity uses `supportedScopeMeasured` independently from document coverage, preserving valid screenshots of partially uninspected pages. Neither value certifies canvas, paint order, closed shadow roots or arbitrary visual design.
+`summary.supportedScopeMeasured` states only that the supported DOM traversal was not truncated. `summary.verified` is now false when a **known uninspected frame** exists as well as when traversal truncates. The default `audit` command still returns exit 0 for a review-only frame/canvas gap with no measured failures; strict `--fail-on-coverage-gaps` returns exit 2. Field capture integrity uses `supportedScopeMeasured` independently from document coverage, preserving valid screenshots of partially uninspected pages. Neither value certifies unobserved canvas/WebGL pixels, paint order, closed shadow roots or arbitrary visual design. Legacy captures that did not record `visibleCanvases` cannot establish that no canvases were on screen; re-capture them before interpreting visual quality in a drawing-heavy app.
 
 The browser-native audit walker has an 18,000-element default traversal
 budget, parameterized only through the explicitly bounded `audit --dom-limit`
@@ -407,7 +418,7 @@ sites and must not be used to make detector-accuracy claims.
 
 `field-benchmark.mjs review-console` reuses the same integrity-verified index rows as the script-free `review-gallery`; its renderer in `scripts/field-review-console.mjs` never reads audit predictions or invents ground truth. Only an offline, source-hash-locked inline script handles inputs and direct user-triggered JSON downloads/imports. A restrictive CSP blocks remote connections, third-party scripts, frames and forms. The generated page does not store labels in a browser account, send requests, or auto-promote pending records. The exported JSON uses the existing `validateFieldLabels` protocol, including positive codes only after an explicit reviewer choice and attestations. DOM mutations, imported metadata and user notes use properties rather than `innerHTML`; untrusted site metadata is escaped and URL tokens are removed. Real Chromium tests exercise an actual local JSON file download and import. Partial imports are validated transactionally and update only their named case IDs; omitted cases retain unsaved form values, selected warnings and attestations. Full imports deliberately replace all cases. The console shows how many records were replaced, preventing silent loss of unrelated reviewer work.
 
-The reporter still marks known frame interiors uninspected, and field scoring excludes them from whole-page precision/recall. Hash integrity establishes file provenance, not that every design problem was discovered. Keep the original no-JavaScript contact sheet as the highest-restriction review alternative.
+The reporter marks known frame interiors and CSS-visible canvas paint uninspected; field scoring excludes them from whole-page precision/recall. Hash integrity establishes file provenance, not that every design problem was discovered. Keep the original no-JavaScript contact sheet as the highest-restriction review alternative.
 
 ## Optional browser startup preflight (`doctor --verify-launch`)
 

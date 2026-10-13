@@ -54,6 +54,8 @@ export interface PageAuditObservations {
   intentionalEllipses: number;
   visuallyHiddenTextExcluded: number;
   embeddedFrames: number;
+  /** CSS-visible canvas elements; their raster/WebGL pixels are NOT inspected. */
+  visibleCanvases?: number;
   /** Optional, explicitly requested GRID-only review lead, never a strict defect. */
   gridGapCount?: number;
   gridGapLeads?: GridGapLead[];
@@ -69,7 +71,7 @@ export interface PageAuditObservations {
 export type AuditCoverageStatus = 'supported-scope-measured' | 'known-uninspected-content' | 'truncated';
 export type AuditClassification = 'measured' | 'review';
 export interface AuditFinding {
-  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected' | 'possible-grid-gap-anomaly' | 'possible-sibling-overlap';
+  code: 'document-horizontal-overflow' | 'broken-image' | 'possible-text-clipping' | 'pending-image' | 'embedded-frame-uninspected' | 'canvas-content-uninspected' | 'possible-grid-gap-anomaly' | 'possible-sibling-overlap';
   classification: AuditClassification;
   severity: 'error' | 'warning';
   message: string;
@@ -92,7 +94,7 @@ export interface ViewportAudit {
   findings: AuditFinding[];
   summary: {
     errors: number; warnings: number;
-    /** No KNOWN uncovered surfaces; never a guarantee about closed roots or canvas. */
+    /** No KNOWN uncovered surfaces; never a guarantee about closed roots or paint. */
     verified: boolean;
     /** Top-document and open-shadow walk completed regardless of embedded frames. */
     supportedScopeMeasured: boolean;
@@ -112,7 +114,12 @@ export function analyzePageAudit(
     code: 'document-horizontal-overflow', classification: 'measured', severity: 'error',
     measuredPx: Number(overflow.toFixed(2)),
     message: 'Document scroll width exceeds the usable viewport by ' + overflow.toFixed(2) +
-      ' CSS px. This may be intentional; review the component before changing it.',
+      ' CSS px. ' + (
+        [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX].some(
+          style => style === 'clip' || style === 'hidden')
+          ? 'Root or body CSS declares horizontal clipping; this width difference does not by itself prove user-visible scrolling. Review intentional clipping before making changes.'
+          : 'This may be intentional; review the component before changing it.'
+      ),
     ...(snapshot.overflowCandidates?.length ? { overflowCandidates: snapshot.overflowCandidates.slice(0, 8) } : {})
   });
   for (const image of evidence.brokenImages) findings.push({
@@ -167,13 +174,19 @@ export function analyzePageAudit(
     count: evidence.embeddedFrames,
     message: evidence.embeddedFrames + ' embedded frame(s) were detected; their internal DOM/layout was not inspected'
   });
+  if ((evidence.visibleCanvases ?? 0) > 0) findings.push({
+    code: 'canvas-content-uninspected', classification: 'review', severity: 'warning',
+    count: evidence.visibleCanvases,
+    message: evidence.visibleCanvases + ' visible canvas(es) were detected; raster/WebGL paint is not verified by DOM geometry'
+  });
   if (evidence.unloadedImages > 0) findings.push({
     code: 'pending-image', classification: 'review', severity: 'warning',
     count: evidence.unloadedImages,
     message: evidence.unloadedImages + ' visible image(s) had not finished loading during the inspection'
   });
   const coverageStatus: AuditCoverageStatus = evidence.truncated ? 'truncated'
-    : evidence.embeddedFrames > 0 ? 'known-uninspected-content' : 'supported-scope-measured';
+    : evidence.embeddedFrames > 0 || (evidence.visibleCanvases ?? 0) > 0
+      ? 'known-uninspected-content' : 'supported-scope-measured';
   return {
     viewport: snapshot.viewport,
     coverage: { ...evidence,

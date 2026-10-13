@@ -104,29 +104,37 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
     if (label.reviewStatus === 'unreviewable') { unreviewable.push(sample.id); continue; }
     const report = evidenceById[sample.id];
     const view = report?.reports?.[0];
-    // Capture integrity != content coverage. In particular, a correctly
-    // captured top-level screenshot can conceal an uninspected iframe with a
-    // missing image. Do not score an unknown inner-frame defect as a false
-    // negative or an unobserved negative as a true negative.
+    // Capture integrity != paint coverage: known iframe interiors and canvas
+    // raster content cannot become counted negatives merely because a
+    // top-level screenshot and DOM traversal completed successfully.
     const coverageStatus = view?.coverage?.status;
-    const frameGap = coverageStatus === 'known-uninspected-content' ||
-      (coverageStatus === undefined && view?.coverage?.embeddedFrames > 0);
-    // Fail closed for any future/unknown coverage state, not just the two
-    // currently known incomplete ones. Legacy captures without a status are
-    // still admissible only when no embedded frame was observed.
-    const coverageGap = frameGap ||
+    // Also trust the observed warning when a legacy/inconsistent report omits
+    // the corresponding count. A known uncovered surface must never be
+    // silently included in a whole-page true-negative denominator.
+    const findings = Array.isArray(view?.findings) ? view.findings : [];
+    const frameGap = (view?.coverage?.embeddedFrames ?? 0) > 0 ||
+      findings.some(item => item?.code === 'embedded-frame-uninspected');
+    const canvasGap = (view?.coverage?.visibleCanvases ?? 0) > 0 ||
+      findings.some(item => item?.code === 'canvas-content-uninspected');
+    const coverageGap = frameGap || canvasGap ||
       (coverageStatus !== undefined && coverageStatus !== 'supported-scope-measured');
+    // Unexpected future statuses must be named explicitly instead of being
+    // relabeled as a familiar gap by a coincidental old warning code.
+    const unsupportedStatus = coverageStatus !== undefined &&
+      !['supported-scope-measured', 'known-uninspected-content'].includes(coverageStatus);
+    const coverageReason = unsupportedStatus
+      ? 'Incomplete or unsupported audit coverage: ' + coverageStatus
+      : frameGap ? 'Embedded-frame content was not audited'
+      : canvasGap ? 'Canvas paint content was not audited'
+      : 'Incomplete or unsupported audit coverage: ' + coverageStatus;
     const complete = sample.complete === true && sample.screenshotVerified === true &&
       report?.mode === 'audit' && report?.summary?.viewports === 1 &&
       view?.width === sample.width && view?.summary?.verified === true &&
       Array.isArray(view.findings) && view.coverage?.truncated === false && !coverageGap;
     if (coverageGap) coverageExcluded.push({ id: sample.id,
-      reason: frameGap ? 'Embedded-frame content was not audited' :
-        'Incomplete or unsupported audit coverage: '+coverageStatus });
+      reason: coverageReason });
     rows.push({ id: sample.id, complete, error: complete ? undefined :
-      frameGap ? 'Embedded-frame content was not audited' :
-      coverageGap ? 'Incomplete or unsupported audit coverage: '+coverageStatus :
-      'Incomplete or tampered browser evidence',
+      coverageGap ? coverageReason : 'Incomplete or tampered browser evidence',
       expectedMeasured: label.expectedMeasured, expectedReview: label.expectedReview,
       observedMeasured: complete ? [...new Set(view.findings.filter(f => f.classification === 'measured').map(f => f.code))] : [],
       observedReview: complete ? [...new Set(view.findings.filter(f => f.classification === 'review').map(f => f.code))] : [] });
@@ -140,7 +148,7 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
     limitations: [
       'Accuracy applies only to these named, independently reviewed page states',
       'Detector-code/viewport classification is not pixel-level visual quality',
-      'Any detected embedded-frame coverage gap excludes whole-page detector scoring rather than counting a false clean page',
+      'Any detected embedded-frame or canvas-paint gap excludes whole-page detector scoring rather than counting a false clean page',
       'A screenshot covers only the initial browser viewport; reviewers must inspect below-fold content separately',
       'Browser, network and rendered content may differ on later visits',
       'No cross-tool superiority or WCAG conformance claim'

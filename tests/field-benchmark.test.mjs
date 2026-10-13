@@ -248,3 +248,28 @@ test('human review dates reject nonexistent calendar days instead of accepting D
     }
   }
 });
+
+
+test('canvas paint gaps exclude apparent true negatives from field accuracy scoring', () => {
+  const cases = [{id:'canvas',width:375,complete:true,screenshotVerified:true}];
+  const labels = {schemaVersion:1,datasetId:'canvas-field',reviewProtocol:protocol,cases:[
+    {...reviewed('canvas'),expectedMeasured:[],expectedReview:[]}
+  ]};
+  const observed = { canvas: {mode:'audit',summary:{viewports:1},reports:[{
+    width:375,summary:{verified:false,supportedScopeMeasured:true},
+    coverage:{truncated:false,embeddedFrames:0,visibleCanvases:2,status:'known-uninspected-content'},
+    findings:[{classification:'review',code:'canvas-content-uninspected',count:2}]
+  }]}};
+  const result = scoreFieldEvidence({schemaVersion:1,datasetId:'canvas-field',cases},labels,observed);
+  assert.equal(result.metrics.evaluatedCases,0);
+  assert.equal(result.metrics.incompleteCases,1);
+  assert.deepEqual(result.coverageExcluded,[{id:'canvas',reason:'Canvas paint content was not audited'}]);
+  observed.canvas.reports[0].coverage.status='supported-scope-measured';
+  const inconsistent = scoreFieldEvidence({schemaVersion:1,datasetId:'canvas-field',cases},labels,observed);
+  assert.equal(inconsistent.metrics.incompleteCases,1,'known canvas count excludes a mislabeled complete status');
+  observed.canvas.reports[0].coverage.visibleCanvases=undefined;
+  const missingCount=scoreFieldEvidence({schemaVersion:1,datasetId:'canvas-field',cases},labels,observed);
+  assert.equal(missingCount.metrics.evaluatedCases,0,
+    'an explicit canvas warning must exclude a forged clean report even if counts are missing');
+  assert.deepEqual(missingCount.coverageExcluded,[{id:'canvas',reason:'Canvas paint content was not audited'}]);
+});

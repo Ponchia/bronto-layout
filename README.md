@@ -69,7 +69,7 @@ You can:
 - **Inspect element geometry and matched CSS** without fabricating a source-level root cause.
 - Use the **pure TypeScript evaluation engine** with host-provided geometry, without Chromium or a framework dependency.
 
-**Limitations:** Browser execution currently supports Chromium-family browsers only. Closed shadow roots, cross-origin frame interiors, canvas/WebGL paint and unobserved application states are not verified. Heuristic text clipping/overlap/spacing findings are review warnings rather than automatic proof of a design error. Please don't use a sandbox override to visit untrusted websites.
+**Limitations:** Browser execution currently supports Chromium-family browsers only. Closed shadow roots, cross-origin frame interiors, canvas/WebGL paint and unobserved application states are not verified. CSS-visible canvases are reported as known uninspected paint surfaces rather than clean rendered content. Heuristic text clipping/overlap/spacing findings are review warnings rather than automatic proof of a design error. Please don't use a sandbox override to visit untrusted websites.
 
 ## Validation status and releases
 

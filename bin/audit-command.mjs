@@ -285,6 +285,7 @@ export function createAuditCommand({
           status: report.coverage.status,
           limitations: report.coverage.limitations,
           embeddedFrames: report.coverage.embeddedFrames,
+          visibleCanvases: report.coverage.visibleCanvases ?? 0,
           totalImages: report.coverage.totalImages,
           brokenImageCount: report.coverage.brokenImageCount,
           omittedBrokenImages: report.coverage.omittedBrokenImages,

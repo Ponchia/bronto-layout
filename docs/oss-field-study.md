@@ -68,6 +68,77 @@ Results should focus on *why* a finding is useful/misleading or a surface
 is unverified, and what we should change: detector, CLI presentation,
 coverage metadata, selector handling or documentation.
 
+## Observed external run — 13 October 2026
+
+The first sandboxed [browser run 38372326004](https://github.com/Ponchia/bronto-layout/actions/runs/38372326004)
+completed **24/24 initial-viewport states**, with **48/48 SHA-256 audit
+and screenshot hashes verified**. These establish successful browser captures
+and evidence integrity, not independent human correctness labels.
+
+| External project | Original observation | How to interpret it |
+| --- | --- | --- |
+| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Avatar images were still loading during capture, not proven broken. |
+| Docusaurus | 4 states without findings | No measured issue observed; not complete visual quality. |
+| Vite Guide | **10px document extent beyond usable scrollport at 320px**, plus 4 skip-link text clipping warnings | Vite's deployed CSS sets the body minimum to 320px and intentionally clips root overflow. Unwanted user-visible scrolling has **not** been established. |
+| Svelte Docs | 4 states without findings | No measured issue in this initial browser state. |
+| Excalidraw | 4 states without findings | DOM traversal completion alone did not represent its canvas/whiteboard paint coverage. |
+
+Source inspection of Vite's
+[published stylesheet](https://vite.dev/assets/style.DKMfOyQO.css)
+confirmed `body{min-width:320px;overflow-x:clip}`, while the 320px
+session's scrollbar left a **310px content scrollport**. Keep the numerical
+width observation without claiming that Vite should change that design.
+The 88px `possible-text-clipping` paths all referred to
+`.VPSkipLink.visually-hidden`. The skip link is deliberately clipped by
+`clip-path:inset(50%)` and `clip:rect(0 0 0 0)` until focused; its
+positioning and padding make its outer rectangle larger than 1×1px.
+This was a misleading review lead rather than a genuine clipped label.
+
+The original overflow candidates on Vite also contained long code elements
+far below the first viewport. Candidate DOM paths are diagnostic hints, **not
+proven root causes**. Vite's clipped-root geometry remains a **measured 10px
+width fact**; the audit now describes declared root/body clipping rather than
+claiming that it necessarily causes user-visible horizontal scrolling.
+A controlled regression keeps the clipping container as a candidate but
+excludes an enormous locally scrollable code descendant—even when its
+container itself overhangs the scrollport. These improvements change the
+evidence explanation and attribution, **not** the numerical measurement or
+the strict contract exit code.
+
+The external source inspection motivated two separately tested changes:
+canvas paint is explicitly marked uninspected rather than clean, and visually
+hidden accessibility controls are filtered from clipped-text leads without
+suppressing genuinely truncated visible text. Controlled positive and negative
+Chromium fixtures passed, including a narrow root with a locally scrolled
+code line and RTL overhang with an opposing offscreen menu.
+
+The [second sandboxed external browser run](https://github.com/Ponchia/bronto-layout/actions/runs/38376329176)
+completed **24/24 states** with **48/48 hashes verified** again. On Vite
+all four spurious skip-link warnings disappeared, while the originally
+measured 10px extent at 320px was **preserved**, now with an explicit CSS
+clipping caveat. On Excalidraw all four states had **two CSS-visible canvases**
+and were correctly marked `known-uninspected-content` with nonblocking
+`canvas-content-uninspected` warnings. The six Astro pending-image states
+remained review-only, not automatically upgraded to defects.
+
+The same follow-up found that offscreen mobile sidebars could be ranked ahead
+of a small inline-end overflow. A controlled LTR/RTL refinement now ranks
+inline-end candidates before unrelated offscreen opposite-side elements,
+without suppressing the original numeric finding.
+
+The [third, focused 20-state external run](https://github.com/Ponchia/bronto-layout/actions/runs/38377332571)
+completed **20/20 documentation-page captures** and **40/40 evidence hashes**.
+At Vite's 320px viewport, the first eight candidates now show the actual
+**10px right-side extent**, rather than offscreen left-translated mobile
+sidebar elements. The skip-link review noise remains absent and the original
+10px measurement remains unchanged. The same 20 states included Astro,
+Docusaurus and Svelte documentation; Excalidraw's previously verified canvas
+coverage gaps were not part of this focused subset.
+
+None of these browser runs provides independently labeled precision/recall.
+The historical screenshots and reports remain immutable evidence rather
+than retroactively rewritten accuracy labels.
+
 ## Limits
 
 - One captured viewport misses below-fold and unobserved interaction states.

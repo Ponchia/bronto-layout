@@ -96,7 +96,8 @@ function reasonsForIncomplete(report: ViewportAudit): string[] {
   const reasons: string[] = [];
   const supported = new Set([
     'document-horizontal-overflow', 'broken-image', 'possible-text-clipping',
-    'pending-image', 'embedded-frame-uninspected', 'possible-grid-gap-anomaly', 'possible-sibling-overlap'
+    'pending-image', 'embedded-frame-uninspected', 'canvas-content-uninspected',
+    'possible-grid-gap-anomaly', 'possible-sibling-overlap'
   ]);
   if (report.findings.some(finding => !supported.has(finding.code))) {
     reasons.push('Encountered a new detector that has no defined comparison semantics');
@@ -266,7 +267,7 @@ export function comparePageAudits(
         message:'Previously observed '+code+' no longer present at '+item.path
       });
     }
-    for (const code of ['pending-image','embedded-frame-uninspected'] as const) {
+    for (const code of ['pending-image','embedded-frame-uninspected','canvas-content-uninspected'] as const) {
       const oldCount = presenceCount(before,code);
       const newCount = presenceCount(after,code);
       if (oldCount === newCount) continue;

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visually hidden focus link versus real clipped text</title>
+  <style>
+    body { min-height: 1200px; margin:0; font:16px sans-serif; }
+    main { padding:22px; }
+    #skip {
+      position:fixed; top:8px; left:8px;
+      overflow:hidden; width:1px; height:1px; white-space:nowrap;
+      padding:8px 16px;
+      clip:rect(0 0 0 0); clip-path:inset(50%);
+    }
+    #skip:focus { clip:auto; clip-path:none; width:auto; height:auto; }
+    #visible-clipped {
+      overflow:hidden; width:88px; height:24px; white-space:nowrap;
+      padding:0; display:block;
+    }
+  </style>
+</head>
+<body>
+  <a id="skip" href="#content">Skip straight to the main document content without using the menu</a>
+  <main id="content">
+    <h1>Visible content</h1>
+    <p id="visible-clipped">This long label really is visually clipped by a narrow box.</p>
+  </main>
+</body>
+</html>

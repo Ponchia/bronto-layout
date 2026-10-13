@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RTL left overhang versus offscreen right menu</title>
+  <style>
+    * { box-sizing:border-box; }
+    html { overflow-y:scroll; }
+    body { margin:0; font:16px system-ui; min-height:1600px; }
+    #left-overhang { display:block; width:calc(100% + 20px); height:100px;
+      transform:translateX(-65px); background:#d1e8f2; }
+    #right-offscreen { position:fixed; right:-300px; width:240px;
+      height:180px; background:#eee; }
+  </style>
+</head>
+<body>
+  <aside id="right-offscreen" aria-hidden="true">قائمة مغلقة عن يمين الشاشة</aside>
+  <main>
+    <section id="left-overhang">محتوى حقيقي يمتد نحو اليسار</section>
+    <p>Right-to-left root-overflow attribution should prioritize this section.</p>
+  </main>
+</body>
+</html>
