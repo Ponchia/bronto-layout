@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "bronto-oss-source-built-eleventy-v0_1",
+  "source": {
+    "repository": "11ty/eleventy-base-blog",
+    "revision": "94bd3b71d454da5b88eb505b8db6aea1cd0e9754",
+    "license": "MIT",
+    "buildCommand": "npm run build",
+    "output": "_site"
+  },
+  "origin": "http://127.0.0.1:18778/",
+  "contracts": [
+    "benchmarks/oss-source-built/home.json",
+    "benchmarks/oss-source-built/about.json"
+  ]
+}

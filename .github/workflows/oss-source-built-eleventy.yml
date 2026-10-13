@@ -1,0 +1,178 @@
+# Manual independent OSS source-build validation. Only the fixed Eleventy
+# base-blog repository and exact immutable source commit are permitted.
+# Installs/builds public dependencies on an isolated, unprivileged runner.
+name: Source-built independent Eleventy website
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-eleventy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-website:
+    name: Source-built OSS semantic contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Bronto Layout at triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned independent MIT-licensed Eleventy starter source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: 11ty/eleventy-base-blog
+          ref: 94bd3b71d454da5b88eb505b8db6aea1cd0e9754
+          path: .external-eleventy
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Build both pinned source trees and validate fixed test contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .external-eleventy rev-parse HEAD)" = \
+            94bd3b71d454da5b88eb505b8db6aea1cd0e9754
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node --test tests/oss-source-built.test.mjs
+          node bin/bronto-layout.mjs validate \
+            --spec benchmarks/oss-source-built/home.json
+          node bin/bronto-layout.mjs validate \
+            --spec benchmarks/oss-source-built/about.json
+
+          # Build independent project's actual templates, CSS and blog pages
+          # on the same disposable runner. Never mutate this source checkout.
+          npm --prefix .external-eleventy ci --ignore-scripts --no-audit --no-fund
+          npm --prefix .external-eleventy run build
+          test -s .external-eleventy/_site/index.html
+          test -s .external-eleventy/_site/about/index.html
+
+      - name: Require sandboxed stable Google Chrome startup
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          set -euo pipefail
+          test -x "$CHROME_PATH"
+          node bin/bronto-layout.mjs doctor --verify-launch --json
+
+      - name: Check real generated site and controlled semantic regression
+        shell: bash
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          set -euo pipefail
+          out="reports/source-eleventy-$GITHUB_RUN_ID"
+          mkdir -p "$out"
+
+          python3 -m http.server 18778 --bind 127.0.0.1 \
+            --directory .external-eleventy/_site > "$RUNNER_TEMP/eleventy-http.log" 2>&1 &
+          server_pid=$!
+          original="$RUNNER_TEMP/eleventy-home-original.html"
+          cp .external-eleventy/_site/index.html "$original"
+          trap 'cp "$original" .external-eleventy/_site/index.html; kill "$server_pid" 2>/dev/null || true' EXIT
+
+          curl -fsS --retry 15 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:18778/ > /dev/null
+          curl -fsS --retry 15 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:18778/about/ > /dev/null
+
+          for route in home about; do
+            node bin/bronto-layout.mjs check \
+              --spec "benchmarks/oss-source-built/$route.json" \
+              --evidence-dir "$out/$route/screens" --json > "$out/$route-baseline.json"
+            ROUTE="$route" BASE="$out/$route-baseline.json" node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync(process.env.BASE, 'utf8'));
+          if (report.summary.failed !== 0 || report.summary.skipped !== 0 ||
+              report.summary.passed !== 44 || report.reports.length !== 4 ||
+              report.reports.some(r => r.viewport.width < 320)) {
+            console.error('The pinned source-built website failed its approved baseline',
+              {route: process.env.ROUTE, summary: report.summary});
+            process.exit(1);
+          }
+          console.log('Approved Eleventy source-built baseline',
+            process.env.ROUTE, report.summary);
+          NODE
+          done
+
+          # Induce a deliberately subtle 18 CSS px alignment defect in
+          # *generated homepage HTML only*, not the independent git source.
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const file = '.external-eleventy/_site/index.html';
+          const text = fs.readFileSync(file, 'utf8');
+          if (!text.includes('</head>')) throw new Error('Source build changed unexpectedly');
+          const css = '<style>@media(min-width:1000px){#main{transform:translateX(18px)!important}}</style>';
+          fs.writeFileSync(file, text.replace('</head>', css + '</head>'));
+          NODE
+
+          # At 1280px the article still fits inside the document, so a
+          # generic root-overflow audit should see no measured error; the
+          # explicit centered-main design contract must catch the shift.
+          set +e
+          node bin/bronto-layout.mjs audit \
+            --url http://127.0.0.1:18778/ --width 1280 \
+            --json --compact > "$out/generic-mutated-audit.json"
+          generic_exit=$?
+          node bin/bronto-layout.mjs check \
+            --spec benchmarks/oss-source-built/home.json --width 1280 \
+            --json > "$out/semantic-mutated-check.json"
+          semantic_exit=$?
+          set -e
+
+          GENERIC_EXIT="$generic_exit" SEMANTIC_EXIT="$semantic_exit" OUT="$out" node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const base = process.env.OUT;
+          const generic = JSON.parse(fs.readFileSync(
+            path.join(base, 'generic-mutated-audit.json'), 'utf8'));
+          const semantic = JSON.parse(fs.readFileSync(
+            path.join(base, 'semantic-mutated-check.json'), 'utf8'));
+          const failures = semantic.reports.flatMap(r =>
+            r.findings.filter(f => f.status === 'fail'));
+          if (process.env.GENERIC_EXIT !== '0' ||
+              process.env.SEMANTIC_EXIT !== '1' ||
+              generic.summary.measuredIssues !== 0 ||
+              generic.summary.incompleteViewports !== 0 ||
+              failures.length !== 1 ||
+              failures[0].id !== 'site-main-centered' ||
+              failures[0].deviation < 16 || failures[0].deviation > 20) {
+            console.error('Expected non-overflowing 18px semantic regression was not confirmed',
+              {genericExit: process.env.GENERIC_EXIT,
+               semanticExit: process.env.SEMANTIC_EXIT,
+               audit: generic.summary,
+               failures});
+            process.exit(1);
+          }
+          console.log('Independent source-built mutation confirmed: generic audit clean,',
+            failures[0].id, 'fails by', failures[0].deviation, 'CSS px.');
+          NODE
+
+          manifest="$RUNNER_TEMP/source-eleventy-SHA256SUMS"
+          (
+            cd "$out"
+            find . -type f ! -name SHA256SUMS -print0 |
+              sort -z | xargs -0 sha256sum > "$manifest"
+          )
+          cp "$manifest" "$out/SHA256SUMS"
+          (cd "$out" && sha256sum --check SHA256SUMS)
+
+      - name: Retain public website evidence for independent review
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: source-built-eleventy-layout-evidence
+          path: reports/source-eleventy-*/
+          if-no-files-found: warn
+          retention-days: 7

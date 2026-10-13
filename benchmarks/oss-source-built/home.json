@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "url": "http://127.0.0.1:18778/",
+  "widths": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "header": "body > header",
+    "main": "#main",
+    "navigation": "body > header nav",
+    "heading": "main h1",
+    "footer": "body > footer"
+  },
+  "rules": [
+    {
+      "id": "site-document-no-overflow",
+      "type": "document-overflow",
+      "tolerance": 2
+    },
+    {
+      "id": "home-header-exists",
+      "type": "selector-count",
+      "element": "header",
+      "exactly": 1
+    },
+    {
+      "id": "home-main-exists",
+      "type": "selector-count",
+      "element": "main",
+      "exactly": 1
+    },
+    {
+      "id": "home-navigation-exists",
+      "type": "selector-count",
+      "element": "navigation",
+      "exactly": 1
+    },
+    {
+      "id": "home-heading-exists",
+      "type": "selector-count",
+      "element": "heading",
+      "exactly": 1
+    },
+    {
+      "id": "home-footer-exists",
+      "type": "selector-count",
+      "element": "footer",
+      "exactly": 1
+    },
+    {
+      "id": "site-header-fits-viewport",
+      "type": "contained",
+      "element": "header",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "site-main-fits-viewport",
+      "type": "contained",
+      "element": "main",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "site-footer-fits-viewport",
+      "type": "contained",
+      "element": "footer",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "site-navigation-inside-header",
+      "type": "contained",
+      "element": "navigation",
+      "in": "header",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "site-main-centered",
+      "type": "centered",
+      "element": "main",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    }
+  ]
+}
