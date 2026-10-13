@@ -59,9 +59,33 @@ function createReports(dir, bad = false) {
     ] }],
     evidence: [{ width: 1280, screenshot: annotated }]
   });
+  mkdirSync(path.join(dir, 'mutation', 'overflow-screens'), { recursive: true });
+  mkdirSync(path.join(dir, 'mutation', 'overflow-annotated'), { recursive: true });
+  const mobileScreenshot = path.join(dir, 'mutation', 'overflow-screens', 'audit-320px.png');
+  const mobileAnnotated = path.join(dir, 'mutation', 'overflow-annotated', 'check-320px.png');
+  writeFileSync(mobileScreenshot, pngFixture(320));
+  writeFileSync(mobileAnnotated, pngFixture(320));
+  writeJSON(path.join(dir, 'generic-mobile-overflow-audit.json'), {
+    mode: 'audit', browser: { actualUrl: 'http://127.0.0.1:18778/' },
+    summary: { viewports: 1, measuredIssues: 1, incompleteViewports: 0 },
+    reports: [{
+      width: 320,
+      findings: [{ code: 'document-horizontal-overflow',
+        classification: 'measured', measuredPx: 48 }],
+      screenshot: { file: mobileScreenshot, coverage: 'viewport-only' }
+    }]
+  });
+  writeJSON(path.join(dir, 'semantic-mobile-overflow-check.json'), {
+    summary: { failed: 2 },
+    reports: [{ viewport: { width: 320 }, findings: [
+      { id: 'site-document-no-overflow', status: 'fail', deviation: 48 },
+      { id: 'site-main-fits-viewport', status: 'fail', deviation: 48 }
+    ] }],
+    evidence: [{ width: 320, screenshot: mobileAnnotated }]
+  });
 }
 
-test('pinned OSS generated website reviewer index includes eight real paths plus paired 18px mutation evidence', () => {
+test('pinned source-built evidence includes eight baseline and two distinct paired CSS mutation cases', () => {
   const base = path.join(root, 'reports');
   mkdirSync(base, { recursive: true });
   const directory = mkdtempSync(path.join(base, 'eleventy-evidence-unit-'));
@@ -85,6 +109,20 @@ test('pinned OSS generated website reviewer index includes eight real paths plus
     }
     assert.equal(report.mutation.screenshot.file, 'mutation/screens/audit-1280px.png');
     assert.equal(report.mutation.annotatedScreenshot.file, 'mutation/annotated/check-1280px.png');
+    assert.equal(report.mobileOverflowMutation.width, 320);
+    assert.equal(report.mobileOverflowMutation.measuredOverflow, 48);
+    assert.equal(report.mobileOverflowMutation.deviationPx, 48);
+    assert.equal(report.mobileOverflowMutation.failedRule, 'site-document-no-overflow');
+    assert.equal(report.mobileOverflowMutation.screenshot.file,
+      'mutation/overflow-screens/audit-320px.png');
+    assert.equal(report.mobileOverflowMutation.annotatedScreenshot.file,
+      'mutation/overflow-annotated/check-320px.png');
+    const normalizedMobile = JSON.parse(readFileSync(
+      path.join(directory, 'generic-mobile-overflow-audit.json')));
+    assert.equal(normalizedMobile.reports[0].screenshot.file,
+      report.mobileOverflowMutation.screenshot.file);
+    assert.equal(normalizedMobile.reports[0].screenshot.sha256,
+      report.mobileOverflowMutation.screenshot.sha256);
     assert.ok(readFileSync(path.join(directory, 'index.json')).length > 100);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
@@ -106,6 +144,25 @@ test('source-build evidence verifier rejects absence/tampering of visual and sem
     report.reports[0].screenshot.file = '/tmp/other/unsafe.png';
     writeJSON(audit, report);
     assert.throws(() => verifyEleventyEvidence(directory), /Unexpected screenshot source/);
+
+    createReports(directory);
+    const mobileImage = path.join(directory, 'mutation', 'overflow-screens', 'audit-320px.png');
+    writeFileSync(mobileImage, pngFixture(375));
+    assert.throws(() => verifyEleventyEvidence(directory), /Wrong PNG viewport width/);
+    createReports(directory);
+    const badMobile = path.join(directory, 'semantic-mobile-overflow-check.json');
+    const badReport = JSON.parse(readFileSync(badMobile));
+    badReport.reports[0].findings[0].deviation = 2;
+    writeJSON(badMobile, badReport);
+    assert.throws(() => verifyEleventyEvidence(directory),
+      /Approved root document overflow rule/);
+    createReports(directory);
+    const badAudit = path.join(directory, 'generic-mobile-overflow-audit.json');
+    const badAuditReport = JSON.parse(readFileSync(badAudit));
+    badAuditReport.summary.measuredIssues = 0;
+    writeJSON(badAudit, badAuditReport);
+    assert.throws(() => verifyEleventyEvidence(directory),
+      /Mobile width mutation must be detected/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
@@ -115,6 +172,12 @@ test('Eleventy source-build workflow really captures healthy and mutated screens
   assert.match(w, /--evidence-dir "\$out\/\$route\/screens"/);
   assert.match(w, /--evidence-dir "\$out\/mutation\/screens"/);
   assert.match(w, /--evidence-dir "\$out\/mutation\/annotated"/);
+  assert.match(w, /--evidence-dir "\$out\/mutation\/overflow-screens"/);
+  assert.match(w, /--evidence-dir "\$out\/mutation\/overflow-annotated"/);
+  assert.match(w, /#main\{min-width:360px!important\}/);
+  assert.match(w, /generic\.summary\.measuredIssues !== 0/);
+  assert.match(w, /audit\.summary\.measuredIssues !== 1/);
+  assert.match(w, /rule\.deviation < 20/);
   assert.match(w, /node scripts\/verify-oss-source-build-evidence\.mjs --out "\$out"/);
   assert.match(w, /sha256sum --check SHA256SUMS/);
   assert.match(w, /CHROME_PATH: \/usr\/bin\/google-chrome/);

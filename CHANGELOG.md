@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Extend the pinned Eleventy source-built website study with a second,
+  isolated 320px **actual document-width overflow** mutation. Require
+  both zero-contract audit and approved semantic overflow rule to reject
+  the generated CSS defect; capture and verify two additional 320px images
+  without modifying the upstream source or relaxing the original 18px
+  non-overflowing centering control.
+
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic
   misalignment caught with zero generic overflow findings), and add a
