@@ -28,7 +28,8 @@ test('manual audit uses only known public first-party sites and preserves nonblo
  assert.match(workflow,/zero findings does NOT mean complete inspection/);
  assert.match(workflow,/item\.classification==='review'/);
  for(const url of ['https://brontolotto.observer/','https://sense6.net/en/',
-   'https://sense6.net/ar/','https://sense6.net/en/learn/']) {
+   'https://sense6.net/ar/','https://sense6.net/en/learn/',
+  'https://ponchia.github.io/bronto-ui/','https://ponchia.github.io/bronto-ui/examples/operations/']) {
   assert.ok(workflow.includes(url),url);
  }
  assert.doesNotMatch(workflow,/inputs\.url|inputs\.domain|schedule:\n/);
@@ -37,7 +38,7 @@ test('manual audit uses only known public first-party sites and preserves nonblo
 
 
 test('a missing or malformed site report cannot prevent processing the other allowlisted sites',()=>{
- assert.match(workflow,/for name in personal-site sense6-gallery sense6-ar sense6-learn; do/);
+ assert.match(workflow,/for name in personal-site sense6-gallery sense6-ar sense6-learn brontoui-home brontoui-operations; do/);
  assert.match(workflow,/report_status=\$\?/);
  assert.ok(workflow.includes('if [ "$status" -ne 0 ] || [ "$report_status" -ne 0 ]'));
  assert.match(workflow,/A reporting failure is a failed observation, never a clean page/);

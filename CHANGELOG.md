@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a versioned 42-state first-party validation cohort (preserving all historical v0.1 cases), BrontoUI documentation/operations layout contracts and opt-in allowlisted GitHub Actions smoke/capture coverage. Embedded-demo iframe content remains explicitly unverified; this is coverage expansion, not independent accuracy evidence.
+
 - Prepare public-repository onboarding: replace the oversized README with a concise reproduction-first guide, preserve extended CLI information in `docs/cli-reference.md`, add a controlled portfolio alignment regression and four browser tests plus a real annotated fixture screenshot, and document the multi-site first-party validation run separately from independent real-world accuracy.
 - Add responsible vulnerability disclosure guidance, enable private vulnerability reporting and add bounded weekly Dependabot checks, structured safe reproduction issue templates and a PR checklist; update contribution advice to prioritize confirmed false negatives/positives without sensitive browser evidence.
 

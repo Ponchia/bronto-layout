@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "url": "https://ponchia.github.io/bronto-ui/",
+  "widths": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "selectors": {
+    "header": ".site-header",
+    "main": "#main",
+    "hero": ".hero",
+    "title": "#hero-title",
+    "examples": ".example-grid"
+  },
+  "rules": [
+    {
+      "id": "no-horizontal-overflow",
+      "type": "document-overflow",
+      "tolerance": 2
+    },
+    {
+      "id": "header-present",
+      "type": "selector-count",
+      "element": "header",
+      "exactly": 1
+    },
+    {
+      "id": "page-main-present",
+      "type": "selector-count",
+      "element": "main",
+      "exactly": 1
+    },
+    {
+      "id": "hero-title-present",
+      "type": "selector-count",
+      "element": "title",
+      "exactly": 1
+    },
+    {
+      "id": "example-grid-present",
+      "type": "selector-count",
+      "element": "examples",
+      "exactly": 1
+    },
+    {
+      "id": "hero-horizontal-fit",
+      "type": "contained",
+      "element": "hero",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    },
+    {
+      "id": "header-horizontal-fit",
+      "type": "contained",
+      "element": "header",
+      "in": "viewport",
+      "axis": "x",
+      "tolerance": 2
+    }
+  ]
+}

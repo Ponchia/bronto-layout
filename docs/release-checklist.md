@@ -12,6 +12,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Recapture the 30-state first-party cohort on a disposable Actions runner, **30 captures complete** with six Chiara embedded-frame coverage warnings and no independent human labels ([run](https://github.com/Ponchia/bronto-layout/actions/runs/38345316815)).
 - [ ] Obtain a first-time *external* user trying the new README on a non-first-party local site; record confusion/commands needed without collecting private browsing evidence.
 - [ ] Independently label additional real defects outside the first-party cohort (including prior version regressions and intentional negative controls).
+- [ ] Capture and independently inspect the separate v0.2 cohort (42 proposed viewport states across seven routes), including both BrontoUI pages and iframe gaps; preserve the original v0.1 cohort.
 - [ ] Ensure the proposed public package name belongs to an authorized npm publisher. An unauthenticated npm registry lookup for `@ponchia/layout` returned 404, which is **not** confirmation of publisher permissions.
 
 ## Repeatable technical gates

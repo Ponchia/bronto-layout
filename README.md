@@ -72,7 +72,7 @@ You can:
 
 - Automated CI runs on Node 22/24 with Chromium, package-install smoke checks, a portable-core coverage threshold and maintained macOS hosted-runner checks.
 - Controlled fixture benchmarks provide reproducible regression protection; **they are not an estimate of real-world precision/recall**.
-- A 30-state first-party field cohort has been captured, but requires **independent human labels** and additional independently confirmed broken cases before accuracy claims are possible.
+- A 30-state first-party field cohort was captured; a [separate 42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) is proposed for broader first-party coverage. **Independent human labels** and confirmed real defects remain necessary for accuracy claims.
 - No npm registry publication, GitHub release or production stability promise yet. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation

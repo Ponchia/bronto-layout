@@ -51,8 +51,12 @@ test('batch dry-run previews first-party routes and locales without launching Ch
   assert.equal(r.status, 0, r.stderr || r.stdout);
   const data = JSON.parse(r.stdout);
   assert.equal(data.mode, 'batch-plan');
-  assert.equal(data.total, 4);
+  assert.equal(data.total, 6);
   assert.ok(data.jobs.every(job => job.spec.endsWith('.json')));
+  assert.equal(data.jobs.find(job => job.id === 'brontoui-home').target,
+    'https://ponchia.github.io/bronto-ui/');
+  assert.equal(data.jobs.find(job => job.id === 'brontoui-operations').target,
+    'https://ponchia.github.io/bronto-ui/examples/operations/');
   const arabic = data.jobs.find(job => job.id === 'sense6-arabic');
   assert.equal(arabic.locale, 'ar');
   assert.equal(arabic.target, 'https://sense6.net/ar/');

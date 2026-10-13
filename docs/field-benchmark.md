@@ -21,7 +21,23 @@ Sense6 Learn and Chiara's portfolio preview, at 320, 360, 375, 430, 768 and
 not 30 independently scored cases**. It uses an explicit HTTPS hostname
 allowlist; URLs with credentials, query strings or fragments are rejected.
 
-First validate the manifest, then capture the entire cohort or a subset:
+**A separate v0.2 cohort is available** in
+[`benchmarks/field-sites.v0.2.json`](../benchmarks/field-sites.v0.2.json):
+the original 30 entries are unchanged, followed by 12 BrontoUI states
+(homepage and operations example, six widths each) for **42 proposed states**.
+The operations page embeds a demo; its iframe interior remains uninspected and
+must never be scored as a whole-page clean result. Neither cohort contains
+independent human labels. Prefer v0.2 for new breadth experiments; retain
+v0.1 for historical reproducibility and scoring.
+
+The manually dispatched **Manual first-party field benchmark capture** workflow
+exposes a finite `dataset` choice (`v0.1` or `v0.2`) and an `ids` subset (or `all`).
+This choice maps to checked-in files; it does not accept an arbitrary manifest
+path or URL. Use the disposable runner when the local machine cannot launch
+sandboxed Chromium. Keep review material private where appropriate; capture
+success never creates ground-truth labels or accuracy claims.
+
+First validate the manifests, then capture either cohort or a subset:
 
 ```sh
 npm run field:validate
@@ -32,6 +48,13 @@ node scripts/field-benchmark.mjs capture \
   --manifest benchmarks/field-sites.v0.1.json \
   --ids portfolio-375,sense6-ar-375 \
   --out reports/field-smoke-2026-10-12
+```
+
+For the expanded cohort in a source checkout:
+```sh
+node scripts/field-benchmark.mjs validate --manifest benchmarks/field-sites.v0.2.json
+node scripts/field-benchmark.mjs capture --manifest benchmarks/field-sites.v0.2.json \
+  --ids brontoui-home-375,brontoui-operations-375 --out reports/field-v02-sample
 ```
 
 On development boxes where Chromium cannot retain its security sandbox, do **not**

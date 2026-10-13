@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "id": "bronto-field-first-party-v0_2",
+  "allowedHosts": [
+    "brontolotto.observer",
+    "sense6.net",
+    "chiara-renda-review.netlify.app",
+    "ponchia.github.io"
+  ],
+  "cases": [
+    {
+      "id": "portfolio-320",
+      "url": "https://brontolotto.observer/",
+      "width": 320
+    },
+    {
+      "id": "portfolio-360",
+      "url": "https://brontolotto.observer/",
+      "width": 360
+    },
+    {
+      "id": "portfolio-375",
+      "url": "https://brontolotto.observer/",
+      "width": 375
+    },
+    {
+      "id": "portfolio-430",
+      "url": "https://brontolotto.observer/",
+      "width": 430
+    },
+    {
+      "id": "portfolio-768",
+      "url": "https://brontolotto.observer/",
+      "width": 768
+    },
+    {
+      "id": "portfolio-1280",
+      "url": "https://brontolotto.observer/",
+      "width": 1280
+    },
+    {
+      "id": "sense6-en-320",
+      "url": "https://sense6.net/en/",
+      "width": 320
+    },
+    {
+      "id": "sense6-en-360",
+      "url": "https://sense6.net/en/",
+      "width": 360
+    },
+    {
+      "id": "sense6-en-375",
+      "url": "https://sense6.net/en/",
+      "width": 375
+    },
+    {
+      "id": "sense6-en-430",
+      "url": "https://sense6.net/en/",
+      "width": 430
+    },
+    {
+      "id": "sense6-en-768",
+      "url": "https://sense6.net/en/",
+      "width": 768
+    },
+    {
+      "id": "sense6-en-1280",
+      "url": "https://sense6.net/en/",
+      "width": 1280
+    },
+    {
+      "id": "sense6-ar-320",
+      "url": "https://sense6.net/ar/",
+      "width": 320,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-ar-360",
+      "url": "https://sense6.net/ar/",
+      "width": 360,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-ar-375",
+      "url": "https://sense6.net/ar/",
+      "width": 375,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-ar-430",
+      "url": "https://sense6.net/ar/",
+      "width": 430,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-ar-768",
+      "url": "https://sense6.net/ar/",
+      "width": 768,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-ar-1280",
+      "url": "https://sense6.net/ar/",
+      "width": 1280,
+      "locale": "ar"
+    },
+    {
+      "id": "sense6-learn-320",
+      "url": "https://sense6.net/en/learn/",
+      "width": 320
+    },
+    {
+      "id": "sense6-learn-360",
+      "url": "https://sense6.net/en/learn/",
+      "width": 360
+    },
+    {
+      "id": "sense6-learn-375",
+      "url": "https://sense6.net/en/learn/",
+      "width": 375
+    },
+    {
+      "id": "sense6-learn-430",
+      "url": "https://sense6.net/en/learn/",
+      "width": 430
+    },
+    {
+      "id": "sense6-learn-768",
+      "url": "https://sense6.net/en/learn/",
+      "width": 768
+    },
+    {
+      "id": "sense6-learn-1280",
+      "url": "https://sense6.net/en/learn/",
+      "width": 1280
+    },
+    {
+      "id": "chiara-preview-320",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 320
+    },
+    {
+      "id": "chiara-preview-360",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 360
+    },
+    {
+      "id": "chiara-preview-375",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 375
+    },
+    {
+      "id": "chiara-preview-430",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 430
+    },
+    {
+      "id": "chiara-preview-768",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 768
+    },
+    {
+      "id": "chiara-preview-1280",
+      "url": "https://chiara-renda-review.netlify.app/",
+      "width": 1280
+    },
+    {
+      "id": "brontoui-home-320",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 320
+    },
+    {
+      "id": "brontoui-home-360",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 360
+    },
+    {
+      "id": "brontoui-home-375",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 375
+    },
+    {
+      "id": "brontoui-home-430",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 430
+    },
+    {
+      "id": "brontoui-home-768",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 768
+    },
+    {
+      "id": "brontoui-home-1280",
+      "url": "https://ponchia.github.io/bronto-ui/",
+      "width": 1280
+    },
+    {
+      "id": "brontoui-operations-320",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 320
+    },
+    {
+      "id": "brontoui-operations-360",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 360
+    },
+    {
+      "id": "brontoui-operations-375",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 375
+    },
+    {
+      "id": "brontoui-operations-430",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 430
+    },
+    {
+      "id": "brontoui-operations-768",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 768
+    },
+    {
+      "id": "brontoui-operations-1280",
+      "url": "https://ponchia.github.io/bronto-ui/examples/operations/",
+      "width": 1280
+    }
+  ]
+}

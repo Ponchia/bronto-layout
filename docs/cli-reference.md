@@ -664,8 +664,10 @@ an individual page fails to load. The aggregate exit status is 0 for all passing
 error. Use `--dry-run` before running a large first-party site suite.
 
 See `examples/batch.json` for controlled passing and broken fixtures,
-and `examples/live-sites-batch.json` for our personal site and Sense6
-English/Arabic/Learn contracts. Optional settings can also be provided per job
+and `examples/live-sites-batch.json` for the personal site, Sense6
+English/Arabic/Learn and BrontoUI homepage/operations contracts. The embedded
+operations demo is an uninspected iframe for zero-contract audits; an outer-page
+contract does **not** verify its internal interface. Optional settings can also be provided per job
 rather than changing the underlying app or writing custom shell scripts.
 
 ## Browser-observed CSS source hints

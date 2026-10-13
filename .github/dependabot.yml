@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
+    # ESLint's 9.x runtime and config must be upgraded as a pair.
+    # A standalone @eslint/js 10 major PR failed both Node/Chromium gates.
+    ignore:
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
