@@ -1,5 +1,8 @@
 # Bronto Layout
 
+[![CI](https://github.com/Ponchia/bronto-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/Ponchia/bronto-layout/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
+
 **Check layout relationships, not just pixel differences.**
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
@@ -72,7 +75,7 @@ You can:
 
 - Automated CI runs on Node 22/24 with Chromium, package-install smoke checks, a portable-core coverage threshold and maintained macOS hosted-runner checks.
 - Controlled fixture benchmarks provide reproducible regression protection; **they are not an estimate of real-world precision/recall**.
-- A 30-state first-party cohort and an expanded [42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) were captured. The expanded smoke exposed a measured 320px overflow on the BrontoUI homepage; **independent field-review labels and accuracy estimates remain pending**.
+- The original 30-state and expanded [42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) have been captured. The expanded smoke caught a genuine 320px BrontoUI overflow, later fixed and [verified on the deployed site](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145). **Independent field-review labels and accuracy estimates remain pending**.
 - No npm registry publication, GitHub release or production stability promise yet. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation
@@ -90,3 +93,5 @@ You can:
 ## Contribute
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports that include a minimal reproduction, CSS width and expected layout relationship are especially valuable. The repo is MIT-licensed; no telemetry, SaaS account or hosted dashboard is required.
+
+If the tool saves you time, you can [support its maintenance on Ko-fi](https://ko-fi.com/ponchia). Donations are optional; no functionality, accounts or updates are gated by payment.

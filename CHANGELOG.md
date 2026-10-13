@@ -2,13 +2,15 @@
 
 ## Unreleased
 
+- Record published BrontoUI fix verification: six responsive captures with no measured root overflow, and 136/136 approved layout checks passing across six first-party routes; field labels and unsupported iframe interiors remain pending.
 - Experiment with deterministic two-way CI test partitions on separate
   GitHub runners for Node 22 and 24. Retain every full-suite test file,
   browser fixture isolation, core coverage, package-consumer smoke and
   controlled audit benchmark gates; local `npm run check` still runs all
-  tests. A first four-shard GitHub run passed; move the comparatively expensive
-  v0.3 localization benchmark to the lighter second Node 24 shard before
-  final wall-time validation.
+  tests. Two passing GitHub CI runs verified the distribution, including
+  moving the v0.3 localization benchmark to the second Node 24 shard.
+  The longest final Node 24 job took 5m09s compared with 9m41s in the
+  previous serial CI; job scheduling can vary on different runners.
 
 - Add a versioned 42-state first-party validation cohort (preserving all historical v0.1 cases), BrontoUI documentation/operations layout contracts and opt-in allowlisted GitHub Actions smoke/capture coverage. Embedded-demo iframe content remains explicitly unverified; this is coverage expansion, not independent accuracy evidence. The first v0.2 run captured all 42 states and exposed a measured 3px document overflow on the published BrontoUI homepage at 320px, tracked in BrontoUI issue #248.
 - Keep actual page overflow detection strict while excluding diagnostic

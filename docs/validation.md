@@ -1,6 +1,37 @@
 # Validation notes
 
-## 2026-10-13: deterministic CI test sharding (candidate)
+## 2026-10-13: deployed BrontoUI regression repaired and verified
+
+BrontoUI's 3 CSS-pixel document-level overflow at **320px** was fixed by
+[BrontoUI PR #249](https://github.com/Ponchia/bronto-ui/pull/249) and
+published from merge commit `2d060343` via
+[GitHub Pages run 38353655959](https://github.com/Ponchia/bronto-ui/actions/runs/38353655959).
+The public stylesheet, not merely a local preview, contains the corrected
+narrow-screen heading rule.
+
+A fresh [v0.2 capture run 38353800504](https://github.com/Ponchia/bronto-layout/actions/runs/38353800504)
+observed the deployed homepage at **320, 360, 375, 430, 768, and 1280px**:
+**6/6 complete** and **12/12 screenshot/report SHA-256 hashes verified**.
+It emitted **zero measured document-horizontal-overflow findings** at those
+widths. The 320–430px states still emitted nonblocking `pending-image`
+review warnings, which are not proven design failures.
+
+The [full six-route live-site smoke 38353798145](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145)
+passed **136/136 approved layout-contract evaluations**, sampled **24 audit
+viewports**, found **zero measured audit issues** and **zero incomplete
+top-level traversals**. It retained **four review-only warnings** across
+the BrontoUI homepage and operations shell and **16 known bounded candidate
+omissions** on Sense6 English/Arabic's optional grid/overlap heuristics.
+BrontoUI operations iframe interiors remain uninspected; supported top-level
+traversal does not establish whole-page accuracy.
+
+This is an actual detect → diagnose → fix → deploy → verify loop using a
+measured real website regression. These self-collected browser observations
+must **not** be converted into independent human field labels or generalized
+precision/recall claims. The historical 30/42 capture datasets are retained
+unchanged. Private raw screenshots/reports have not been committed.
+
+## 2026-10-13: deterministic CI test sharding (merged and verified)
 
 The existing Node 22 and Node 24 Chromium jobs spend approximately seven
 minutes (426 and 428 seconds in
@@ -10,7 +41,7 @@ job also includes another two minutes of controlled benchmarks and packaging.
 These are **measured GitHub Actions wall-clock durations**, not field accuracy
 or a stable-host throughput benchmark.
 
-The candidate CI workflow partitions every `tests/*.test.mjs` file into
+The merged CI workflow partitions every `tests/*.test.mjs` file into
 two deterministic, approximately weighted lists per Node version using
 `scripts/ci-test-shards.mjs`. Every current test file is scheduled **once per
 Node version**, across two independent ephemeral runners; one runner never
@@ -23,25 +54,24 @@ npm-package verification are retained, assigned to the first shard of the
 appropriate Node version. No test coverage, browser assertions or npm release
 conditions are deliberately skipped.
 
-The first sharded CI candidate (PR #72 run
-[38353016664](https://github.com/Ponchia/bronto-layout/actions/runs/38353016664))
-completed **all four Node/shard tests and hosted macOS successfully**.
-Observed elapsed durations: Node 22 shards **4m14s / 3m38s**; Node 24
-shards **6m44s / 3m33s**; hosted macOS **1m03s**. Compared with the
-earlier serial run (Node 22 **7m29s**, Node 24 **9m41s**) the longest
-required Node 24 job was roughly three minutes shorter, although this is
-only a **single-run** comparison. The Node 24 first shard includes all
-remaining benchmark/package gates; the second was idle early. The
-long-running localized browser benchmark is now being reassigned to Node
-24 **shard 2** for a more balanced required-gate completion time.
-Repeat CI must pass again before treating the new distribution as proven.
+The first sharded CI candidate
+([run 38353016664](https://github.com/Ponchia/bronto-layout/actions/runs/38353016664))
+passed all four Node/shard jobs and hosted macOS: Node 22 took
+**4m14s / 3m38s**, Node 24 **6m44s / 3m33s**. The bottleneck was the
+Node 24 first shard's additional v0.3 browser benchmark. After assigning
+that benchmark to the lighter second shard, the final
+[PR #72 run 38353736238](https://github.com/Ponchia/bronto-layout/actions/runs/38353736238)
+again passed every test and post-test gate: Node 22 **4m37s / 3m40s**,
+Node 24 **5m09s / 5m05s**, hosted macOS **1m05s**.
 
-This is a **CI scheduling experiment**. Faster elapsed PR feedback and
-stability must be demonstrated by completed fresh GitHub Actions runs before
-claiming a speedup. The extra independent runner may increase setup overhead
-or runner consumption, and GitHub's ephemeral runner contention can dominate.
-If either shard fails, PR CI fails. It must not turn skipped/missing browser
-evidence into success.
+Against the prior serial Node 22 **7m29s** / Node 24 **9m41s** checks,
+the longest measured required Node 24 job was about **47% faster** and
+Node 22 about **38% faster** on that run. This compares GitHub Actions
+wall-clock jobs, not total compute. Four runners duplicate setup and
+slightly increase total runner consumption. Two passing PR runs demonstrate
+the schedule works, but hardware contention varies; confirm stable
+durations on subsequent merged-main CI runs. If either shard fails, the
+whole PR CI fails. This does not change product accuracy claims.
 
 
 ## 2026-10-13: versioned v0.2 cohort catches 320px BrontoUI overflow
@@ -75,10 +105,11 @@ verified. Optional grid/overlap candidate omissions remain on Sense6 in
 the opt-in review modes. These warnings and unknown surfaces do not establish
 human-verified visual defects.
 
-Until the BrontoUI site is fixed and deployed, the manually dispatched
-six-site smoke is expected to report the measured failure. The manual
-external-site workflow is deliberately separate from normal PR CI because
-public websites can change independently of the library.
+At the time of this original v0.2 capture, the manually dispatched
+six-site smoke correctly failed on the published site. The later
+post-deployment verification above demonstrates that the issue was
+subsequently fixed. External live-site checks remain separate from
+normal PR CI because public websites change independently of the library.
 
 
 ## 2026-10-13: multi-site pre-alpha browser checks and field evidence

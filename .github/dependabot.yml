@@ -12,6 +12,10 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 failed npm peer resolution against typescript-eslint 8.71.
+      # Upgrade both together only after upstream declares compatibility.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
