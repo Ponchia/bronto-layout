@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "url": "scroll-deep.html",
+  "widths": [
+    375,
+    1280
+  ],
+  "selectors": {
+    "target": "#deep-heading"
+  },
+  "rules": [
+    {
+      "id": "deep-heading-exists",
+      "type": "selector-count",
+      "element": "target",
+      "exactly": 1
+    },
+    {
+      "id": "deep-heading-inside-viewport",
+      "type": "contained",
+      "element": "target",
+      "in": "viewport",
+      "axis": "y",
+      "tolerance": 2
+    },
+    {
+      "id": "deep-page-no-horizontal-overflow",
+      "type": "document-overflow",
+      "tolerance": 2
+    }
+  ]
+}

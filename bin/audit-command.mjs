@@ -276,6 +276,8 @@ export function createAuditCommand({
       reports: result.reports.map(report => ({
         width: report.viewport.width,
         direction: report.viewport.direction,
+        ...(report.viewport.scrollX != null ? { scrollX: report.viewport.scrollX } : {}),
+        ...(report.viewport.scrollY != null ? { scrollY: report.viewport.scrollY } : {}),
         summary: report.summary,
         coverage: {
           visitedElements: report.coverage.visitedElements,
