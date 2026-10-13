@@ -18,6 +18,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [ ] Independently label additional real defects outside the first-party cohort (including prior version regressions and intentional negative controls).
 - [x] Capture the separate v0.2 cohort (42/42 captured and 84/84 artifact hashes verified in [run 38348760404](https://github.com/Ponchia/bronto-layout/actions/runs/38348760404)); preserve the historical v0.1 cohort. **Independent inspection and labels are still pending**.
 - [x] Fix and recheck the 320px BrontoUI homepage overflow on the **deployed** site ([BrontoUI #248](https://github.com/Ponchia/bronto-ui/issues/248), [six-width capture 38353800504](https://github.com/Ponchia/bronto-layout/actions/runs/38353800504), [six-route smoke 38353798145](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145)). All 136 approved contract evaluations passed after deployment; this does not replace field accuracy labels.
+- [x] Validate a [real downstream CI consumer](real-consumer-brontoui.md): 63 responsive contract evaluations passed and a deliberately restored 3px regression was detected. This is first-party proof, not independent adoption or field labels.
 - [ ] Ensure the proposed public package name belongs to an authorized npm publisher. An unauthenticated npm registry lookup for `@ponchia/layout` returned 404, which is **not** confirmation of publisher permissions.
 
 ## Repeatable technical gates
