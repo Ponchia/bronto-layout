@@ -48,8 +48,10 @@ jobs:
           # Trusted HTML fixtures on an ephemeral CI runner only.
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: npm run benchmark:audit
+      # v0.3 localized Chromium benchmark is the longest post-test gate.
+      # Put it on the lighter second shard, keeping every benchmark required.
       - name: Verify localized controlled audit benchmark
-        if: matrix.node == 24 && matrix.shard == 1
+        if: matrix.node == 24 && matrix.shard == 2
         env:
           # Local, labeled and trusted HTML fixtures only.
           BRONTO_CHROME_NO_SANDBOX: '1'

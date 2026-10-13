@@ -39,5 +39,10 @@ test('both supported Node versions run each half, with separate lint, package an
   assert.match(workflow, /npm run lint/);
   assert.match(workflow, /npm run coverage:unit/);
   assert.match(workflow, /npm run benchmark:audit:locations/);
+  assert.match(workflow, /Verify localized controlled audit benchmark\n\s*if: matrix.node == 24 && matrix.shard == 2/,
+    'The expensive localization benchmark must remain a required Node 24 gate on shard two');
+  assert.match(workflow, /Verify labeled automatic-audit benchmark\n\s*if: matrix.node == 24 && matrix.shard == 1/,
+    'The first versioned audit benchmark remains on the first Node 24 shard');
+
   assert.match(workflow, /npm run test:package/);
 });
