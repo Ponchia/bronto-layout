@@ -25,6 +25,10 @@ for **24 distinct initial-viewport states**. This is not a claim that the
 deployed revision matches current repository main; verify any possible bug
 against the correct source revision before contacting its maintainers.
 
+A separate [mobile-state study](oss-mobile-state-study.md) explores
+approved opened-menu states on the same public projects. It is not part of
+the original 24-case initial-viewport denominator.
+
 ## Execution and evidence policy
 
 Use the [manual external OSS GitHub Actions workflow](../.github/workflows/oss-field-capture.yml).
@@ -138,6 +142,32 @@ coverage gaps were not part of this focused subset.
 None of these browser runs provides independently labeled precision/recall.
 The historical screenshots and reports remain immutable evidence rather
 than retroactively rewritten accuracy labels.
+
+## Bounded full-page evidence (13 October 2026)
+
+A separate [documentation-only full-page run](https://github.com/Ponchia/bronto-layout/actions/runs/38381065788)
+captured **20/20** browser states, with **60/60 verified SHA-256
+report/viewport/full-page image hashes**. Its screenshots came from the
+unchanged, merged commit of PR #80, and raw rendered images are retained in a
+private evidence archive rather than committed to this public repository.
+
+The opt-in screenshot cap of **6,000 CSS pixels** was reached in **8/20**
+states: all four Docusaurus widths and all four Vite widths. Docusaurus at
+320px had a browser-reported document height of **14,623px**; Vite at 320px
+had **9,834px**. These height measurements are not assertions that all
+below-fold content had loaded or was user-visible.
+
+The other twelve documents (Astro EN/ES and Svelte, four widths each) fit
+within the bounded capture height, but a single screenshot still does not
+verify lazy assets, animations, menus or keyboard/navigation states.
+The automatic-audit findings remained the same six nonblocking Astro
+pending-image observations and one Vite 10px clipped-root width observation.
+No new confirmed upstream visual defects were established.
+
+This experiment motivates the distinct
+[opened-mobile-navigation study](oss-mobile-state-study.md) rather than
+silently increasing image limits, interpreting truncated screenshots as
+fully reviewed, or widening the accuracy denominator.
 
 ## Limits
 

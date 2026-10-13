@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "url": "https://vite.dev/guide/",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "click",
+      "selector": "button[aria-controls=\"mobile-menu\"]"
+    },
+    {
+      "type": "pause",
+      "milliseconds": 350
+    }
+  ],
+  "selectors": {
+    "opened": "button[aria-controls=\"mobile-menu\"][aria-expanded=\"true\"]",
+    "button": "button[aria-controls=\"mobile-menu\"]",
+    "content": "main"
+  },
+  "rules": [
+    {
+      "id": "menu-open-state",
+      "type": "selector-count",
+      "element": "opened",
+      "exactly": 1
+    },
+    {
+      "id": "mobile-menu-button",
+      "type": "selector-count",
+      "element": "button",
+      "exactly": 1
+    },
+    {
+      "id": "main-document-present",
+      "type": "selector-count",
+      "element": "content",
+      "exactly": 1
+    }
+  ]
+}

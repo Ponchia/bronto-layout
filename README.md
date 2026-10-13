@@ -91,6 +91,7 @@ You can:
 | [Contract discovery](docs/contract-discovery.md) | Why suggestions require human approval |
 | [Benchmarks](docs/audit-benchmark.md) and [field validation](docs/field-benchmark.md) | Controlled fixtures versus independently labeled sites |
 | [External open-source website study](docs/oss-field-study.md) | Separate OSS cohort, limitations and independent-review protocol |
+| [External mobile-navigation states](docs/oss-mobile-state-study.md) | Fixed anonymous menu-opening experiments, post-click assertions and screenshots |
 | [Contributing](CONTRIBUTING.md) and [security](SECURITY.md) | Local tests, reporting issues and safety |
 
 ## Contribute

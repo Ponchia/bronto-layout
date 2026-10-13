@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "url": "https://docs.astro.build/en/getting-started/",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "click",
+      "selector": "button.sl-menu-button"
+    },
+    {
+      "type": "pause",
+      "milliseconds": 350
+    }
+  ],
+  "selectors": {
+    "opened": "#starlight__sidebar:popover-open",
+    "button": "button.sl-menu-button",
+    "content": "main"
+  },
+  "rules": [
+    {
+      "id": "menu-open-state",
+      "type": "selector-count",
+      "element": "opened",
+      "exactly": 1
+    },
+    {
+      "id": "mobile-menu-button",
+      "type": "selector-count",
+      "element": "button",
+      "exactly": 1
+    },
+    {
+      "id": "main-document-present",
+      "type": "selector-count",
+      "element": "content",
+      "exactly": 1
+    }
+  ]
+}

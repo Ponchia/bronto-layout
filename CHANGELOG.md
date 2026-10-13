@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a manual five-route external OSS mobile-menu study: fixed public URLs, click-only state setup, sandboxed Chrome, explicit post-click assertions and temporary screenshots. Experimental state coverage, not independent accuracy proof.
+
 - Prioritize observed root-overflow candidates on the inline-end side
   (LTR right; RTL left) so a closed offscreen drawer cannot outrank a small
   body-width excess. Controlled Chromium tests cover LTR and RTL; a third
