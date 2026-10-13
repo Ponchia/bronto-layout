@@ -1,5 +1,24 @@
 # Validation notes
 
+## 2026-10-13: source-inspired Svelte mobile toggle regression
+
+The [Svelte website's October 2024 mobile playground correction](https://github.com/sveltejs/svelte.dev/pull/548)
+added `min-height: 0` to a flex container to keep its input/output switch
+accessible on small screens. We recreated the same CSS min-size mechanism
+in **inert, controlled HTML**, not an actual Svelte 2024 site build.
+
+At 320×420 and 375×420 CSS pixels, the broken recreation passes DOM selector
+existence and horizontal document overflow, and its zero-contract audit
+reports **0 measured issues**. The reviewed switch-to-viewport vertical
+containment rule nevertheless fails by **58px**. Adding the source-inspired
+one-line `min-height: 0` fix restores all **6/6 passing** constraints.
+
+This tests semantic design intent using existing rules without claiming
+generic automatic defect detection, visual correctness, independent
+Svelte history reproduction or human-assigned detector accuracy. See
+[the historical regression note](oss-historical-flex-regression.md).
+
+
 ## 2026-10-13: independent pinned Eleventy source build
 
 The [manual source build 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)

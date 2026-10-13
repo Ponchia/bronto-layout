@@ -59,6 +59,8 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
+- [x] Recreate the independently documented [historical Svelte mobile flex regression](oss-historical-flex-regression.md) in a controlled, source-inspired fixture. A 58px obscured input/output switch fails vertical viewport containment while generic overflow and selector presence remain green; the one-line CSS fix passes. This is **not** the original 2024 deployed website or an independent field accuracy label.
+
 - [x] Build the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner ([run 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)): **88/88 responsive checks**, one induced **18px semantic alignment failure**, and **0 generic audit issues**; all four initial JSON report hashes verified. This is mechanical, not human-labeled accuracy.
 - [x] Capture and inspect Eleventy's **8 baseline and 2 mutation screenshots** with a verified, portable evidence index in [run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662). All artifact SHA-256 checks passed and the 18px alignment displacement is visible. This is a first-party reviewer inspection, **not independent human accuracy labeling**.
 
