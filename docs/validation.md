@@ -28,8 +28,12 @@ four accessibility skip-link false warnings disappeared while preserving
 its 10px width measurement and explaining CSS root clipping. Every
 Excalidraw width now counts two canvases as known uninspected paint;
 these remain complete capture files but **not verified whole-page rendering**.
-LTR/RTL directional overflow-candidate ranking has controlled tests and
-still requires a focused external browser rerun.
+LTR/RTL inline-end candidate ranking passed controlled tests and a
+[third docs-only external run](https://github.com/Ponchia/bronto-layout/actions/runs/38377332571):
+20/20 completed, 40/40 evidence hashes valid. Vite's first reported
+candidates now overhang to the right by the measured **10px**, rather than
+prioritizing a mobile sidebar translated hundreds of pixels to the left.
+The document-width measurement and zero skip-link warnings remain unchanged.
 
 
 

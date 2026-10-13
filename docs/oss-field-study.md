@@ -124,10 +124,20 @@ remained review-only, not automatically upgraded to defects.
 The same follow-up found that offscreen mobile sidebars could be ranked ahead
 of a small inline-end overflow. A controlled LTR/RTL refinement now ranks
 inline-end candidates before unrelated offscreen opposite-side elements,
-without suppressing the original numeric finding; that candidate ordering
-requires a separate external verification. Neither browser run provides
-independently labeled precision/recall. Original captures remain immutable
-historical evidence, not retroactively rewritten accuracy labels.
+without suppressing the original numeric finding.
+
+The [third, focused 20-state external run](https://github.com/Ponchia/bronto-layout/actions/runs/38377332571)
+completed **20/20 documentation-page captures** and **40/40 evidence hashes**.
+At Vite's 320px viewport, the first eight candidates now show the actual
+**10px right-side extent**, rather than offscreen left-translated mobile
+sidebar elements. The skip-link review noise remains absent and the original
+10px measurement remains unchanged. The same 20 states included Astro,
+Docusaurus and Svelte documentation; Excalidraw's previously verified canvas
+coverage gaps were not part of this focused subset.
+
+None of these browser runs provides independently labeled precision/recall.
+The historical screenshots and reports remain immutable evidence rather
+than retroactively rewritten accuracy labels.
 
 ## Limits
 

@@ -4,8 +4,10 @@
 
 - Prioritize observed root-overflow candidates on the inline-end side
   (LTR right; RTL left) so a closed offscreen drawer cannot outrank a small
-  body-width excess. Controlled Chromium tests cover LTR and RTL; numeric
-  document overflow/strict exits remain unchanged.
+  body-width excess. Controlled Chromium tests cover LTR and RTL; a third
+  external 20-state docs capture (40/40 hashes verified) confirmed that
+  Vite now lists 10px inline-end candidates ahead of its hidden mobile
+  sidebar, retaining numeric document overflow/strict exits.
 - The second independent OSS capture (24/24 states, 48/48 hashes verified)
   eliminated four Vite skip-link review false leads while retaining the
   measured 10px clipped-root extent; Excalidraw now shows two CSS-visible
