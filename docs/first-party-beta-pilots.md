@@ -33,6 +33,16 @@ This change is justified by a specific downstream failure. It is not a reason to
 
 **Unestablished:** independent human classification of natural real-world defects or false positives; per-detector precision/recall; reproducible performance on an idle reference machine; adoption or first-use success by unaffiliated developers; complete cross-browser, deep-scroll, iframe-internal or visual accessibility correctness. We cannot infer these from test counts or GitHub Actions status.
 
+## Ongoing first-party measurement
+
+The [weekly owned-site layout pulse](first-party-pulse.md) is an opt-in/scheduled
+GitHub Actions job with a fixed six-route allowlist. It runs approved contracts
+at seven responsive widths per route and retains only sanitized counts, observed
+coverage and rule IDs. A failure requires human triage before changing CSS;
+longitudinal observations are **not** independent field labels or automated
+precision/recall estimates. It does not inspect private website source revisions,
+user state, Spatial canvas placements or opaque iframe internals.
+
 ## Next development decisions
 
 1. **Continue first-party use before adding detectors.** Collect any actual missed defects, incorrect strict failures, frequent review-only noise, layout state/setup errors, runtime cost and whether an agent proposed a useful fix. Use a private copy of the [trial worksheet](beta-trial-template.md) and sanitize public findings.
