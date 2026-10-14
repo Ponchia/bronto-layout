@@ -92,6 +92,7 @@ You can:
 | [Beta integrations and agent recipe](docs/beta-integration.md) | Local/source installation, pinned GitHub Action, CI coverage and agent policies |
 | [First-party beta trial worksheet](docs/beta-trial-template.md) | Record controlled pilot evidence without publicly exposing user data |
 | [First-party beta pilot findings](docs/first-party-beta-pilots.md) | Measured project integrations, controlled failures, security limits and remaining evidence gaps |
+| [Weekly owned-site layout pulse](docs/first-party-pulse.md) | Six fixed public routes, sandboxed Chromium, sampled-width and coverage summary without uploading browser evidence |
 | [Independent first-use trial](docs/first-use-trial.md) | Short, privacy-conscious feedback exercise for new developers |
 | [Portfolio regression case study](docs/portfolio-regression-case-study.md) | A known, deliberately introduced defect with healthy/broken pages |
 | [Real downstream CI: BrontoUI](docs/real-consumer-brontoui.md) | A pinned consumer workflow with passing contracts and a caught regression |
