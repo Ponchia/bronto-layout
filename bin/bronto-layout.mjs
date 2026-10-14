@@ -357,9 +357,9 @@ async function check(a) {
         if (screenshot) evidence.push({ width, screenshot });
       }
       return report;
-    }, Boolean(a.refine), config.maxSamples);
+    }, Boolean(a.refine), config.maxSamples, config.interiorProbes);
     const total = summary(checked.reports);
-    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions,
+    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions, sampling: checked.sampling,
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
       ...(a['css-sources'] ? { cssSourceLeads, omittedCSSSourceWidths } : {}),
       ...(a['evidence-dir'] ? { evidence } : {}) };
@@ -522,11 +522,11 @@ async function compare(a) {
             ...candidate.findings.map(f => ({ ...f, id: `candidate:${f.id}` }))
           ]
         };
-      }, Boolean(a.refine), config.maxSamples);
+      }, Boolean(a.refine), config.maxSamples, config.interiorProbes);
       const selectedWidths = sweep.reports.map(r => r.viewport.width);
       const comparison = compareReports(baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url, publicURL,
         selectedWidths.map(width => baseSnapshots.get(width)), selectedWidths.map(width => candidateSnapshots.get(width)));
-      return { ...comparison, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
+      return { ...comparison, sampling: sweep.sampling, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
         ...(a['evidence-dir'] ? { evidence } : {}) };
     } finally { baselineTarget.close(); }
   }, spec.scenario);

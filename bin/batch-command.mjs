@@ -61,6 +61,8 @@ export function createBatchCommand({ output }) {
               failOnCoverageGaps:Boolean(job.failOnCoverageGaps),
               domLimit:job.domLimit ?? 18000} } : {}),
           widths: job.widths ?? null, scan: job.scan ?? null,
+          ...(job.mode === 'check' ? { refine: Boolean(job.refine),
+            interiorProbes: job.interiorProbes ?? 0, failOnSkip: Boolean(job.failOnSkip ?? a['fail-on-skip']) } : {}),
           cssBreakpoints: Boolean(job.cssBreakpoints),
           locale: job.locale ?? a.locale ?? job.approvedScenario.locale ?? null,
           colorScheme: job.colorScheme ?? a['color-scheme'] ?? job.approvedScenario.colorScheme ?? null,
@@ -110,7 +112,11 @@ export function createBatchCommand({ output }) {
         if (value !== undefined) argv.push('--' + option, value);
       }
       if (a['no-sandbox']) argv.push('--no-sandbox');
-      if (job.mode === 'check' && a['fail-on-skip']) argv.push('--fail-on-skip');
+      if (job.mode === 'check') {
+        if (job.refine) argv.push('--refine');
+        if (job.interiorProbes !== undefined) argv.push('--interior-probes', String(job.interiorProbes));
+        if (job.failOnSkip ?? a['fail-on-skip']) argv.push('--fail-on-skip');
+      }
       if (a['evidence-dir']) argv.push('--evidence-dir', path.join(a['evidence-dir'], job.id));
       // Run each check with Node argv, never a shell or a manifest-provided command.
       const runtime = configFromArgs(a);

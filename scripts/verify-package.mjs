@@ -42,8 +42,9 @@ try {
     'examples/audit-visible-canvas.html', 'examples/audit-focus-skiplink.html',
     'examples/audit-offscreen-lazy.html', 'examples/audit-visible-pending.html',
     'examples/deferred-probe.svg', 'examples/audit-offscreen-lazy-actions.json',
-    'examples/layout.json',
+    'examples/layout.json', 'examples/responsive-island.json', 'examples/responsive-island.html', 'examples/responsive-island-healthy.html', 'examples/batch-interior.json',
     'examples/healthy.html', 'examples/portfolio-alignment.json', 'examples/portfolio-alignment-healthy.html', 'examples/portfolio-alignment-broken.html',
+    'docs/beta-integration.md', 'docs/beta-trial-template.md',
     'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'package.json', 'docs/quickstart.md', 'docs/cli-reference.md', 'docs/portfolio-regression-case-study.md', 'docs/assets/portfolio-alignment-768.png', 'docs/release-checklist.md',
     'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json', 'schemas/layout-actions.schema.json'
   ];
@@ -101,6 +102,13 @@ try {
   assert.equal(planned.total,2);
 
   const api = await import(pathToFileURL(path.join(installed, 'dist', 'index.js')).href);
+  assert.equal(typeof api.sweepLayout, 'function');
+  const testedWidths = await api.sweepLayout([320,480], async width => ({
+    viewport:{width,height:900,direction:'ltr'},summary:{passed:1,failed:0,skipped:0},
+    findings:[{id:'test',type:'document-overflow',status:'pass',message:''}]
+  }), false, 200, 3);
+  assert.deepEqual(testedWidths.sampling.interiorWidths, [360,400,440],
+    'Installed TypeScript API must preserve opt-in interior probing');
   assert.equal(typeof api.evaluateLayout, 'function');
   assert.equal(typeof api.parseContract, 'function');
   assert.equal(api.parseContract({

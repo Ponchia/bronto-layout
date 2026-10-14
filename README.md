@@ -7,7 +7,7 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed **v0.4.0 release candidate**, actively experimental. The repository is public; **the npm package is not yet published**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed **v0.5.0-beta.0 source candidate**, actively experimental. The repository is public; **the npm package is not yet published**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 ## See it catch an actual layout relationship regression
 
@@ -58,6 +58,12 @@ node bin/bronto-layout.mjs suggest --url http://localhost:5173 \
 
 The tool does **not** repair CSS automatically. The suggestion workflow produces reviewable drafts; it does not turn observed relationships into blocking assertions without your explicit approval.
 
+## Run it inside an owned project or AI workflow
+
+The [beta integration guide](docs/beta-integration.md) shows a source-only setup, a reusable pinned-commit GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
+
+Responsive checks can opt into `--interior-probes 3 --refine` to sample failures between passing endpoints; the report documents sampled and untested widths. This improves coverage without asserting correctness at widths that were never visited. A reusable batch manifest can also opt into `interiorProbes`, `refine` and `failOnSkip` per approved contract job.
+
 ## Why semantic contracts?
 
 A screenshot comparison can tell you that pixels changed; it cannot tell you whether a particular relationship must stay fixed. Bronto Layout supports 14 constraint kinds, including edge alignment, containment, centering, equal/uniform gaps, element counts, non-overlap, dimensions, image proportion, clipping and observed layout stability. Rules can be scoped to viewport ranges and explicit UI states.
@@ -83,6 +89,8 @@ You can:
 | Start here | Details |
 | --- | --- |
 | [10-minute first-run guide](docs/quickstart.md) | Audit, suggest, approve, state replay and batch |
+| [Beta integrations and agent recipe](docs/beta-integration.md) | Local/source installation, pinned GitHub Action, CI coverage and agent policies |
+| [First-party beta trial worksheet](docs/beta-trial-template.md) | Record controlled pilot evidence without publicly exposing user data |
 | [Independent first-use trial](docs/first-use-trial.md) | Short, privacy-conscious feedback exercise for new developers |
 | [Portfolio regression case study](docs/portfolio-regression-case-study.md) | A known, deliberately introduced defect with healthy/broken pages |
 | [Real downstream CI: BrontoUI](docs/real-consumer-brontoui.md) | A pinned consumer workflow with passing contracts and a caught regression |

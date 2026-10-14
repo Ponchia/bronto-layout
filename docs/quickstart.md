@@ -50,6 +50,8 @@ bronto-layout batch --manifest examples/schema-enabled-batch.json --dry-run --js
 Auto-completion covers accepted rules and options, not whether a selector
 actually matches a page. See [the schema files](../schemas/) and README.
 
+For initial project/agent adoption, also see [beta integration recipes](beta-integration.md), including a reusable GitHub Action that works before npm publication. A strict check can use `--fail-on-skip`; use optional `--interior-probes 3 --refine` to find some narrow responsive islands hidden between passing endpoints. Its `sampling.largestUntestedGapPx` is an explicit coverage limitation, not a guarantee of quality.
+
 ## Inspect a page without writing a contract
 
 ```sh
