@@ -13,7 +13,18 @@ concurrency:
   group: bronto-layout-npm-publish
   cancel-in-progress: false
 jobs:
+  # Reuse the exact same CI and hosted macOS gates that protect main. Do not
+  # independently weaken browser/benchmark coverage for npm releases.
+  verify-ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+  verify-macos:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/macos-portability.yml
   preflight:
+    needs: [verify-ci, verify-macos]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
@@ -191,7 +202,7 @@ jobs:
           # No checkout, dependencies or lifecycle scripts in OIDC job. Trusted
           # issuer must exactly match Ponchia/bronto-layout, npm-release.yml
           # and the protected npm-publish GitHub Environment.
-          npm publish "./$TARBALL" --ignore-scripts --access public --tag beta --registry https://registry.npmjs.org
+          npm publish "./$TARBALL" --ignore-scripts --provenance --access public --tag beta --registry https://registry.npmjs.org
       - name: Observe registry response without retrying an accepted publication
         shell: bash
         env:
@@ -208,3 +219,47 @@ jobs:
           else
             echo 'Registry is not yet readable. npm publish may have succeeded; verify manually, never blindly rerun the job.' >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  # A GitHub release follows npm success. Unlike source-only beta.0/.1,
+  # future versions publish to npm first and only then announce the same bits.
+  github-release:
+    needs: [preflight, publish-npm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Recover the exact tarball already verified before npm approval
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: npm-package-preflight
+          path: ${{ runner.temp }}/checked-package
+      - name: Verify artifact and create the beta GitHub release after successful npm publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TARBALL: ${{ needs.preflight.outputs.tarball }}
+          EXPECTED_SHA: ${{ needs.preflight.outputs.sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/checked-package"
+          test "$(sha256sum "$TARBALL" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          sha256sum -c SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" -R Ponchia/bronto-layout > /dev/null 2>&1; then
+            echo 'An existing GitHub release is immutable; inspect it manually rather than overwrite attachments.'
+            exit 2
+          fi
+          cat > "$RUNNER_TEMP/npm-beta-release-notes.md" <<'NOTES'
+          Experimental public Bronto Layout beta for local layout contracts, responsive geometry and agent integrations. The exact vetted tarball attached here was first published to the npm registry under the `beta` dist-tag through protected trusted publishing. Consumers must explicitly opt into a prerelease; ordinary `latest` is not advanced by this workflow.
+
+          Requires Node.js 22+ and a separately installed Chrome/Chromium for browser-based CLI checks. Supports Chromium-family geometry, not guaranteed visual design, WCAG accessibility, closed shadow roots, frame interiors or unobserved browser states. A script-disabled CSP-sandboxed top-level document remains unverified rather than weakening the page policy.
+
+          Real-world precision/recall and independent developer adoption remain unestablished. No application telemetry, automatic CSS repair, dashboard or npm token is involved.
+          NOTES
+          gh release create "$RELEASE_TAG" "$TARBALL" SHA256SUMS.txt \
+            -R Ponchia/bronto-layout --verify-tag --prerelease --latest=false \
+            --title "Bronto Layout $RELEASE_TAG — npm beta" \
+            --notes-file "$RUNNER_TEMP/npm-beta-release-notes.md"
+          echo "Published GitHub prerelease from validated npm archive: $RELEASE_TAG ($EXPECTED_SHA)" >> "$GITHUB_STEP_SUMMARY"

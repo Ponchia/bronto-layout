@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Require full Node 22/24 Chromium and hosted macOS gates again on future npm prerelease tags; publish GitHub prerelease artifacts only after successful protected npm OIDC publication, using the same verified tarball.
+
 - Prepare the explicit, protected npm publishing workflow for **future** beta tags and document the one-time authenticated registry bootstrap. No registry version is published by this change.
 
 - Add weekly, opt-in first-party public-site layout pulse across six reviewed contracts (42 sampled responsive viewports). Enforce sandboxed Chromium, strict missing-measurement classification, fixed URLs, no automatic CSS changes and sanitized-only historical CI summaries with rule IDs/widths and measured deviation, separate from package PR gates and independent field labels.
