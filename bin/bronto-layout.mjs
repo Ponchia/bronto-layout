@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { chromeExecutable } from './chrome-detect.mjs';
 import { startBrowser } from './chromium-session.mjs';
+import { rejectUninspectableCspSandbox } from './csp-navigation.mjs';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
@@ -130,6 +131,7 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
       if (mainResponse?.response?.status >= 400) {
         throw new Error(`Navigation returned HTTP ${mainResponse.response.status} for ${mainResponse.response.url}`);
       }
+      rejectUninspectableCspSandbox(mainResponse?.response);
     }
   } catch (error) {
     loaded.cancel(); loaded.promise.catch(() => {});
@@ -754,10 +756,11 @@ async function main() {
 main().catch(async error => {
   process.exitCode = 2;
   const message = error instanceof Error ? error.message : String(error);
+  const code = error?.code === 'CSP_SANDBOX_UNINSPECTABLE' ? 'CSP_SANDBOX_UNINSPECTABLE' : 'CLI_ERROR';
   const args = process.argv.slice(2);
   const report = {
     schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
-    error: { code: 'CLI_ERROR', message }
+    error: { code, message }
   };
   if (args.includes('--json')) console.log(JSON.stringify(report, null, 2));
   else console.error('Bronto Layout: ' + message);

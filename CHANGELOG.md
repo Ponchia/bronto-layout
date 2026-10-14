@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting an explicit uninspectable document (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during a first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
+
 - Documentation: update release and integration instructions after verified GitHub prerelease publication.
 
 ## 0.5.0-beta.0 (14 October 2026 — GitHub prerelease; npm registry not published)
