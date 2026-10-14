@@ -16,13 +16,16 @@ export const EXPECTED_WIDTHS = Object.freeze([320, 348, 375, 572, 768, 1024, 128
 const safeCode = value => typeof value === 'string' && /^[A-Z][A-Z_]{0,63}$/.test(value) ? value : 'UNVERIFIED';
 const safeId = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,64}$/.test(value) ? value : '(unprintable)';
 const count = value => Number.isSafeInteger(value) && value >= 0;
+const allowedSpecKeys = new Set(['$schema','schemaVersion','url','widths','selectors','rules']);
 const safeWidth = value => Number.isSafeInteger(value) && value >= 200 && value <= 10000 ? value : null;
 const safeDeviation = value => Number.isFinite(value) && value >= 0 && value <= 100000
   ? Math.round(value * 100) / 100 : null;
 
 export function verifyTargetSpec(target, source) {
   if (!TARGETS.includes(target)) throw new Error('Unknown first-party target');
-  if (!source || typeof source !== 'object' || source.schemaVersion !== 1 || source.url !== target.url ||
+  if (!source || typeof source !== 'object' || Array.isArray(source) ||
+      Object.keys(source).some(key => !allowedSpecKeys.has(key)) ||
+      source.schemaVersion !== 1 || source.url !== target.url ||
       !Array.isArray(source.widths) || source.widths.join(',') !== '320,375,768,1280' ||
       !Array.isArray(source.rules) || source.rules.length < 1) {
     throw new Error(`Refusing unexpected public URL, widths or missing contract for ${target.id}`);

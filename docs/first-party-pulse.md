@@ -3,8 +3,9 @@
 Bronto Layout is an engineering instrument, not a hosted analytics product. This
 [workflow](../.github/workflows/first-party-layout-pulse.yml) runs **weekly on
 Monday at 06:23 UTC** (or on manual dispatch) against the six *already declared,
-public, first-party* site contracts in `examples/`. It never accepts arbitrary
-URLs, browser actions, account credentials or authenticated sessions. It does
+public, first-party* site contracts in `examples/`. It rejects unexpected contract fields, including declarative `actions`
+and `scenario`, rather than silently granting browser interaction authority. It
+never accepts arbitrary URLs, account credentials or authenticated sessions. It does
 not run on pull requests or block ordinary library releases.
 
 The source-pinned CLI is installed with `npm ci`, compiled in the disposable

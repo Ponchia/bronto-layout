@@ -1,7 +1,7 @@
 name: First-party layout pulse
 
 # The diagnostic is independent of package PR gates and never touches private
-# sessions or pages. Scheduled results may be red when deployed sites change;
+# sessions, browser actions or pages. Scheduled results may be red when deployed sites change;
 # this is an observation to investigate, not proof of a source regression.
 on:
   schedule:

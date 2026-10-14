@@ -14,6 +14,14 @@ test('only the six hard-coded public first-party contracts can run', () => {
     widths:[320,375,768,1280], rules:[{id:'reviewed'}]});
   assert.throws(() => verifyTargetSpec(target,{schemaVersion:1,url:'https://arbitrary.example/', widths:[320,375,768,1280],rules:[{}]}),/Refusing/);
   assert.throws(() => verifyTargetSpec({...target}, {schemaVersion:1,url:target.url,widths:[320,375,768,1280],rules:[{}]}),/Unknown/);
+  const safe={schemaVersion:1,url:target.url,widths:[320,375,768,1280],rules:[{}]};
+  // The underlying CLI supports interactions, but this scheduled public check
+  // deliberately never has authority to click, fill or replay browser states.
+  for (const unexpected of [
+    {actions:[{type:'click',selector:'button'}]},
+    {scenario:{locale:'ar'}},
+    {unexpected:'future capability'},
+  ]) assert.throws(()=>verifyTargetSpec(target,{...safe,...unexpected}),/Refusing/);
 });
 
 test('passes only when every expected sampled width is present', () => {
