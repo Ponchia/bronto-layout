@@ -104,6 +104,12 @@ runs:
         if [[ "$INPUT_MODE" == 'check' && "$INPUT_FAIL_COVERAGE" == 'true' ]]; then
           echo '::error::fail-on-coverage-gaps applies to audit only'; exit 2
         fi
+        # GitHub step-output files are line-oriented: prevent output injection
+        # through a caller-supplied path before echoing report_path.
+        if [[ -z "$INPUT_REPORT" || "$INPUT_REPORT" == *$'\n'* || "$INPUT_REPORT" == *$'\r'* ]]; then
+          echo '::error::report must be a nonempty single-line file path'
+          exit 2
+        fi
         # Preflight must launch a browser with the sandbox enabled. A version
         # string alone is not a meaningful check of browser usability.
         if ! node "$BRONTO_ACTION_ROOT/bin/bronto-layout.mjs" doctor --verify-launch --json > "$RUNNER_TEMP/bronto-doctor.json"; then
