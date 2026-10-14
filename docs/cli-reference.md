@@ -919,3 +919,9 @@ node bin/bronto-layout.mjs scan --spec examples/breakpoint-contract.json --scan 
 That fixture passes at the two coarse widths (600px and 900px), but fails inside the CSS media-query interval of 701–799px. The JSON output records `cssBreakpointScan.thresholds` and `cssBreakpointScan.addedWidths` so an agent can reproduce the failure precisely.
 
 `compare --css-breakpoints` discovers breakpoints in both the baseline and candidate pages and checks their combined sample widths. This is **sampling**, not a proof of correctness at every intermediate width. It does not discover JavaScript-only breakpoints, container queries, embedded cross-origin frames, or CSS unloaded at both probe widths. It requires `--scan`; narrow the range if there are too many thresholds.
+
+## Script-disabled CSP and report frames
+
+The CLI needs a script-capable top-level document to run its browser geometry probe. A document that enforces `Content-Security-Policy: sandbox` **without** `allow-scripts` remains intentionally script-disabled, as in Spatial's read-only report views. Such an observed HTTP document is **unverified**: the CLI returns structured error code `CSP_SANDBOX_UNINSPECTABLE` with exit `2`, never a passing score or a `Runtime.evaluate` timeout. A `Content-Security-Policy-Report-Only` header is not enforced and does not trigger this classification. This only identifies confirmed *top-level HTTP response headers*; it is not comprehensive iframe or meta-CSP inspection.
+
+Never remove a report's CSP, set `allow-scripts`, or pass browser-process `--no-sandbox` to satisfy a layout test. Those are different isolation layers. Inspect a trusted standalone source document where scripts are permitted, and use separate visual or DOMSnapshot evidence for intentionally script-disabled frames; no such evidence certifies inaccessible interior pixels or arbitrary user states.
