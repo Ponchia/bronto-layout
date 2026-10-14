@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Record verified GitHub beta.1 distribution and first-party pilot results, without making accuracy or external-adoption claims.
+
 ## 0.5.0-beta.1 (source candidate — GitHub release pending CI; npm registry not published)
 
 - Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting `CSP_SANDBOX_UNINSPECTABLE` (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during the first-party Spatial report-node pilot; browser and document sandbox policies are preserved.

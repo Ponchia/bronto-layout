@@ -1,8 +1,15 @@
-# Public beta gate (v0.5.0-beta.0 GitHub prerelease; npm publication pending)
+# Public beta gate (v0.5.0-beta.1 GitHub prerelease; npm publication pending)
 
 See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry preflight and verification.
 
-This is the historical release-preparation checklist, **not** a claim of production readiness. [v0.5.0-beta.0 is available on GitHub](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) as a prerelease with a verified tarball; `@ponchia/layout` has **not** been published to npm. The GitHub tag and npm registry publish are separate decisions.
+This is the historical release-preparation checklist, **not** a claim of production readiness. [v0.5.0-beta.1 is available on GitHub](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) as a prerelease with a verified tarball; `@ponchia/layout` has **not** been published to npm. The GitHub tag and npm registry publish are separate decisions.
+
+## CSP-safe beta.1 and field observations (14 October 2026)
+
+- [x] Fail closed on script-disabled top-level HTTP CSP sandbox with typed `CSP_SANDBOX_UNINSPECTABLE` and exit 2 ([PR #95](https://github.com/Ponchia/bronto-layout/pull/95)); never bypass document or browser sandboxing.
+- [x] Merge and verify [beta.1 source](https://github.com/Ponchia/bronto-layout/pull/96) on Node 22/24 Chromium and macOS. Repack exact merged `main`, download its release assets, SHA-256 check and verify a clean consumer install of version `0.5.0-beta.1`.
+- [x] Record first-party downstream usage, controlled regressions, blocked runner environments and an unverified Spatial report surface in [beta pilot findings](first-party-beta-pilots.md); do **not** turn synthetic results into precision/recall.
+- [ ] Obtain independent human field labels and external first-use feedback; promote optional project gates only when their sandboxed browser prerequisites are met.
 
 ## Beta hardening and integration (14 October 2026)
 
@@ -15,7 +22,7 @@ This is the historical release-preparation checklist, **not** a claim of product
 - [ ] Confirm publishing permissions/identity for `@ponchia/layout`, then authorize a separate prerelease npm publish. `npm whoami` here returned `ENEEDAUTH`.
 - [x] Publish the reviewed [GitHub beta prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) after the all-green `main` gates; download the attached tarball and `SHA256SUMS.txt`, verify SHA-256 and the clean consumer CLI, exported API and batch plan.
 - [ ] Publish an npm `beta` dist-tag separately after authorized publisher access, then verify registry installation; do not claim npm availability until that succeeds.
-- [ ] Collect observations from real owned-project integrations; no independent precision/recall or adoption claim until labeled external trials occur.
+- [x] Collect first-party observations from real owned-project integrations (see [pilot findings](first-party-beta-pilots.md)). Independent precision/recall and adoption claims still require separately labeled external trials.
 
 ## Public repository and first-run readiness (13 October 2026)
 
