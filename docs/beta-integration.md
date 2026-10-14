@@ -1,8 +1,24 @@
 # Bronto Layout beta — integrating in real projects and agent workflows
 
-**Status:** public source beta candidate `0.5.0-beta.0`. The GitHub repository is public. **npm is not published yet**: the maintainer still needs authorized registry access and a verified beta dist-tag. Until then, use the source CLI locally or pin the reviewed GitHub Action commit. This is not an independent quality/accuracy certification.
+**Status:** [v0.5.0-beta.0 is published as a GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) with a checksum-verified tarball and pinned source. **It is not published to npm**: npm registry access and an authorized `beta` dist-tag remain separate. This is not an independent quality/accuracy certification.
 
 The intended workflow is: **observe → specify intentional relationships → check a change → inspect evidence → revise**. A zero-contract audit can detect some mechanical problems, but cannot infer the intended spacing, alignment, art direction, stacking or usability of a design.
+
+## Install the published GitHub beta (no npm registry package needed)
+
+This exact GitHub tarball was downloaded and checked against its release SHA-256 on 14 October 2026, then installed in an isolated consumer without source dependencies. To repeat that installation locally, with Node.js 22+ and an installed Chrome/Chromium:
+
+```sh
+mkdir bronto-layout-beta && cd bronto-layout-beta
+curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.0/ponchia-layout-0.5.0-beta.0.tgz
+curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.0/SHA256SUMS.txt
+shasum -a 256 -c SHA256SUMS.txt
+npm install --ignore-scripts --no-audit --no-fund --prefix ./consumer ./ponchia-layout-0.5.0-beta.0.tgz
+./consumer/node_modules/.bin/bronto-layout --version
+./consumer/node_modules/.bin/bronto-layout doctor --verify-launch
+```
+
+The expected tarball SHA-256 is `0755daff80a961d1006d118940daaa075c2a0eb6cd97376bb63b8d32d9979e5c` and the verified release source is commit `76d252304ab6fd8f1698fd0136b32091cb19f284`. `shasum -a 256` works on macOS and Linux when Perl's `shasum` is available; otherwise use your system's SHA-256 verification utility. A checksum protects against download corruption/tampering relative to the trusted release checksum—it does not establish an independent security audit. The npm **client** is used to install a local tarball; `npm install @ponchia/layout@0.5.0-beta.0` from the registry still does not work.
 
 ## Local first use (no npm registry dependency)
 
@@ -41,7 +57,7 @@ A responsive bug may exist only at 390–410px while 320px and 480px both pass. 
 
 The repository includes a root [composite Action](https://github.com/Ponchia/bronto-layout/blob/main/action.yml). It builds the pinned source with Node 24, verifies a sandboxed Chrome/CDP session, runs a check or audit, and writes a machine-readable JSON file. The Action **never uploads screenshots or reports automatically**; workflow authors decide whether to retain them. It deliberately does not enable `--no-sandbox`.
 
-Pin the action to the **full reviewed commit SHA** after the beta PR is merged, not a moving branch. An example for a local HTTP preview server (start the site's own preview server before checking):
+Pin the action to **`76d252304ab6fd8f1698fd0136b32091cb19f284`**, the fully reviewed, CI-green GitHub beta source commit—not a moving branch. An example for a local HTTP preview server (start the site's own preview server before checking):
 
 ```yaml
 name: Layout contracts
@@ -65,7 +81,7 @@ jobs:
           npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/site-preview.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/site-preview.pid"
       - name: Check approved relationships
-        uses: Ponchia/bronto-layout@FULL_REVIEWED_COMMIT_SHA
+        uses: Ponchia/bronto-layout@76d252304ab6fd8f1698fd0136b32091cb19f284
         with:
           spec: bronto-layout.json
           url: http://127.0.0.1:4173
