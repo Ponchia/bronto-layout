@@ -7,7 +7,7 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed **v0.5.0-beta.0 source candidate**, actively experimental. The repository is public; **the npm package is not yet published**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed **[v0.5.0-beta.0 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0)**, actively experimental. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 ## See it catch an actual layout relationship regression
 
@@ -60,7 +60,7 @@ The tool does **not** repair CSS automatically. The suggestion workflow produces
 
 ## Run it inside an owned project or AI workflow
 
-The [beta integration guide](docs/beta-integration.md) shows a source-only setup, a reusable pinned-commit GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
+The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
 
 Responsive checks can opt into `--interior-probes 3 --refine` to sample failures between passing endpoints; the report documents sampled and untested widths. This improves coverage without asserting correctness at widths that were never visited. A reusable batch manifest can also opt into `interiorProbes`, `refine` and `failOnSkip` per approved contract job.
 
@@ -82,7 +82,7 @@ You can:
 - Automated CI runs on Node 22/24 with Chromium, package-install smoke checks, a portable-core coverage threshold and maintained macOS hosted-runner checks.
 - Controlled fixture benchmarks provide reproducible regression protection; **they are not an estimate of real-world precision/recall**.
 - The original 30-state and expanded [42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) have been captured. The expanded smoke caught a genuine 320px BrontoUI overflow, later fixed and [verified on the deployed site](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145). **Independent field-review labels and accuracy estimates remain pending**.
-- No npm registry publication, GitHub release or production stability promise yet. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
+- [GitHub beta published](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) with a checksum-verified `.tgz` package; **no npm registry publication, general-availability claim, or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation
 

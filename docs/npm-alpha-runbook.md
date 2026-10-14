@@ -2,14 +2,11 @@
 
 **Source-beta engineering is approved; registry publication still requires an authorized npm publisher.** Bronto Layout is already a public,
 MIT-licensed GitHub repository, but the package `@ponchia/layout` has **not
-been published to npm**. Its current source version is `0.5.0-beta.0`, a development
-source beta candidate, not a promise of registry availability or stability.
+been published to npm**. The exact source revision for `v0.5.0-beta.0` is available as a [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0); this is **not** a promise of npm registry availability or stability.
 
 This runbook exists to make registry publication repeatable. It contains
 preflight commands, but **does not configure automatic npm publishing**.
-A separate source-only GitHub prerelease can be created after CI passes,
-with a reviewed tarball, commit SHA and limitations. It must not imply
-`@ponchia/layout` is available from npm.
+The source-only GitHub prerelease was published after CI passed, with a reviewed tarball, SHA-256 checksum, commit SHA and limitations. It does **not** imply `@ponchia/layout` is available from npm.
 
 ## 1. Confirm the decision and release identity
 
