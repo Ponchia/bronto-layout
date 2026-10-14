@@ -7,7 +7,7 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed, experimental **[GitHub beta prereleases](https://github.com/Ponchia/bronto-layout/releases)**. The existing `v0.5.0-beta.0` release is usable for ordinary site contracts; this source contains a **0.5.0-beta.1 candidate** adding CSP-sandbox diagnostics, not yet published. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed, experimental **[v0.5.0-beta.1 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1)**. The published beta.1 tarball includes fail-closed CSP-sandbox diagnostics (beta.0 did not). The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 ## See it catch an actual layout relationship regression
 
@@ -91,6 +91,7 @@ You can:
 | [10-minute first-run guide](docs/quickstart.md) | Audit, suggest, approve, state replay and batch |
 | [Beta integrations and agent recipe](docs/beta-integration.md) | Local/source installation, pinned GitHub Action, CI coverage and agent policies |
 | [First-party beta trial worksheet](docs/beta-trial-template.md) | Record controlled pilot evidence without publicly exposing user data |
+| [First-party beta pilot findings](docs/first-party-beta-pilots.md) | Measured project integrations, controlled failures, security limits and remaining evidence gaps |
 | [Independent first-use trial](docs/first-use-trial.md) | Short, privacy-conscious feedback exercise for new developers |
 | [Portfolio regression case study](docs/portfolio-regression-case-study.md) | A known, deliberately introduced defect with healthy/broken pages |
 | [Real downstream CI: BrontoUI](docs/real-consumer-brontoui.md) | A pinned consumer workflow with passing contracts and a caught regression |

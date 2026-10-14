@@ -2,7 +2,7 @@
 
 **Source-beta engineering is approved; registry publication still requires an authorized npm publisher.** Bronto Layout is already a public,
 MIT-licensed GitHub repository, but the package `@ponchia/layout` has **not
-been published to npm**. The exact source revision for `v0.5.0-beta.0` is available as a [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0); this is **not** a promise of npm registry availability or stability.
+been published to npm**. The latest `v0.5.0-beta.1` source is available as a [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1); this is **not** a promise of npm registry availability or stability.
 
 This runbook exists to make registry publication repeatable. It contains
 preflight commands, but **does not configure automatic npm publishing**.
@@ -16,7 +16,7 @@ dist-tag. A package named `@ponchia/layout` requires publisher permission in
 that npm scope; the package being absent from an unauthenticated search is
 **not** proof that publishing permission exists.
 
-The current source candidate uses `0.5.0-beta.1` in both `package.json` and `package-lock.json` for the next **GitHub** prerelease. This does not authorize npm registry publication; choose and verify the first npm registry version and dist-tag separately. Never assume that a source version or absent registry listing proves a package is available from npm.
+The current source and published GitHub tarball use `0.5.0-beta.1` in both `package.json` and `package-lock.json`. This does not authorize npm registry publication; choose and verify the first npm registry version and dist-tag separately. Never assume that a source version or absent registry listing proves a package is available from npm.
 
 The 14 October 2026 server's `npm whoami` returned `ENEEDAUTH`. Only an authorized npm
 publisher can complete this gate; do not store an npm token in the repo,
