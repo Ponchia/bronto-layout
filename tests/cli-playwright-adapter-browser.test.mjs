@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
+import {existsSync} from 'node:fs';
 import {checkPlaywrightPage} from '../dist/playwright.js';
 
 const spec={schemaVersion:1,widths:[375],selectors:{heading:'#heading',content:'#content'},rules:[
@@ -10,7 +11,8 @@ const spec={schemaVersion:1,widths:[375],selectors:{heading:'#heading',content:'
 
 test('real Playwright Chromium Page evaluates live geometry with no second browser harness',async t=>{
   const args={headless:true,chromiumSandbox:process.env.BRONTO_CHROME_NO_SANDBOX!=='1'};
-  const binary=process.env.CHROME_PATH||process.env.BRONTO_PLAYWRIGHT_CHROME;
+  const binary=process.env.CHROME_PATH||process.env.BRONTO_PLAYWRIGHT_CHROME||
+    (process.platform==='linux' && existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined);
   if(binary)args.executablePath=binary;
   let browser;
   try {browser=await chromium.launch(args);} catch(error) {
