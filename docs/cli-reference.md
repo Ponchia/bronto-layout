@@ -415,7 +415,23 @@ setup at candidate breakpoint widths. No JavaScript is allowed in the action
 file; there is no automatic login, complex drag, root-cause inference, or claim
 about uninspected iframe content. JSON reports describe action **types/counts**,
 not selectors or filled values. Keep sensitive action files out of committed
-examples and shared report artifacts. See [interactive audits](../docs/quickstart.md).
+examples and shared report artifacts.
+
+**DOM click versus pointer click:** The legacy `click` action invokes
+`Element.click()` even when another layer obstructs the target. For a
+mouse-pointer-like input test, the **opt-in** `pointer-click` action uses
+Chrome's actual `Input.dispatchMouseEvent` after checking the target's
+visible viewport hit point, including explicitly open Shadow DOM. It refuses
+offscreen, covered, disabled, inert or transparent controls rather than
+producing a false verified click. Add an explicit `scroll-into-view` step
+first for lower-page controls. This models a mouse click, not keyboard,
+touch, drag, complex paint, full accessibility or human usability.
+
+Use only reviewed non-destructive selectors on permitted pages; a real click
+may perform a navigation or submission. No arbitrary JavaScript is accepted,
+and the tool does not attempt a sandbox bypass to rescue failed interactions.
+
+See [interactive audits](../docs/quickstart.md).
 
 ### Experimental CSS grid spacing review (opt-in)
 

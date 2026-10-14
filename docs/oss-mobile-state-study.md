@@ -26,6 +26,31 @@ briefly waits for the normal UI transition, and checks three assertions:
 This is intentionally a low-risk first phase. These constraints establish
 that a specific DOM state was reached; they do **not** prove that all menu
 items are visible, keyboard-accessible, comfortably spaced or clickable.
+The original five-site cohort used legacy programmatic DOM `click`
+actions. Those prove that calling the element's handler reaches a menu state,
+but **do not prove a pointer could physically hit the menu button** when an
+overlay covers it. A new opt-in `pointer-click` action checks that distinction
+using actual browser mouse input. The historical five-state results must not
+be retroactively described as human pointer or keyboard accessibility tests.
+
+To compare the two action semantics on the same approved pages, manually
+dispatch **External OSS mobile navigation states** with either:
+
+- `mode=dom` (default): replay the unchanged historical DOM click contracts
+- `mode=pointer`: create a temporary version of those contracts with only the
+  reviewed click action changed to `pointer-click`, then use real Chrome mouse
+  input after a viewport hit test
+
+Both modes preserve the same fixed URL, menu selector, pause and three
+state assertions. The pointer variant is written only into the temporary
+run-artifact directory; the versioned original cohort remains unchanged.
+A blocked or offscreen target exits **2** (unverified), rather than claiming a
+passing layout state. Clicking a reviewed mobile menu is still not proof of
+full touch, focus or keyboard operability. The prior five-site DOM run
+remains its own historical evidence; mouse reachability is a pending
+**separate browser run**, not something retroactively inferred.
+
+
 The workflow also captures a separate automatic audit and screenshot
 **after replaying the same declared menu action**. Any overflow or review
 lead requires independent examination before being called a real defect.
