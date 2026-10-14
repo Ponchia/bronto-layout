@@ -81,6 +81,17 @@
                 "type": "integer",
                 "minimum": 100,
                 "maximum": 5000
+              },
+              "interiorProbes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8
+              },
+              "refine": {
+                "type": "boolean"
+              },
+              "failOnSkip": {
+                "type": "boolean"
               }
             },
             "required": [

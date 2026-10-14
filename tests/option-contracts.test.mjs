@@ -28,6 +28,8 @@ test('validated widths and numeric options reject malformed or duplicate limits 
  assert.throws(()=>getWidths({widths:'300,invalid'}),/integer/);
  assert.throws(()=>getWidths({scan:'320:900'}),/MIN:MAX:STEP/);
  assert.throws(()=>configFromArgs({timeout:'300', 'stable-for':'300'}),/shorter/);
+ assert.equal(configFromArgs({'interior-probes':'3'}).interiorProbes,3);
+ assert.throws(()=>configFromArgs({'interior-probes':'9'}),/--interior-probes/);
 });
 
 test('approved scenarios inherit tested flags and explicit overrides win',()=>{
@@ -69,7 +71,8 @@ test('option restrictions remain explicit, pure and reject incompatible command 
   [{command:'review-draft',draft:'a',width:'375'},/replays the original/],
   [{command:'check',parallel:'2'},/batch/],
   [{command:'batch'},/requires --manifest/],
-  [{command:'check','fail-on-coverage-gaps':true},/applies only to audit/]
+  [{command:'check','fail-on-coverage-gaps':true},/applies only to audit/],
+  [{command:'audit','interior-probes':'3'},/applies only to check/]
  ];
  for(const [args,expected] of invalid)assert.throws(()=>validateCommandOptions(args),expected);
 });

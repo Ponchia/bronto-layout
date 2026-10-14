@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "url": "responsive-island.html",
+  "widths": [
+    320,
+    480
+  ],
+  "selectors": {},
+  "rules": [
+    {
+      "id": "no-root-overflow",
+      "type": "document-overflow",
+      "tolerance": 1
+    }
+  ]
+}

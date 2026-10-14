@@ -68,3 +68,14 @@ test('audit-only batch fields and bounded action paths cannot leak into contract
   assert.throws(()=>parseBatchManifest(manifest([{...audit,[field]:'true'}])),/boolean/);
  }
 });
+
+test('beta responsive probes and strict checks remain check-only in finite batch manifests',()=>{
+ const good=parseBatchManifest(manifest([{...job,scan:'320:480:160',refine:true,interiorProbes:3,failOnSkip:true}]));
+ assert.equal(good.jobs[0].interiorProbes,3);
+ for(const value of [-1,9,1.5,'3',null])
+  assert.throws(()=>parseBatchManifest(manifest([{...job,interiorProbes:value}])),/interiorProbes/);
+ for(const key of ['refine','failOnSkip'])
+  assert.throws(()=>parseBatchManifest(manifest([{...job,[key]:'true'}])),/boolean/);
+ for(const key of ['refine','interiorProbes','failOnSkip'])
+  assert.throws(()=>parseBatchManifest(manifest([{id:'a',mode:'audit',url:'x.html',[key]:key==='interiorProbes'?2:true}])),/only supported for check/);
+});

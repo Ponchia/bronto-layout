@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### 0.5.0-beta.0 candidate (14 October 2026 — source only; registry publishing not yet completed)
+
+- Opt-in `--interior-probes 0..8` for contract checks, scans and comparisons to sample responsive defects whose coarse endpoints agree, with bounded up-front sampling budgets and explicit JSON metadata for unsampled widths. Neither probing nor refinement certifies all intervening widths.
+- Batch contract jobs can select `interiorProbes`, `refine` and `failOnSkip` independently; JSON Schema and parser remain in sync and audit jobs cannot use contract-only flags.
+- Source-based reusable GitHub Action with sandboxed Chrome startup and local-only compact reports; no implicit artifact uploads or npm registry dependency. Add first-party beta testing worksheet and agent integration instructions.
+- No npm package/tag/release or adoption/accuracy claim has been created by these changes.
+
+
 - Distinguish deliberately deferred offscreen `loading=lazy` images from genuinely pending visible media while recording known uninspected paint and excluding it from whole-page accuracy scoring. Controlled Chrome fixtures and an Astro EN/ES sandboxed browser run (8/8 states, 16/16 hashes) observed 15 earlier pending-image entries versus none in the new capture, with 12 deferred-image observations; network timing differs and no independent quality labels exist.
 
 - Complete a successful pinned, independently authored Eleventy source-build

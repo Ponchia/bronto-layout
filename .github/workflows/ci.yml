@@ -93,3 +93,49 @@ jobs:
           # on GitHub's ephemeral CI runner. Normal CLI use retains sandboxing.
           BRONTO_CHROME_NO_SANDBOX: '1'
         run: npm run test:package
+      - name: Exercise the reusable action with a reviewed local fixture (sandbox enabled)
+        if: matrix.node == 22 && matrix.shard == 1
+        uses: ./
+        with:
+          spec: examples/portfolio-alignment.json
+          url: examples/portfolio-alignment-healthy.html
+          fail-on-skip: 'true'
+          report: ${{ runner.temp }}/bronto-consumer-action.json
+      - name: Confirm reusable action emitted successful contract evidence
+        if: matrix.node == 22 && matrix.shard == 1
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const p = require('node:path');
+          const report = JSON.parse(fs.readFileSync(p.join(process.env.RUNNER_TEMP, 'bronto-consumer-action.json'), 'utf8'));
+          if (report.mode !== 'check' || report.summary.failed !== 0 || report.summary.passed < 1) process.exit(1);
+          console.log('Reusable action delivered reviewed contract evidence');
+          NODE
+      - name: Reusable Action deliberately catches a narrow mobile regression
+        if: matrix.node == 22 && matrix.shard == 1
+        id: beta-action-negative
+        continue-on-error: true
+        uses: ./
+        with:
+          spec: examples/responsive-island.json
+          url: examples/responsive-island.html
+          interior-probes: '3'
+          fail-on-skip: 'true'
+          report: ${{ runner.temp }}/bronto-consumer-negative.json
+      - name: Assert reusable Action fails the expected semantic negative control
+        if: matrix.node == 22 && matrix.shard == 1
+        env:
+          NEGATIVE_OUTCOME: ${{ steps.beta-action-negative.outcome }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const p = require('node:path');
+          const data = JSON.parse(fs.readFileSync(p.join(process.env.RUNNER_TEMP, 'bronto-consumer-negative.json'), 'utf8'));
+          if (process.env.NEGATIVE_OUTCOME !== 'failure' || data.mode !== 'check' ||
+              data.summary.failed < 1 || !data.sampledWidths?.includes(400) ||
+              !data.sampling?.interiorWidths?.includes(400)) {
+            console.error('The hosted reusable Action did not catch the deliberately seeded 400px fault');
+            process.exit(1);
+          }
+          console.log('Reusable action correctly failed the narrow 400px semantic regression');
+          NODE

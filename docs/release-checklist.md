@@ -1,8 +1,20 @@
-# Public alpha gate (v0.4 candidate; no publication authorized)
+# Public beta gate (v0.5.0-beta.0 source candidate; npm publication pending)
 
 See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry preflight and verification.
 
 This is a release-preparation checklist, **not** a claim of production readiness. `@ponchia/layout` has not been published to npm. Publication, a tag, version bump and public release announcement are separate decisions.
+
+## Beta hardening and integration (14 October 2026)
+
+- [x] Prepare `0.5.0-beta.0` source/package identity without tagging or claiming npm publication.
+- [x] Implement bounded, opt-in interior-width probes, with explicit sampling/unsampled gaps in JSON and pure/browser fixture tests.
+- [x] Allow finite batch check jobs to specify `interiorProbes`, `refine` and `failOnSkip` without accepting arbitrary scripts.
+- [x] Provide a reusable source-based GitHub Action with local-only JSON reports, explicit sandboxed browser preflight and no implicit artifact uploads.
+- [x] Document source consumption, agent workflows and private first-party field-trial records without asking developers to post sensitive captures.
+- [ ] Validate the exact beta head on GitHub Node 22/24, hosted macOS and reusable Action smoke; compare installed tarball behavior.
+- [ ] Confirm publishing permissions/identity for `@ponchia/layout`, then authorize a separate prerelease npm publish. `npm whoami` here returned `ENEEDAUTH`.
+- [ ] Publish an npm `beta` dist-tag (or a reviewed GitHub prerelease if intentionally chosen) only after all technical gates; verify download as an external consumer before claiming it is published.
+- [ ] Collect observations from real owned-project integrations; no independent precision/recall or adoption claim until labeled external trials occur.
 
 ## Public repository and first-run readiness (13 October 2026)
 

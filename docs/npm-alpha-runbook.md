@@ -1,29 +1,27 @@
-# npm alpha release runbook (manual and intentionally gated)
+# npm beta prerelease runbook (manual and intentionally gated)
 
-**No release has been authorized.** Bronto Layout is already a public,
+**Source-beta engineering is approved; registry publication still requires an authorized npm publisher.** Bronto Layout is already a public,
 MIT-licensed GitHub repository, but the package `@ponchia/layout` has **not
-been published to npm**. Its current source version is `0.4.0`, a development
-release candidate, not a promise of registry availability or stability.
+been published to npm**. Its current source version is `0.5.0-beta.0`, a development
+source beta candidate, not a promise of registry availability or stability.
 
-This runbook exists to make future publication repeatable. It contains
-preflight commands, but **does not configure automatic publishing, publish a
-package, create a Git tag, or create a GitHub release**.
+This runbook exists to make registry publication repeatable. It contains
+preflight commands, but **does not configure automatic npm publishing**.
+A separate source-only GitHub prerelease can be created after CI passes,
+with a reviewed tarball, commit SHA and limitations. It must not imply
+`@ponchia/layout` is available from npm.
 
 ## 1. Confirm the decision and release identity
 
-The maintainer must explicitly approve an npm alpha release, identify the
+The maintainer must explicitly approve an npm beta prerelease, identify the
 intended registry account, and choose the exact prerelease version and
 dist-tag. A package named `@ponchia/layout` requires publisher permission in
 that npm scope; the package being absent from an unauthenticated search is
 **not** proof that publishing permission exists.
 
-The local package currently uses version `0.4.0`. For a prerelease, decide
-whether to change both `package.json` and `package-lock.json` to an agreed
-SemVer prerelease (for example, `0.4.0-alpha.1`) on a reviewed PR. Do not
-blindly publish the plain `0.4.0` source version or create version tags in
-advance of registry verification.
+The proposed beta identity is `0.5.0-beta.0` in both `package.json` and `package-lock.json`. Never assume that a source version or absent registry listing proves an npm package was published; confirm registry access, explicit beta dist-tag and a reviewed source commit before any write.
 
-The current server's `npm whoami` returns `ENEEDAUTH`. Only an authorized npm
+The 14 October 2026 server's `npm whoami` returned `ENEEDAUTH`. Only an authorized npm
 publisher can complete this gate; do not store an npm token in the repo,
 issues, logs, CLI arguments, or screenshots.
 
@@ -62,7 +60,7 @@ deliberately changed and tested.
 
 ## 3. Product and platform review before distribution
 
-Use the [public alpha checklist](release-checklist.md). In particular:
+Use the [public beta checklist](release-checklist.md). In particular:
 
 - Obtain external first-time developer feedback using the
   [self-service trial](first-use-trial.md), without making up a reviewer.
@@ -74,7 +72,7 @@ Use the [public alpha checklist](release-checklist.md). In particular:
 - Document unsupported iframe interiors, closed shadow roots, custom paint,
   imperfect automatic heuristics and Chromium-only runtime support.
 
-A maintainer can explicitly choose an early alpha despite pending
+A maintainer can explicitly choose an early beta despite pending
 real-world quality research, but then release notes must state what remains
 unknown and should not call the package production-ready.
 
@@ -96,15 +94,16 @@ review the tarball one last time and **explicitly authorize** the final
 registry write. Treat the registry upload as an irreversible external
 publication, not as another CI test.
 
-## 5. Verify the registry release before tagging
+## 5. Verify the registry release before claiming npm availability
 
 After authorized publication, verify that a clean consumer can install the
 **exact published version** and run `doctor`, `validate`, the healthy
 portfolio check and the intentionally failing one on Linux and macOS.
 Check registry metadata, package integrity, provenance if configured,
-expected CLI binary/exports, and the intended alpha dist-tag. Only then
-tag the **published commit** and draft a GitHub release with accurate
-limitations and links to the verified package.
+expected CLI binary/exports, and the intended beta dist-tag. Update any
+GitHub prerelease notes only after verifying the npm package against the
+same source identity; do not repoint an existing tag or imply npm publication
+from a GitHub tarball alone.
 
 Do not announce general visual correctness, cross-browser compatibility,
 WCAG conformance or real-world precision/recall unless those have been
