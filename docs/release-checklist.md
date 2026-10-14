@@ -4,6 +4,13 @@ See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry prefl
 
 This is the historical release-preparation checklist, **not** a claim of production readiness. [v0.5.0-beta.1 is available on GitHub](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) as a prerelease with a verified tarball; `@ponchia/layout` has **not** been published to npm. The GitHub tag and npm registry publish are separate decisions.
 
+## npm distribution gate
+
+- [x] Prepare a tag-only, SHA-verified OIDC publisher with manual GitHub Environment approval, no long-lived npm tokens, and no repository scripts in the publish job ([npm publishing protocol](npm-publishing.md)).
+- [ ] An authenticated maintainer bootstraps `@ponchia/layout@0.5.0-beta.1` to npm from the checksum-verified GitHub tarball using `--tag beta` and checks the registry install. This step cannot use OIDC until the package exists.
+- [ ] Register the exact npm trusted publisher (owner `Ponchia`, repository `bronto-layout`, workflow `npm-release.yml`, environment `npm-publish`).
+- [ ] Verify an additional new beta version through the reviewed OIDC workflow and registry provenance, without changing `latest`.
+
 ## CSP-safe beta.1 and field observations (14 October 2026)
 
 - [x] Fail closed on script-disabled top-level HTTP CSP sandbox with typed `CSP_SANDBOX_UNINSPECTABLE` and exit 2 ([PR #95](https://github.com/Ponchia/bronto-layout/pull/95)); never bypass document or browser sandboxing.

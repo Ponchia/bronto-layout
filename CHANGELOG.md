@@ -4,6 +4,7 @@
 
 - Permit manual OSS menu validation to compare the original DOM-click baseline against a temporary, opt-in `pointer-click` version of the **same five fixed public scenarios**, without mutating the historical cohort or broadening URL inputs.
 - Add opt-in `pointer-click` browser actions with Chrome mouse input and viewport/overlay hit-testing, including open Shadow DOM support and a post-hover recheck. Preserve legacy DOM `click` semantics for backward compatibility. Source-reviewed fixtures distinguish a genuinely clickable button from obstructed and offscreen buttons; no claims of touch or keyboard accessibility.
+- Prepare the explicit, protected npm publishing workflow for **future** beta tags and document the one-time authenticated registry bootstrap. No registry version is published by this change.
 
 - Add weekly, opt-in first-party public-site layout pulse across six reviewed contracts (42 sampled responsive viewports). Enforce sandboxed Chromium, strict missing-measurement classification, fixed URLs, no automatic CSS changes and sanitized-only historical CI summaries with rule IDs/widths and measured deviation, separate from package PR gates and independent field labels.
 
