@@ -90,6 +90,7 @@ You can:
 | --- | --- |
 | [10-minute first-run guide](docs/quickstart.md) | Audit, suggest, approve, state replay and batch |
 | [Beta integrations and agent recipe](docs/beta-integration.md) | Local/source installation, pinned GitHub Action, CI coverage and agent policies |
+| [Existing Playwright test adapter](docs/playwright-adapter.md) | Reuse Playwright Page state, capture DOM geometry, evaluate approved contracts without launching another browser |
 | [npm beta bootstrap and protected OIDC](docs/npm-publishing.md) | Authenticated first release, then provenance-attested, manually approved GitHub tag publishing |
 | [First-party beta trial worksheet](docs/beta-trial-template.md) | Record controlled pilot evidence without publicly exposing user data |
 | [First-party beta pilot findings](docs/first-party-beta-pilots.md) | Measured project integrations, controlled failures, security limits and remaining evidence gaps |
