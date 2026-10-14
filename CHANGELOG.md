@@ -5,6 +5,7 @@
 - Classify clipped-root horizontal extent as measured review evidence rather than an automatic error; a visible scrolling defect is not established solely by `scrollWidth`.
 - Refuse all-out-of-range layout contracts with `NO_APPLICABLE_RULES` and exit 2; no successful zero-assertion outcome.
 - Bound both automatic audit and strict-contract overflow-candidate DOM traversal without spreading giant child arrays; disclose any truncated sibling walk as incomplete coverage. Refresh beta security-policy documentation.
+- Prepare the explicit, protected npm publishing workflow for **future** beta tags and document the one-time authenticated registry bootstrap. No registry version is published by this change.
 
 - Add weekly, opt-in first-party public-site layout pulse across six reviewed contracts (42 sampled responsive viewports). Enforce sandboxed Chromium, strict missing-measurement classification, fixed URLs, no automatic CSS changes and sanitized-only historical CI summaries with rule IDs/widths and measured deviation, separate from package PR gates and independent field labels.
 
