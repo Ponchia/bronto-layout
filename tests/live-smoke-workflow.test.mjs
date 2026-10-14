@@ -14,7 +14,12 @@ test('exploratory layout review modes require explicit manual opt-in and retain 
  }
  assert.match(workflow,/if: \$\{\{ !cancelled\(\) && \(inputs\.automatic_audit \|\| inputs\.grid_gap_review \|\| inputs\.sibling_overlap_review\) \}\}/);
  assert.match(workflow,/Without an explicit status function GitHub implicitly requires/);
- assert.match(workflow,/BRONTO_CHROME_NO_SANDBOX: '1'/);
+ assert.doesNotMatch(workflow,/BRONTO_CHROME_NO_SANDBOX: '1'/,
+   'Public network navigation must never force an unsandboxed browser');
+ assert.match(workflow,/BRONTO_CHROME_NO_SANDBOX: '0'/);
+ assert.match(workflow,/doctor --verify-launch --json/);
+ assert.match(workflow,/--fail-on-skip --interior-probes 1/);
+
 });
 
 test('manual audit uses only known public first-party sites and preserves nonblocking optional warning classes',()=>{
