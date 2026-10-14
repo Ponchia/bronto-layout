@@ -141,4 +141,8 @@ test('document overflow exposes measured element leads without claiming they are
   assert.equal(finding.deviation, 60);
   assert.equal(finding.overflowCandidates?.[0].path, '#wide');
   assert.deepEqual(finding.paths, ['#wide']);
+  snapshot.overflowCandidatesTruncated = true;
+  const incomplete=evaluateLayout(snapshot,[{id:'overflow',type:'document-overflow'}]).findings[0];
+  assert.equal(incomplete.overflowCandidatesTruncated,true);
+  assert.match(incomplete.message,/incomplete/);
 });
