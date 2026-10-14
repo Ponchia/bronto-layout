@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting an explicit uninspectable document (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during a first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
+## 0.5.0-beta.1 (source candidate — GitHub release pending CI; npm registry not published)
 
-- Documentation: update release and integration instructions after verified GitHub prerelease publication.
+- Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting `CSP_SANDBOX_UNINSPECTABLE` (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during the first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
+- Chromium integration tests cover an HTTP-served positive control, enforced sandbox, allowed scripts and Report-Only policy; offline CLI consumers verify the extra shipped module. No source-level CSS repair or script-disabled DOM inspection was introduced.
 
 ## 0.5.0-beta.0 (14 October 2026 — GitHub prerelease; npm registry not published)
 
