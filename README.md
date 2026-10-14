@@ -7,7 +7,7 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed **[v0.5.0-beta.0 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0)**, actively experimental. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed, experimental **[GitHub beta prereleases](https://github.com/Ponchia/bronto-layout/releases)**. The existing `v0.5.0-beta.0` release is usable for ordinary site contracts; this source contains a **0.5.0-beta.1 candidate** adding CSP-sandbox diagnostics, not yet published. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 ## See it catch an actual layout relationship regression
 
@@ -82,7 +82,7 @@ You can:
 - Automated CI runs on Node 22/24 with Chromium, package-install smoke checks, a portable-core coverage threshold and maintained macOS hosted-runner checks.
 - Controlled fixture benchmarks provide reproducible regression protection; **they are not an estimate of real-world precision/recall**.
 - The original 30-state and expanded [42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) have been captured. The expanded smoke caught a genuine 320px BrontoUI overflow, later fixed and [verified on the deployed site](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145). **Independent field-review labels and accuracy estimates remain pending**.
-- [GitHub beta published](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) with a checksum-verified `.tgz` package; **no npm registry publication, general-availability claim, or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
+- [GitHub beta distribution](https://github.com/Ponchia/bronto-layout/releases) provides checksum-verified `.tgz` packages for released versions; **no npm registry publication, general-availability claim, or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation
 

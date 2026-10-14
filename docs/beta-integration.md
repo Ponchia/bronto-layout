@@ -2,6 +2,8 @@
 
 **Status:** [v0.5.0-beta.0 is published as a GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) with a checksum-verified tarball and pinned source. **It is not published to npm**: npm registry access and an authorized `beta` dist-tag remain separate. This is not an independent quality/accuracy certification.
 
+**Version boundary for script-disabled HTML:** `v0.5.0-beta.0` predates the `CSP_SANDBOX_UNINSPECTABLE` diagnostic for enforced top-level CSP sandbox without `allow-scripts`. This source branch proposes `0.5.0-beta.1`; use an immutable source commit with [merged CSP fix #95](https://github.com/Ponchia/bronto-layout/pull/95) until the next GitHub prerelease is independently verified. No browser or document sandbox bypass is necessary or supported for that path.
+
 The intended workflow is: **observe → specify intentional relationships → check a change → inspect evidence → revise**. A zero-contract audit can detect some mechanical problems, but cannot infer the intended spacing, alignment, art direction, stacking or usability of a design.
 
 ## Install the published GitHub beta (no npm registry package needed)
