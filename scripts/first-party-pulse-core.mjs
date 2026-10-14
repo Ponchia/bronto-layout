@@ -16,6 +16,9 @@ export const EXPECTED_WIDTHS = Object.freeze([320, 348, 375, 572, 768, 1024, 128
 const safeCode = value => typeof value === 'string' && /^[A-Z][A-Z_]{0,63}$/.test(value) ? value : 'UNVERIFIED';
 const safeId = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,64}$/.test(value) ? value : '(unprintable)';
 const count = value => Number.isSafeInteger(value) && value >= 0;
+const safeWidth = value => Number.isSafeInteger(value) && value >= 200 && value <= 10000 ? value : null;
+const safeDeviation = value => Number.isFinite(value) && value >= 0 && value <= 100000
+  ? Math.round(value * 100) / 100 : null;
 
 export function verifyTargetSpec(target, source) {
   if (!TARGETS.includes(target)) throw new Error('Unknown first-party target');
@@ -32,7 +35,7 @@ export function summarizeTarget(target, exit, report, elapsedMs) {
   if (!count(elapsedMs)) throw new Error('Invalid duration');
   const base = {id: target.id, elapsedMs};
   const unverified = code => ({...base, status: 'unverified', code: safeCode(code),
-    checkedWidths: 0, passed: 0, failed: 0, skipped: 0, maxUntestedGapPx: null, ruleIds: []});
+    checkedWidths: 0, passed: 0, failed: 0, skipped: 0, maxUntestedGapPx: null, ruleIds: [], findings: []});
   if (exit === 2) return unverified(report?.error?.code);
   if (exit !== 0 && exit !== 1) return unverified('CLI_PROCESS_ERROR');
   if (report?.schemaVersion !== 1 || report.mode !== 'check' || report.format !== 'compact')
@@ -56,6 +59,8 @@ export function summarizeTarget(target, exit, report, elapsedMs) {
     checkedWidths: report.sampledWidths.length, passed: summary.passed, failed: summary.failed,
     skipped: summary.skipped, maxUntestedGapPx: report.sampling.largestUntestedGapPx,
     ruleIds: [...new Set(report.failures.slice(0, 6).map(f => safeId(f.id)))],
+    findings: report.failures.slice(0, 6).map(f => ({id: safeId(f.id),
+      width: safeWidth(f.width), deviation: safeDeviation(f.deviation)})),
     omittedRuleIds: report.omittedFailures};
 }
 
@@ -78,10 +83,15 @@ export function pulseMarkdown(summary) {
     '',
     `**${summary.passing}/${summary.targetCount} passing** · ${summary.violations} violations · ${summary.unverified} unverified`,
     '',
-    '| Owned public route | Status | Widths visited | Passed | Failed | Skipped | Largest untested gap |',
-    '| --- | --- | ---: | ---: | ---: | ---: | ---: |',
+    '| Owned public route | Status | Widths | Passed | Failed | Skipped | Largest gap | Findings / reason |',
+    '| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |',
   ];
-  for (const r of summary.cases) lines.push(`| ${r.id} | ${r.status} | ${r.checkedWidths} | ${r.passed} | ${r.failed} | ${r.skipped} | ${gap(r.maxUntestedGapPx)} |`);
+  for (const r of summary.cases) {
+    const detail = r.status === 'unverified' ? r.code :
+      r.status === 'violation' ? (r.findings.slice(0, 3).map(f =>
+        `${f.id}${f.width === null ? '' : '@' + f.width + 'px'}`).join(', ') || 'Unreported rule') : '—';
+    lines.push(`| ${r.id} | ${r.status} | ${r.checkedWidths} | ${r.passed} | ${r.failed} | ${r.skipped} | ${gap(r.maxUntestedGapPx)} | ${detail} |`);
+  }
   lines.push('', 'A passing contract covers **only the recorded widths and browser state**. Unverified measurements and unsupported DOM/CSP content are not passing results. Raw DOM evidence, CSS, page contents, screenshots and authentication data are not exported.', '');
   return lines.join('\n');
 }

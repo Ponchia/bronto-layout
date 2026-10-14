@@ -25,7 +25,7 @@ source-level fix from geometric evidence alone.
 
 The Action summary and its 30-day artifact contain **only** fixed site IDs,
 exit classification, numeric counts, sampled-width coverage, approved failing
-rule IDs and run duration. Raw CLI reports (which can contain DOM paths,
+rule IDs, bounded CSS-pixel deviations and run duration. Raw CLI reports (which can contain DOM paths,
 content, CSS and URLs), screenshots and stderr are discarded inside the
 runner. Unverified responses are failures to measure, **not** clean layouts.
 Artifact retention is for comparing first-party trends, not computing

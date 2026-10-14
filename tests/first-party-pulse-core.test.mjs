@@ -45,11 +45,13 @@ test('runtime failure, missing measurements and contradictory status never becom
 
 test('sanitized violations omit untrusted DOM/CSS/messages while retaining fixed rule IDs',()=>{
   const observed=report(); observed.summary.failed=1;
-  observed.failures=[{id:'hero-edge',message:'do not output user content',paths:['.password'],evidence:[{css:'password'}],width:320}];
+  observed.failures=[{id:'hero-edge',message:'do not output user content',paths:['.password'],evidence:[{css:'password'}],width:320,deviation:12.345}];
   const row=summarizeTarget(target,1,observed,678);
   assert.equal(row.status,'violation');
   assert.deepEqual(row.ruleIds,['hero-edge']);
+  assert.deepEqual(row.findings,[{id:'hero-edge',width:320,deviation:12.35}]);
   assert.doesNotMatch(JSON.stringify(row),/password|do not output/);
+  assert.match(pulseMarkdown(pulseSummary(TARGETS.map(t => t === target ? row : summarizeTarget(t,0,report(),1)))),/hero-edge@320px/);
   const safe=report(); safe.summary.failed=1; safe.failures=[{id:'<script>alert(1)</script>'}];
   assert.deepEqual(summarizeTarget(target,1,safe,1).ruleIds,['(unprintable)']);
 });
@@ -70,6 +72,6 @@ test('unverified widths and error codes never appear as a numeric coverage claim
   rows[2]=summarizeTarget(TARGETS[2],2,{error:{code:'CSP_SANDBOX_UNINSPECTABLE'}},1);
   const summary=pulseMarkdown(pulseSummary(rows));
   assert.match(summary,/5\/6 passing/);
-  assert.match(summary,/sense6-ar \| unverified \| 0 \| 0 \| 0 \| 0 \| — \|/);
+  assert.match(summary,/sense6-ar \| unverified \| 0 \| 0 \| 0 \| 0 \| — \| CSP_SANDBOX_UNINSPECTABLE/);
   assert.doesNotMatch(summary,/— px/);
 });
