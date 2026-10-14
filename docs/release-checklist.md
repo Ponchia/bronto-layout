@@ -4,6 +4,14 @@ See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry prefl
 
 This is the historical release-preparation checklist, **not** a claim of production readiness. [v0.5.0-beta.0 is available on GitHub](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) as a prerelease with a verified tarball; `@ponchia/layout` has **not** been published to npm. The GitHub tag and npm registry publish are separate decisions.
 
+## CSP integration follow-up and beta.1 distribution (14 October 2026)
+
+- [x] Reproduce a script-disabled top-level CSP sandbox differential against ordinary, controlled HTML served with and without an enforced `sandbox` header.
+- [x] Merge Bronto Layout [#95](https://github.com/Ponchia/bronto-layout/pull/95) with typed fail-closed `CSP_SANDBOX_UNINSPECTABLE` exit 2 and sandbox-preserving Chromium regression coverage.
+- [x] Merge beta.1 [#96](https://github.com/Ponchia/bronto-layout/pull/96), verify all Node 22/24 Chromium and macOS checks at the exact source commit, create [GitHub v0.5.0-beta.1](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1), and independently download, hash-check and install its 201-file tarball (`sha256:f471a03498980d80ce304aa45a04e8b468736f51478822b7620ffc147a7b1de8`).
+- [ ] Collect independent external developer labels and first-use trials before claiming accuracy, general availability or broad adoption.
+- [ ] Publish to npm only through a separate authorized publisher identity and verified beta dist-tag; no registry package exists yet.
+
 ## Beta hardening and integration (14 October 2026)
 
 - [x] Prepare `0.5.0-beta.0` source/package identity without tagging or claiming npm publication.

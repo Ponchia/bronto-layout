@@ -7,7 +7,7 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed, experimental **[GitHub beta prereleases](https://github.com/Ponchia/bronto-layout/releases)**. The existing `v0.5.0-beta.0` release is usable for ordinary site contracts; this source contains a **0.5.0-beta.1 candidate** adding CSP-sandbox diagnostics, not yet published. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed, experimental **[GitHub beta prereleases](https://github.com/Ponchia/bronto-layout/releases)**. The latest verified [v0.5.0-beta.1 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) includes typed CSP-sandbox unverified diagnostics and a checksum-verified tarball; v0.5.0-beta.0 remains available as a historical release. The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 ## See it catch an actual layout relationship regression
 
@@ -60,7 +60,7 @@ The tool does **not** repair CSS automatically. The suggestion workflow produces
 
 ## Run it inside an owned project or AI workflow
 
-The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
+The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm registry installation, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
 
 Responsive checks can opt into `--interior-probes 3 --refine` to sample failures between passing endpoints; the report documents sampled and untested widths. This improves coverage without asserting correctness at widths that were never visited. A reusable batch manifest can also opt into `interiorProbes`, `refine` and `failOnSkip` per approved contract job.
 

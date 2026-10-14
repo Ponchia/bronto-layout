@@ -16,7 +16,7 @@ dist-tag. A package named `@ponchia/layout` requires publisher permission in
 that npm scope; the package being absent from an unauthenticated search is
 **not** proof that publishing permission exists.
 
-The current source candidate uses `0.5.0-beta.1` in both `package.json` and `package-lock.json` for the next **GitHub** prerelease. This does not authorize npm registry publication; choose and verify the first npm registry version and dist-tag separately. Never assume that a source version or absent registry listing proves a package is available from npm.
+The published [GitHub v0.5.0-beta.1 prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) uses `0.5.0-beta.1` in both `package.json` and `package-lock.json` and has passed a separately downloaded clean consumer install. This does not authorize npm registry publication; choose and verify the first npm registry version and dist-tag separately. Never assume that a source version or absent registry listing proves a package is available from npm.
 
 The 14 October 2026 server's `npm whoami` returned `ENEEDAUTH`. Only an authorized npm
 publisher can complete this gate; do not store an npm token in the repo,

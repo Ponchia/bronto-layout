@@ -2,10 +2,11 @@
 
 ## Unreleased
 
-## 0.5.0-beta.1 (source candidate — GitHub release pending CI; npm registry not published)
+## 0.5.0-beta.1 (14 October 2026 — verified GitHub prerelease; npm registry not published)
 
 - Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting `CSP_SANDBOX_UNINSPECTABLE` (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during the first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
 - Chromium integration tests cover an HTTP-served positive control, enforced sandbox, allowed scripts and Report-Only policy; offline CLI consumers verify the extra shipped module. No source-level CSS repair or script-disabled DOM inspection was introduced.
+- [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) ships the npm-compatible tarball from all-green `main` commit `7797090`. The published 201-file tarball checksum is `f471a03498980d80ce304aa45a04e8b468736f51478822b7620ffc147a7b1de8`. No npm registry publication, user data collection, independent accuracy claim or promotional launch.
 
 ## 0.5.0-beta.0 (14 October 2026 — GitHub prerelease; npm registry not published)
 
