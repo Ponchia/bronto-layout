@@ -31,6 +31,16 @@ export function capturePageAuditObservations(
   let overlapContainersInspected = 0;
   let overlapContainersOmitted = 0;
   let visitedElements = 0;
+  // A page can have a single element with hundreds of thousands of direct
+  // children. Never materialize or spread the entire sibling set into V8's
+  // argument stack. Cap pending work just as we cap visited elements.
+  let pendingQueueTruncated = false;
+  const enqueueChildren = (parent: Element | ShadowRoot) => {
+    for (let child = parent.firstElementChild; child; child = child.nextElementSibling) {
+      if (stack.length >= MAX_ELEMENTS) { pendingQueueTruncated = true; break; }
+      stack.push(child);
+    }
+  };
   let visibleElements = 0;
   let totalImages = 0;
   let unloadedImages = 0;
@@ -94,8 +104,8 @@ export function capturePageAuditObservations(
     // display: contents has no own rectangle, but its descendants still render.
     // visibility: hidden can also be overridden by visible descendants.
     if (style.display === 'none') continue;
-    if (el.shadowRoot) stack.push(...Array.from(el.shadowRoot.children));
-    stack.push(...Array.from(el.children));
+    if (el.shadowRoot) enqueueChildren(el.shadowRoot);
+    enqueueChildren(el);
     if (style.visibility === 'hidden' || style.visibility === 'collapse') continue;
     const rect = el.getBoundingClientRect();
     if (!(rect.width > 0 && rect.height > 0) || !el.getClientRects().length) continue;
@@ -260,7 +270,7 @@ export function capturePageAuditObservations(
       }
     }
   }
-  const truncated = stack.length > 0;
+  const truncated = stack.length > 0 || pendingQueueTruncated;
   return {
     visitedElements, traversalLimit: MAX_ELEMENTS, truncated,
     visibleElements, totalImages, unloadedImages, deferredOffscreenLazyImages,

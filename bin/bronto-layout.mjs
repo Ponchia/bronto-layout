@@ -361,6 +361,11 @@ async function check(a) {
       return report;
     }, Boolean(a.refine), config.maxSamples, config.interiorProbes);
     const total = summary(checked.reports);
+    if (total.passed + total.failed === 0) {
+      const error = new Error('No applicable layout rules were evaluated at the sampled viewport widths; all rules were outside their declared width ranges or otherwise unmeasured. Choose appropriate widths or review the contract; this is unverified, not a passing layout.');
+      error.code = 'NO_APPLICABLE_RULES';
+      throw error;
+    }
     return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions, sampling: checked.sampling,
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
       ...(a['css-sources'] ? { cssSourceLeads, omittedCSSSourceWidths } : {}),
@@ -756,7 +761,8 @@ async function main() {
 main().catch(async error => {
   process.exitCode = 2;
   const message = error instanceof Error ? error.message : String(error);
-  const code = error?.code === 'CSP_SANDBOX_UNINSPECTABLE' ? 'CSP_SANDBOX_UNINSPECTABLE' : 'CLI_ERROR';
+  const code = ['CSP_SANDBOX_UNINSPECTABLE', 'NO_APPLICABLE_RULES'].includes(error?.code)
+    ? error.code : 'CLI_ERROR';
   const args = process.argv.slice(2);
   const report = {
     schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,

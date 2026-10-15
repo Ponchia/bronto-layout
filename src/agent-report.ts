@@ -61,7 +61,8 @@ function compactFinding(finding: LayoutFinding, width: number) {
     ...(finding.paths?.length ? { paths: finding.paths.slice(0, 6) } : {}),
     ...(finding.evidence?.length ? { evidence: finding.evidence.slice(0, 4) } : {}),
     ...(finding.overflowCandidates?.length
-      ? { overflowCandidates: finding.overflowCandidates.slice(0, 4) } : {})
+      ? { overflowCandidates: finding.overflowCandidates.slice(0, 4) } : {}),
+    ...(finding.overflowCandidatesTruncated ? { overflowCandidatesTruncated: true } : {})
   };
 }
 

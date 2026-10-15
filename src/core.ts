@@ -46,6 +46,8 @@ export interface LayoutSnapshot {
   stabilization?: GeometryStabilization;
   /** Bounded suggestions for investigating horizontal document overflow. */
   overflowCandidates?: OverflowCandidate[];
+  /** Candidate-list search was bounded before all DOM siblings could be visited. */
+  overflowCandidatesTruncated?: boolean;
   /** Optional lab-observed loading/hydration movement for this navigation. */
   layoutShifts?: LayoutShiftSummary;
 }
@@ -89,6 +91,8 @@ export interface LayoutFinding {
   evidence?: FindingEvidence[];
   /** Browser-derived leads for a document-overflow failure. */
   overflowCandidates?: OverflowCandidate[];
+  /** Candidate-list search was bounded before all DOM siblings could be visited. */
+  overflowCandidatesTruncated?: boolean;
   /** Stable machine-readable codes for actionable diagnostics, not guesswork about the CSS cause. */
   code?: 'missing-selector' | 'ambiguous-selector' | 'outside-width-range' | 'measurement-unavailable' | 'constraint';
 }
@@ -174,6 +178,10 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
       if (finding.status === 'fail' && s.overflowCandidates?.length) {
         finding.overflowCandidates = s.overflowCandidates;
         finding.paths = s.overflowCandidates.map(candidate => candidate.path);
+      }
+      if (finding.status === 'fail' && s.overflowCandidatesTruncated) {
+        finding.overflowCandidatesTruncated = true;
+        finding.message += '; overflow candidate search was bounded and incomplete';
       }
       report(finding);
     } else if (rule.type === 'selector-count') {
