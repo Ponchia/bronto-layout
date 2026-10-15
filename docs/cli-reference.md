@@ -415,7 +415,23 @@ setup at candidate breakpoint widths. No JavaScript is allowed in the action
 file; there is no automatic login, complex drag, root-cause inference, or claim
 about uninspected iframe content. JSON reports describe action **types/counts**,
 not selectors or filled values. Keep sensitive action files out of committed
-examples and shared report artifacts. See [interactive audits](../docs/quickstart.md).
+examples and shared report artifacts.
+
+**DOM click versus pointer click:** The legacy `click` action invokes
+`Element.click()` even when another layer obstructs the target. For a
+mouse-pointer-like input test, the **opt-in** `pointer-click` action uses
+Chrome's actual `Input.dispatchMouseEvent` after checking the target's
+visible viewport hit point, including explicitly open Shadow DOM. It refuses
+offscreen, covered, disabled, inert or transparent controls rather than
+producing a false verified click. Add an explicit `scroll-into-view` step
+first for lower-page controls. This models a mouse click, not keyboard,
+touch, drag, complex paint, full accessibility or human usability.
+
+Use only reviewed non-destructive selectors on permitted pages; a real click
+may perform a navigation or submission. No arbitrary JavaScript is accepted,
+and the tool does not attempt a sandbox bypass to rescue failed interactions.
+
+See [interactive audits](../docs/quickstart.md).
 
 ### Experimental CSS grid spacing review (opt-in)
 
@@ -925,3 +941,9 @@ That fixture passes at the two coarse widths (600px and 900px), but fails inside
 The CLI needs a script-capable top-level document to run its browser geometry probe. A document that enforces `Content-Security-Policy: sandbox` **without** `allow-scripts` remains intentionally script-disabled, as in Spatial's read-only report views. Such an observed HTTP document is **unverified**: the CLI returns structured error code `CSP_SANDBOX_UNINSPECTABLE` with exit `2`, never a passing score or a `Runtime.evaluate` timeout. A `Content-Security-Policy-Report-Only` header is not enforced and does not trigger this classification. This only identifies confirmed *top-level HTTP response headers*; it is not comprehensive iframe or meta-CSP inspection.
 
 Never remove a report's CSP, set `allow-scripts`, or pass browser-process `--no-sandbox` to satisfy a layout test. Those are different isolation layers. Inspect a trusted standalone source document where scripts are permitted, and use separate visual or DOMSnapshot evidence for intentionally script-disabled frames; no such evidence certifies inaccessible interior pixels or arbitrary user states.
+
+## No applicable rules and clipped documents
+
+A strict layout contract must evaluate at least one applicable rule across the requested viewport widths. If **all** rules are out of range or otherwise unmeasured, `check` now exits `2` with `NO_APPLICABLE_RULES` rather than presenting an empty green result. Intentionally out-of-range rules remain safe skips **when some other rule actually ran**. Prefer `--fail-on-skip` when unavailable measurements should block CI; a rule that was not scheduled because of its explicit width range is different from one that failed to measure.
+
+The zero-contract audit reports horizontal document extent as a review warning when root or body CSS explicitly clips horizontal overflow. The measured width difference remains visible, but it does not prove a user-scrollable defect. A **separate user-approved** `document-overflow` contract still tests the literal extent against its declared tolerance.

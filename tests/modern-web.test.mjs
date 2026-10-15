@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
 import { evaluateLayout } from '../dist/core.js';
 import { parseContract } from '../dist/contract.js';
 
@@ -81,6 +83,22 @@ test('CLI fails fast on malformed deep selector rather than claiming no match', 
   assert.equal(error.mode, 'error');
   assert.match(error.error.message, /Invalid deep selector/);
 });
+test('an all-out-of-width-range contract is unverified, not a green empty check', t => {
+  const base = JSON.parse(fs.readFileSync(path.join(cwd, 'examples/layout.json'), 'utf8'));
+  base.rules = base.rules.map(rule => ({...rule, minWidth: 2000, maxWidth: 2200}));
+  // The spec is passed through a private temporary file, not via user input.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bronto-inapplicable-'));
+  try {
+    fs.writeFileSync(path.join(tmp,'layout.json'), JSON.stringify({...base,url:path.join(cwd,'examples/healthy.html')}));
+    const result = run(['check','--spec',path.join(tmp,'layout.json'),'--widths','320,375','--json','--compact']);
+    if (skipIfNoChrome(t,result)) return;
+    assert.equal(result.status,2,result.stderr||result.stdout);
+    const parsed=JSON.parse(result.stdout);
+    assert.equal(parsed.error.code,'NO_APPLICABLE_RULES');
+    assert.match(parsed.error.message,/No applicable layout rules/);
+  } finally {fs.rmSync(tmp,{recursive:true,force:true});}
+});
+
 test('--fail-on-skip does not fail intentionally out-of-range rules', t => {
   const result = run(['check', '--spec', 'examples/layout.json', '--widths', '320,375', '--fail-on-skip', '--json']);
   if (skipIfNoChrome(t, result)) return;
@@ -123,4 +141,8 @@ test('document overflow exposes measured element leads without claiming they are
   assert.equal(finding.deviation, 60);
   assert.equal(finding.overflowCandidates?.[0].path, '#wide');
   assert.deepEqual(finding.paths, ['#wide']);
+  snapshot.overflowCandidatesTruncated = true;
+  const incomplete=evaluateLayout(snapshot,[{id:'overflow',type:'document-overflow'}]).findings[0];
+  assert.equal(incomplete.overflowCandidatesTruncated,true);
+  assert.match(incomplete.message,/incomplete/);
 });

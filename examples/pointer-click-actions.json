@@ -1,0 +1,6 @@
+[
+  {
+    "type": "pointer-click",
+    "selector": "#open"
+  }
+]

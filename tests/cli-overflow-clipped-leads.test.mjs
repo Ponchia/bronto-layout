@@ -51,13 +51,16 @@ test('real root overflow retains a measured error but excludes inner clipped cod
     'An internally clipped long code line must not outrank or impersonate a root overflow cause');
 });
 
-test('minimum-width clipped root retains true extent without blaming oversized code in a local scroller', t => {
+test('minimum-width clipped root retains numeric extent as review evidence without inventing scroll defect', t => {
   const r = run('overflow-clipped-narrow-root');
   if (shouldSkip(t, r)) return;
-  assert.equal(r.status, 1, r.stderr || r.stdout);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
   const audit = JSON.parse(r.stdout);
-  assert.equal(audit.summary.measuredIssues, 1);
+  assert.equal(audit.summary.measuredIssues, 0);
+  assert.equal(audit.summary.reviewWarnings, 1);
   const lead = audit.reports[0].findings.find(f => f.code === 'document-horizontal-overflow');
+  assert.equal(lead.classification, 'review');
+  assert.equal(lead.severity, 'warning');
   assert.ok(lead.measuredPx >= 5 && lead.measuredPx < 30,
     'The scrollbar-reduced scrollport should leave a small document overhang');
   assert.match(lead.message, /horizontal clipping; this width difference does not by itself prove user-visible scrolling/);

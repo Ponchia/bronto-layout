@@ -73,6 +73,7 @@ export function captureDOMGeometry(
   const docWidth = Math.max(root.scrollWidth, body?.scrollWidth ?? 0);
   const direction = window.getComputedStyle(root).direction === 'rtl' ? 'rtl' : 'ltr';
   const overflowCandidates: NonNullable<LayoutSnapshot['overflowCandidates']> = [];
+  let overflowCandidatesTruncated = false;
   function parentOrShadowHost(element: Element): Element | null {
     if (element.parentElement) return element.parentElement;
     const tree = element.getRootNode();
@@ -101,8 +102,16 @@ export function captureDOMGeometry(
     // intentionally clipped by an ancestor. Report evidence; don't accuse CSS.
     // Bound traversal and output so dense apps cannot flood an agent context.
     const walk: Element[] = [root];
+    const WALK_LIMIT = 12000;
+    let pendingTruncated = false;
+    const enqueueChildren = (parent: Element | ShadowRoot) => {
+      for (let child=parent.firstElementChild; child; child=child.nextElementSibling) {
+        if (walk.length >= WALK_LIMIT) { pendingTruncated = true; break; }
+        walk.push(child);
+      }
+    };
     let visited = 0;
-    while (walk.length && visited < 12000) {
+    while (walk.length && visited < WALK_LIMIT) {
       const element = walk.pop()!;
       visited++;
       const style = window.getComputedStyle(element);
@@ -117,9 +126,10 @@ export function captureDOMGeometry(
           width: bounds.width, height: bounds.height },
           rightOverflow, leftOverflow, position: style.position, overflowX: style.overflowX });
       }
-      if (element.shadowRoot) walk.push(...Array.from(element.shadowRoot.children));
-      walk.push(...Array.from(element.children));
+      if (element.shadowRoot) enqueueChildren(element.shadowRoot);
+      enqueueChildren(element);
     }
+    overflowCandidatesTruncated = pendingTruncated || walk.length > 0;
     // Root scrollWidth excess normally extends the document's inline-end
     // edge. An intentionally translated, fixed offscreen menu on the
     // opposite side can overhang by hundreds of pixels without accounting
@@ -146,6 +156,7 @@ export function captureDOMGeometry(
       rootOverflowX: window.getComputedStyle(root).overflowX,
       ...(body ? { bodyOverflowX: window.getComputedStyle(body).overflowX } : {})
     },
-    selectors: entries, selectorCounts, ...(overflowCandidates.length ? { overflowCandidates } : {})
+    selectors: entries, selectorCounts, ...(overflowCandidates.length ? { overflowCandidates } : {}),
+    ...(overflowCandidatesTruncated ? { overflowCandidatesTruncated } : {})
   };
 }
