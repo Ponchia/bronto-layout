@@ -12,6 +12,22 @@
         "type": "object",
         "properties": {
           "type": {
+            "const": "pointer-click"
+          },
+          "selector": {
+            "$ref": "#/$defs/actionSelector"
+          }
+        },
+        "required": [
+          "type",
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "type": {
             "const": "click"
           },
           "selector": {

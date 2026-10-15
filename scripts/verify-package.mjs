@@ -35,9 +35,14 @@ try {
   assert.ok(existsSync(archive), 'npm did not write its tarball');
   const packedFiles = new Set(packed.files.map(file => file.path));
   const required = [
-    'bin/bronto-layout.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/core.js',
+    'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html',
+    'examples/pointer-click-visible.html', 'examples/pointer-click-visible.json', 'examples/pointer-click-hover-cover.html', 'examples/pointer-click-hover-cover.json',
+    'examples/pointer-click-obscured.html', 'examples/pointer-click-obscured.json',
+    'examples/pointer-click-below-fold.html', 'examples/pointer-click-below-fold.json', 'examples/pointer-click-scrolled.json',
+    'examples/pointer-click-shadow.json', 'examples/pointer-click-actions.json',
+    'examples/dom-click-obscured.json',
     'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/scroll-deep.html', 'examples/scroll-deep.json', 'examples/scroll-deep-top-control.json', 'examples/scroll-deep-actions.json', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
     'examples/audit-visible-canvas.html', 'examples/audit-focus-skiplink.html',
     'examples/audit-offscreen-lazy.html', 'examples/audit-visible-pending.html',
@@ -109,6 +114,9 @@ try {
   }), false, 200, 3);
   assert.deepEqual(testedWidths.sampling.interiorWidths, [360,400,440],
     'Installed TypeScript API must preserve opt-in interior probing');
+  assert.equal(typeof api.checkPlaywrightPage, 'function');
+  assert.equal(installedPkg.exports['./playwright'].default, './dist/playwright.js');
+  assert.equal(installedPkg.exports['./playwright'].types, './dist/playwright.d.ts');
   assert.equal(typeof api.evaluateLayout, 'function');
   assert.equal(typeof api.parseContract, 'function');
   assert.equal(api.parseContract({

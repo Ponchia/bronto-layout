@@ -72,6 +72,7 @@ You can:
 - Run conservative **zero-contract audits** and review potential layout leads separately from confirmed measurements.
 - **Compare baseline and candidate revisions** using stable contract rules, JSON/SARIF reports and optional visual evidence.
 - Test **multiple widths, breakpoints and routes**, including RTL, open Shadow DOM and declared interactions.
+- Use optional **real browser pointer-click** checks when a DOM event alone would falsely “open” an obscured or offscreen control; separate mouse hit testing from keyboard/touch usability.
 - **Inspect element geometry and matched CSS** without fabricating a source-level root cause.
 - Use the **pure TypeScript evaluation engine** with host-provided geometry, without Chromium or a framework dependency.
 
@@ -90,6 +91,7 @@ You can:
 | --- | --- |
 | [10-minute first-run guide](docs/quickstart.md) | Audit, suggest, approve, state replay and batch |
 | [Beta integrations and agent recipe](docs/beta-integration.md) | Local/source installation, pinned GitHub Action, CI coverage and agent policies |
+| [Existing Playwright test adapter](docs/playwright-adapter.md) | Reuse Playwright Page state, capture DOM geometry, evaluate approved contracts without launching another browser |
 | [npm beta bootstrap and protected OIDC](docs/npm-publishing.md) | Authenticated first release, then provenance-attested, manually approved GitHub tag publishing |
 | [First-party beta trial worksheet](docs/beta-trial-template.md) | Record controlled pilot evidence without publicly exposing user data |
 | [First-party beta pilot findings](docs/first-party-beta-pilots.md) | Measured project integrations, controlled failures, security limits and remaining evidence gaps |

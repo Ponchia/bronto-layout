@@ -114,13 +114,19 @@ export function analyzePageAudit(
   const findings: AuditFinding[] = [];
   const contentWidth = snapshot.viewport.contentWidth ?? snapshot.viewport.width;
   const overflow = Math.max(0, snapshot.document.width - contentWidth);
+  // Clipping changes what the measured scroll-width excess can establish.
+  // Retain the number as an observed fact but don't turn it into a strict
+  // automatic defect if CSS intentionally makes that extent inaccessible.
+  const clipped = [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX]
+    .some(style => style === 'clip' || style === 'hidden');
   if (overflow > 1) findings.push({
-    code: 'document-horizontal-overflow', classification: 'measured', severity: 'error',
+    code: 'document-horizontal-overflow',
+    classification: clipped ? 'review' : 'measured',
+    severity: clipped ? 'warning' : 'error',
     measuredPx: Number(overflow.toFixed(2)),
     message: 'Document scroll width exceeds the usable viewport by ' + overflow.toFixed(2) +
       ' CSS px. ' + (
-        [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX].some(
-          style => style === 'clip' || style === 'hidden')
+        clipped
           ? 'Root or body CSS declares horizontal clipping; this width difference does not by itself prove user-visible scrolling. Review intentional clipping before making changes.'
           : 'This may be intentional; review the component before changing it.'
       ),

@@ -3,7 +3,10 @@
  * Click/fill are intentionally allowed only when written in the user's contract.
  */
 export type LayoutAction =
+  /** Programmatic DOM click: does not prove the target is physically hittable. */
   | { type: 'click'; selector: string }
+  /** Real Chrome pointer events after a viewport hit-test; intentionally opt-in. */
+  | { type: 'pointer-click'; selector: string }
   | { type: 'fill'; selector: string; value: string }
   | { type: 'wait-for'; selector: string }
   | { type: 'scroll-into-view'; selector: string }
@@ -16,7 +19,7 @@ export function parseLayoutActions(value: unknown): LayoutAction[] {
   for (const [i, action] of value.entries()) {
     if (!action || typeof action !== 'object' || Array.isArray(action))
       throw new Error(`Invalid layout contract: actions[${i}] must be an object`);
-    if (!['click', 'fill', 'wait-for', 'scroll-into-view', 'pause'].includes(action.type))
+    if (!['click', 'pointer-click', 'fill', 'wait-for', 'scroll-into-view', 'pause'].includes(action.type))
       throw new Error(`Invalid layout contract: actions[${i}] has unsupported type`);
     const fields = action.type === 'pause' ? ['type', 'milliseconds']
       : action.type === 'fill' ? ['type', 'selector', 'value'] : ['type', 'selector'];

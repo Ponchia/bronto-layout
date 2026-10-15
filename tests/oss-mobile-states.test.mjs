@@ -64,13 +64,19 @@ test('manual OSS workflow rejects arbitrary targets and browser sandbox bypass',
   assert.match(workflow, /doctor --verify-launch --json/);
   assert.match(workflow, /benchmarks\/oss-states\/\*\.json/);
   assert.match(workflow, /--actions "\$dir\/actions\.json"/);
-  assert.match(workflow, /--spec "\$spec"/);
+  assert.match(workflow, /--spec "\$effective_spec"/);
   assert.match(workflow, /--evidence-dir "\$dir\/screens"/);
   assert.match(workflow, /retention-days: 7/);
   assert.doesNotMatch(workflow, /BRONTO_CHROME_NO_SANDBOX|--no-sandbox|--disable-web-security/);
   assert.doesNotMatch(workflow, /inputs\.(?:url|host|manifest|path|command)/);
   assert.doesNotMatch(workflow, /curl -X POST|fill.*password|workflow_call/);
   assert.match(workflow, /Navigation left approved public path/);
+  assert.match(workflow, /options:\n\s+- dom\n\s+- pointer\n/);
+  assert.match(workflow, /INTERACTION_MODE: \$\{\{ inputs\.mode \}\}/);
+  assert.match(workflow, /case "\$INTERACTION_MODE" in/);
+  assert.match(workflow, /contract\.actions\[0\]\.type = 'pointer-click'/);
+  assert.match(workflow, /effective_spec="\$dir\/pointer-spec\.json"/);
+  assert.match(workflow, /node bin\/bronto-layout\.mjs validate --spec "\$effective_spec"/);
   assert.ok(workflow.includes('cd "$out"'), 'Checksum paths must be relative to extracted artifact root');
   assert.match(workflow, /sha256sum --check SHA256SUMS/);
   assert.match(workflow, /<<'NODE' \|\| failed=1/,
