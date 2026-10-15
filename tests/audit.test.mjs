@@ -42,8 +42,10 @@ test('explicit root clipping remains a measured extent, but the report avoids as
   snapshot.document.rootOverflowX='clip';
   snapshot.document.bodyOverflowX='clip';
   const report=analyzePageAudit(snapshot,obs());
-  assert.equal(report.summary.errors,1);
-  assert.equal(report.findings[0].classification,'measured');
+  assert.equal(report.summary.errors,0);
+  assert.equal(report.summary.warnings,1);
+  assert.equal(report.findings[0].classification,'review');
+  assert.equal(report.findings[0].severity,'warning');
   assert.equal(report.findings[0].measuredPx,10);
   assert.match(report.findings[0].message,/does not by itself prove user-visible scrolling/);
 });
