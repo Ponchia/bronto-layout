@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "url": "oss-svelte-flex-min-fixed.html",
+  "widths": [
+    320,
+    375
+  ],
+  "selectors": {
+    "shell": "#app",
+    "repl": "#repl-container",
+    "switch": "#io-switch"
+  },
+  "rules": [
+    {
+      "id": "switch-present",
+      "type": "selector-count",
+      "element": "switch",
+      "exactly": 1
+    },
+    {
+      "id": "switch-remains-in-viewport",
+      "type": "contained",
+      "element": "switch",
+      "in": "viewport",
+      "axis": "y",
+      "tolerance": 2
+    },
+    {
+      "id": "document-width-fits",
+      "type": "document-overflow",
+      "tolerance": 2
+    }
+  ]
+}

@@ -38,6 +38,11 @@
   sandboxed source-build run delivered 12 source-pinned screenshots and
   27/27 verified file hashes. No upstream Eleventy defect or independent
   human correctness label is implied.
+- Add a controlled historical OSS flexbox-minimum-size regression informed
+  by the independently fixed Svelte playground mobile switch (#548).
+  Existing explicit viewport containment detects a 58px obscured switch
+  while both selector existence and generic horizontal audit remain green.
+  Document the recreation's limits instead of claiming an upstream replay.
 
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic
