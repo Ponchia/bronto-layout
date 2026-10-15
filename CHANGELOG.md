@@ -30,6 +30,14 @@
 
 
 - Distinguish deliberately deferred offscreen `loading=lazy` images from genuinely pending visible media while recording known uninspected paint and excluding it from whole-page accuracy scoring. Controlled Chrome fixtures and an Astro EN/ES sandboxed browser run (8/8 states, 16/16 hashes) observed 15 earlier pending-image entries versus none in the new capture, with 12 deferred-image observations; network timing differs and no independent quality labels exist.
+- Extend the pinned Eleventy source-built study with two distinct and
+  independently verified generated-CSS regressions: a non-overflowing 18px
+  desktop centering defect caught only by its approved semantic contract,
+  and a 55px mobile document overflow detected by both generic audit and
+  strict layout contracts. Healthy source checks remain 88/88; the second
+  sandboxed source-build run delivered 12 source-pinned screenshots and
+  27/27 verified file hashes. No upstream Eleventy defect or independent
+  human correctness label is implied.
 - Add a controlled historical OSS flexbox-minimum-size regression informed
   by the independently fixed Svelte playground mobile switch (#548).
   Existing explicit viewport containment detects a 58px obscured switch

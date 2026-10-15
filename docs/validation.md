@@ -29,6 +29,23 @@ same loading state. Old captures remain immutable; the improved precision
 is the explicit distinction between normal deferral, visible pending media
 and potentially broken completed images, not a claim of improved Astro UX
 or established detector precision/recall.
+## 2026-10-13: two independent generated CSS faults on pinned Eleventy source
+
+The [expanded independent Eleventy source-build](https://github.com/Ponchia/bronto-layout/actions/runs/38431210856)
+reproduced all eight healthy responsive states (**88/88 approved layout rules**).
+Its 1280px main-column translation produced an **18px semantic centering failure**
+but **0 generic overflow findings**. After restoring generated HTML, a separate
+320px minimum-width injection caused **55px measured document overflow**, with
+both the generic audit and `site-document-no-overflow` reporting 55px.
+The semantic check recorded three failed rules overall; the named overflow
+rule is the relevant one.
+
+After downloading the source-pinned artifact, **27/27 SHA-256 entries** verified,
+including **8 healthy and 4 mutation screenshots**. Their dimensions,
+normalized paths and content hashes matched the reviewer index. The official
+Eleventy source revision was unchanged. Both CSS defects were intentional
+and do not establish upstream defects, human-labeled precision/recall,
+cross-browser correctness or genuine outside-user adoption.
 ## 2026-10-13: source-inspired Svelte mobile toggle regression
 
 The [Svelte website's October 2024 mobile playground correction](https://github.com/sveltejs/svelte.dev/pull/548)

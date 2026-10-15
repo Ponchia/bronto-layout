@@ -126,6 +126,48 @@ export function verifyEleventyEvidence(directory) {
   semantic.evidence[0].sha256 = annotatedImage.sha256;
   writeFileSync(path.join(base, 'semantic-mutated-check.json'), JSON.stringify(semantic, null, 2) + '\n');
 
+  // Separate 320px mutation: this one MUST cause a genuine measured
+  // viewport-width defect, unlike the 18px non-overflowing centering shift.
+  const mobileAudit = jsonAt(base, 'generic-mobile-overflow-audit.json');
+  const mobileContract = jsonAt(base, 'semantic-mobile-overflow-check.json');
+  assert.equal(mobileAudit.summary.measuredIssues, 1,
+    'Mobile width mutation must be detected by zero-contract audit');
+  assert.equal(mobileAudit.summary.incompleteViewports, 0);
+  assert.equal(mobileAudit.reports?.length, 1);
+  assert.equal(mobileAudit.reports[0].width, 320);
+  verifiedReportURL(mobileAudit, 'home');
+  const overflow = mobileAudit.reports[0].findings.find(f =>
+    f.code === 'document-horizontal-overflow' && f.classification === 'measured');
+  assert.ok(overflow && overflow.measuredPx >= 20 && overflow.measuredPx <= 90,
+    'Expected a genuine, bounded 320px document overflow');
+  assert.equal(mobileContract.summary.failed > 0, true);
+  assert.equal(mobileContract.reports?.length, 1);
+  assert.equal(mobileContract.reports[0].viewport.width, 320);
+  const overflowRule = mobileContract.reports[0].findings.find(f =>
+    f.id === 'site-document-no-overflow' && f.status === 'fail');
+  assert.ok(overflowRule && overflowRule.deviation >= 20 && overflowRule.deviation <= 90,
+    'Approved root document overflow rule must reject the mobile mutation');
+  assert.ok(Math.abs(overflowRule.deviation - overflow.measuredPx) <= 3,
+    'Generic audit and semantic contract must agree on the measured width extent');
+
+  const mobileAuditScreenshot = 'mutation/overflow-screens/audit-320px.png';
+  relativeScreenshot(base, mobileAudit.reports[0].screenshot?.file, mobileAuditScreenshot);
+  const mobileScreenshot = pngAt(base, mobileAuditScreenshot, 320);
+  mobileAudit.reports[0].screenshot.file = mobileAuditScreenshot;
+  mobileAudit.reports[0].screenshot.sha256 = mobileScreenshot.sha256;
+  writeFileSync(path.join(base, 'generic-mobile-overflow-audit.json'),
+    JSON.stringify(mobileAudit, null, 2) + '\n');
+
+  const mobileAnnotated = 'mutation/overflow-annotated/check-320px.png';
+  assert.equal(mobileContract.evidence?.length, 1,
+    'Failing mobile semantic contract should produce an annotated screenshot');
+  relativeScreenshot(base, mobileContract.evidence[0].screenshot, mobileAnnotated);
+  const mobileAnnotatedImage = pngAt(base, mobileAnnotated, 320);
+  mobileContract.evidence[0].screenshot = mobileAnnotated;
+  mobileContract.evidence[0].sha256 = mobileAnnotatedImage.sha256;
+  writeFileSync(path.join(base, 'semantic-mobile-overflow-check.json'),
+    JSON.stringify(mobileContract, null, 2) + '\n');
+
   const index = {
     schemaVersion: 1,
     cohortId: source.id,
@@ -144,10 +186,20 @@ export function verifyEleventyEvidence(directory) {
       screenshot: mutatedAuditImage,
       annotatedScreenshot: annotatedImage
     },
+    mobileOverflowMutation: {
+      width: 320,
+      measuredOverflow: overflow.measuredPx,
+      failedRule: overflowRule.id,
+      deviationPx: overflowRule.deviation,
+      genericAudit: 'generic-mobile-overflow-audit.json',
+      semanticContract: 'semantic-mobile-overflow-check.json',
+      screenshot: mobileScreenshot,
+      annotatedScreenshot: mobileAnnotatedImage
+    },
     limitations: [
       'Viewport images and DOM geometry do not prove complete visual correctness',
       'No independently assigned human ground truth or precision/recall',
-      'CSS mutation is deliberate and is not an upstream Eleventy defect',
+      'Both CSS mutations are deliberate and are not upstream Eleventy defects',
       'No visual pixel-comparison or cross-browser agreement asserted'
     ]
   };
@@ -164,6 +216,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   process.stdout.write(JSON.stringify({
     cohort: result.cohortId, screenshots: result.baselineScreenshots.length,
     approvedRules: result.approvedEvaluations, mutatedDeviation: result.mutation.deviationPx,
+    mobileOverflowPx: result.mobileOverflowMutation.measuredOverflow,
     index: args[1] + '/index.json'
   }) + '\n');
 }

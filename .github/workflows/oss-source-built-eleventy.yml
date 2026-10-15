@@ -176,8 +176,60 @@ jobs:
             failures[0].id, 'fails by', failures[0].deviation, 'CSS px.');
           NODE
 
-          # Fail if a screenshot is absent or mismatched. Normalize screenshot
-          # references to artifact-relative paths; emit human-review index.
+          # Second independent mutation: a genuine 320px mobile width defect.
+          # Restore the original generated HTML so this is NOT contaminated
+          # by the preceding 18px (desktop-only) alignment mutation.
+          cp "$original" .external-eleventy/_site/index.html
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const file = '.external-eleventy/_site/index.html';
+          const html = fs.readFileSync(file, 'utf8');
+          if (!html.includes('</head>')) throw new Error('Pinned source HTML changed');
+          const css = '<style>@media(max-width:350px){#main{min-width:360px!important}}</style>';
+          fs.writeFileSync(file, html.replace('</head>', css + '</head>'));
+          NODE
+
+          # Unlike the desktop alignment mutation, this one must be detected
+          # by BOTH the generic root-width audit and the approved contract.
+          # Do not suppress the measured failure or weaken tolerances.
+          set +e
+          node bin/bronto-layout.mjs audit             --url http://127.0.0.1:18778/ --width 320             --json --compact             --evidence-dir "$out/mutation/overflow-screens"             > "$out/generic-mobile-overflow-audit.json"
+          mobile_generic_exit=$?
+          node bin/bronto-layout.mjs check             --spec benchmarks/oss-source-built/home.json --width 320             --json --evidence-dir "$out/mutation/overflow-annotated"             > "$out/semantic-mobile-overflow-check.json"
+          mobile_semantic_exit=$?
+          set -e
+
+          GENERIC_EXIT="$mobile_generic_exit" SEMANTIC_EXIT="$mobile_semantic_exit" OUT="$out" node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const base = process.env.OUT;
+          const audit = JSON.parse(fs.readFileSync(
+            path.join(base, 'generic-mobile-overflow-audit.json'), 'utf8'));
+          const contract = JSON.parse(fs.readFileSync(
+            path.join(base, 'semantic-mobile-overflow-check.json'), 'utf8'));
+          const measured = audit.reports?.[0]?.findings?.find(f =>
+            f.code === 'document-horizontal-overflow' && f.classification === 'measured');
+          const rule = contract.reports?.[0]?.findings?.find(f =>
+            f.id === 'site-document-no-overflow' && f.status === 'fail');
+          if (process.env.GENERIC_EXIT !== '1' || process.env.SEMANTIC_EXIT !== '1' ||
+              audit.summary.measuredIssues !== 1 ||
+              audit.summary.incompleteViewports !== 0 ||
+              audit.reports?.[0]?.width !== 320 ||
+              !measured || measured.measuredPx < 20 || measured.measuredPx > 90 ||
+              !rule || rule.deviation < 20 || rule.deviation > 90 ||
+              contract.reports?.[0]?.viewport?.width !== 320) {
+            console.error('Source-built 320px overflow was not detected correctly',
+              {genericExit:process.env.GENERIC_EXIT,
+               semanticExit:process.env.SEMANTIC_EXIT,
+               audit:audit.summary, measured, rule});
+            process.exit(1);
+          }
+          console.log('Independent source-built mobile mutation: generic and semantic',
+            'checks reject', measured.measuredPx, 'CSS px of viewport overflow');
+          NODE
+
+          # Fail if any expected normal/mutation screenshot is absent or
+          # mismatched. Normalize all references to artifact-relative paths.
           node scripts/verify-oss-source-build-evidence.mjs --out "$out"
 
           manifest="$RUNNER_TEMP/source-eleventy-SHA256SUMS"

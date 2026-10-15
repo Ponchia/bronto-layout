@@ -57,6 +57,24 @@ The explicit `site-main-centered` contract must reject the shift by
 approximately **18px**. This distinguishes semantic design-intent checking
 from simply verifying that nothing protrudes beyond the document.
 
+### Additional verified mobile-width regression
+
+Once the first mutation has been measured, the workflow restores the original
+generated homepage HTML, then adds a **separate** CSS rule at widths up to
+350px that gives `#main` a **360 CSS-pixel minimum width**. At a **320px
+viewport**, this deliberately forces a measurable document-width excess
+instead of merely changing the column's alignment. Both the generic
+`document-horizontal-overflow` finding and the approved
+`site-document-no-overflow` contract must reject it. The checks require the
+measured extent to be meaningful, bounded, and approximately consistent
+between generic and semantic results.
+
+This is an independent controlled recall check on genuine generated-site
+geometry, **not** a claim that the upstream Eleventy starter has this defect.
+Neither CSS mutation touches its pinned Git source checkout. The negative
+controls are measured individually after restoring the original generated
+HTML, so they cannot accidentally hide or amplify one another.
+
 If either result differs, the experimental workflow fails and preserves
 the audit and screenshot evidence. It does not invent or report a real
 upstream Eleventy defect: the mutation exists only on disposable generated
@@ -98,14 +116,46 @@ mutation outcomes cannot silently succeed.
 
 The [follow-up hosted visual run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662)
 has now succeeded at Bronto Layout commit `bda1df8`. It produced
-**all 8 baseline screenshots plus 2 mutation screenshots**, the
-source-pinned reviewer `index.json` and **23 checksum-verified artifact files**.
+**all 8 baseline screenshots plus 2 mutation screenshots** (the original
+**18px centering fault**), the source-pinned reviewer `index.json` and
+**23 checksum-verified artifact files**.
 The downloaded PNGs were inspected at mobile and desktop widths: no obvious
 defect was found in the sampled healthy viewports, while the deliberately
 displaced homepage and annotated evidence show the content-column change.
 A pixel-level comparison of the two 1280px screenshots confirms that rendered
 pixels differ in the content-column region; the approved geometry rule measures
 the induced **18px centering deviation** exactly.
+
+The [expanded pinned Eleventy run 38431210856](https://github.com/Ponchia/bronto-layout/actions/runs/38431210856)
+has now succeeded at Bronto Layout source commit `72b4670`. The exact
+pinned Eleventy repository was rebuilt from source, and all **88/88 approved
+healthy responsive evaluations** passed. The two independent induced
+faults behaved differently:
+
+- At **1280px**, the main column was translated **18 CSS px** without
+  leaving the viewport. The generic audit reported **0 measured issues**;
+  the explicit `site-main-centered` rule correctly failed by 18px.
+- At **320px**, the restored homepage acquired a 360px minimum-width main
+  element. Its effective usable viewport was smaller than 320px because of
+  the reserved scrollbar; the browser measured **55 CSS px of horizontal
+  document overflow**. The generic audit reported exactly **one measured
+  overflow finding** and the approved `site-document-no-overflow` contract
+  failed by **55px**. Two other consumer rules also failed, so the
+  overall semantic check had three failures, not just one.
+
+Both fault types were deliberately introduced into **generated HTML only**;
+they are not Eleventy source defects. The expanded artifact contains
+**8 healthy screenshots and 4 mutation screenshots** (unannotated and
+annotated for each mutation), with an offline source-pinned index.
+I downloaded the artifact and verified **27/27 SHA-256 file entries** plus
+all four image dimensions and mutation report measurements. The original
+23-file run remains valid historical evidence but does not include the
+new mobile control.
+
+This confirms a second behavior class on an independently authored website
+while retaining the same limitations: no independent human truth labels,
+pixel-quality judgment, accessible navigation assessment, or cross-browser
+agreement is inferred.
 
 The screenshots and source build are retained in a separate private,
 post-download verified archive. They are not published with the source

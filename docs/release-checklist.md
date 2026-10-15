@@ -93,6 +93,14 @@ This is the historical release-preparation checklist, **not** a claim of product
 - [x] Build the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner ([run 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)): **88/88 responsive checks**, one induced **18px semantic alignment failure**, and **0 generic audit issues**; all four initial JSON report hashes verified. This is mechanical, not human-labeled accuracy.
 - [x] Capture and inspect Eleventy's **8 baseline and 2 mutation screenshots** with a verified, portable evidence index in [run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662). All artifact SHA-256 checks passed and the 18px alignment displacement is visible. This is a first-party reviewer inspection, **not independent human accuracy labeling**.
 
+- [x] Verify the expanded [pinned Eleventy source-built OSS study](oss-source-built-study.md)
+  on [run 38431210856](https://github.com/Ponchia/bronto-layout/actions/runs/38431210856):
+  88/88 healthy assertions, a semantic-only 18px centering failure, and a
+  55px mobile root-width overflow rejected by both generic and semantic checks.
+  All 12 source-pinned screenshots and 27/27 downloaded artifact hashes were
+  verified; both faults are injected in generated HTML, not upstream defects.
+
+
 - [x] Complete the [fixed external deep-scroll study](oss-scroll-state-study.md) against Vite and Docusaurus: **4/4 verified scroll states**, **12/12 responsive contract evaluations**, and **13/13 portable artifact hashes** in [run 38415585449](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449). The previous Vite 10px clipped-root width observation remains, without a claim of user-visible overflow or independent whole-page correctness.
 - [x] Run the [fixed open-source mobile-navigation state cohort](oss-mobile-state-study.md) in sandboxed Chrome: **5/5 opened states**, **15/15 passing explicit assertions**, **0 measured errors**, and 21/21 evidence hashes verified in [run 38383862119](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119). This is automated state validation, not independently human-labelled design quality.
 - [ ] Obtain independent human usability/keyboard review of the opened menus; the current DOM-state and viewport checks cannot certify focus order or touch ergonomics.
