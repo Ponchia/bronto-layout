@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "url": "shadow-actions.html",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "pointer-click",
+      "selector": "#host >>> #change"
+    }
+  ],
+  "selectors": {
+    "subject": "#host >>> .subject"
+  },
+  "rules": [
+    {
+      "id": "open-shadow-button-responded-to-true-pointer",
+      "type": "size-range",
+      "element": "subject",
+      "axis": "width",
+      "min": 120,
+      "max": 120
+    }
+  ]
+}
