@@ -8,6 +8,7 @@
 - Permit manual OSS menu validation to compare the original DOM-click baseline against a temporary, opt-in `pointer-click` version of the **same five fixed public scenarios**, without mutating the historical cohort or broadening URL inputs.
 - Add opt-in `pointer-click` browser actions with Chrome mouse input and viewport/overlay hit-testing, including open Shadow DOM support and a post-hover recheck. Preserve legacy DOM `click` semantics for backward compatibility. Source-reviewed fixtures distinguish a genuinely clickable button from obstructed and offscreen buttons; no claims of touch or keyboard accessibility.
 - Add an optional, zero-runtime-dependency Playwright Page/Frame adapter for evaluating an already prepared DOM state using approved contracts; explicitly refuse undeclared width/state and do not navigate or replay actions.
+- Require full Node 22/24 Chromium and hosted macOS gates again on future npm prerelease tags; publish GitHub prerelease artifacts only after successful protected npm OIDC publication, using the same verified tarball.
 
 - Prepare the explicit, protected npm publishing workflow for **future** beta tags and document the one-time authenticated registry bootstrap. No registry version is published by this change.
 
