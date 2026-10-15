@@ -107,6 +107,7 @@ You can:
 | [External mobile-navigation states](docs/oss-mobile-state-study.md) | Fixed anonymous menu-opening experiments, post-click assertions and screenshots |
 | [External below-the-fold states](docs/oss-scroll-state-study.md) | Fixed Vite/Docusaurus section targets, actual scroll offsets and bounded screenshot evidence |
 | [Pinned source-built Eleventy study](docs/oss-source-built-study.md) | Independent project build, responsive contracts, controlled semantic fault |
+| [Historical Svelte flex regression](docs/oss-historical-flex-regression.md) | Source-inspired switch occlusion caught by existing vertical containment contracts |
 | [Contributing](CONTRIBUTING.md) and [security](SECURITY.md) | Local tests, reporting issues and safety |
 
 ## Contribute

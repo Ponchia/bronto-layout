@@ -30,6 +30,11 @@
 
 
 - Distinguish deliberately deferred offscreen `loading=lazy` images from genuinely pending visible media while recording known uninspected paint and excluding it from whole-page accuracy scoring. Controlled Chrome fixtures and an Astro EN/ES sandboxed browser run (8/8 states, 16/16 hashes) observed 15 earlier pending-image entries versus none in the new capture, with 12 deferred-image observations; network timing differs and no independent quality labels exist.
+- Add a controlled historical OSS flexbox-minimum-size regression informed
+  by the independently fixed Svelte playground mobile switch (#548).
+  Existing explicit viewport containment detects a 58px obscured switch
+  while both selector existence and generic horizontal audit remain green.
+  Document the recreation's limits instead of claiming an upstream replay.
 
 - Complete a successful pinned, independently authored Eleventy source-build
   study (88/88 baseline responsive assertions, 18px deliberate semantic

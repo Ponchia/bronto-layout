@@ -43,7 +43,7 @@ try {
     'examples/pointer-click-below-fold.html', 'examples/pointer-click-below-fold.json', 'examples/pointer-click-scrolled.json',
     'examples/pointer-click-shadow.json', 'examples/pointer-click-actions.json',
     'examples/dom-click-obscured.json',
-    'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/scroll-deep.html', 'examples/scroll-deep.json', 'examples/scroll-deep-top-control.json', 'examples/scroll-deep-actions.json', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
+    'examples/overflow-clipped-control.html', 'examples/overflow-clipped-leads.html', 'examples/oss-svelte-flex-min-broken.html', 'examples/oss-svelte-flex-min-fixed.html', 'examples/oss-svelte-flex-min.json', 'examples/scroll-deep.html', 'examples/scroll-deep.json', 'examples/scroll-deep-top-control.json', 'examples/scroll-deep-actions.json', 'examples/overflow-clipped-narrow-root.html', 'examples/overflow-rtl-directional-leads.html',
     'examples/audit-visible-canvas.html', 'examples/audit-focus-skiplink.html',
     'examples/audit-offscreen-lazy.html', 'examples/audit-visible-pending.html',
     'examples/deferred-probe.svg', 'examples/audit-offscreen-lazy-actions.json',
