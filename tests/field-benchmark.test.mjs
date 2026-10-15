@@ -250,6 +250,34 @@ test('human review dates reject nonexistent calendar days instead of accepting D
 });
 
 
+test('offscreen lazy media coverage cannot be mislabeled as whole-page true negative', () => {
+  const cases = [{id:'deferred-lazy',width:375,complete:true,screenshotVerified:true}];
+  const labels = {schemaVersion:1,datasetId:'deferred-field',
+    reviewProtocol:protocol,cases:[
+      {...reviewed('deferred-lazy'),expectedMeasured:[],expectedReview:[]}
+    ]};
+  const report = {mode:'audit',summary:{viewports:1},reports:[{
+    width:375,summary:{verified:false,supportedScopeMeasured:true},
+    coverage:{truncated:false,embeddedFrames:0,visibleCanvases:0,
+      deferredOffscreenLazyImages:2,status:'known-uninspected-content'},
+    findings:[]
+  }]};
+  const dataset={schemaVersion:1,datasetId:'deferred-field',cases};
+  const observed={'deferred-lazy':report};
+  const result=scoreFieldEvidence(dataset,labels,observed);
+  assert.equal(result.metrics.evaluatedCases,0);
+  assert.equal(result.metrics.incompleteCases,1);
+  assert.deepEqual(result.coverageExcluded,[{
+    id:'deferred-lazy',reason:'Offscreen lazy-loaded image paint was not audited'
+  }]);
+  report.reports[0].coverage.status='supported-scope-measured';
+  report.reports[0].summary.verified=true;
+  const forged=scoreFieldEvidence(dataset,labels,observed);
+  assert.equal(forged.metrics.evaluatedCases,0,
+    'Uninspected media count must override any incorrectly green summary');
+  assert.deepEqual(forged.coverageExcluded,result.coverageExcluded);
+});
+
 test('canvas paint gaps exclude apparent true negatives from field accuracy scoring', () => {
   const cases = [{id:'canvas',width:375,complete:true,screenshotVerified:true}];
   const labels = {schemaVersion:1,datasetId:'canvas-field',reviewProtocol:protocol,cases:[

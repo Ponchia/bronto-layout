@@ -1,0 +1,4 @@
+[
+  { "type": "scroll-into-view", "selector": "#deferred" },
+  { "type": "pause", "milliseconds": 350 }
+]

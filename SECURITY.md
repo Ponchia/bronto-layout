@@ -4,7 +4,7 @@ Bronto Layout is a local experimental CLI, not a hosted service. It starts a rea
 
 ## Supported versions
 
-Security fixes are considered for the current `main` branch and the latest tagged release, if one exists. No npm package or tagged release exists as of the v0.4.0 release candidate. There is no guaranteed support window for old development revisions.
+Security fixes are considered for the current `main` branch and the latest [GitHub beta prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1). GitHub tarballs are available, while npm registry distribution is not yet live. Older beta versions have no guaranteed support window.
 
 ## Report a vulnerability privately
 
@@ -14,7 +14,7 @@ Include affected version/commit, OS/Node/Chrome versions, the smallest safe repr
 
 ## Safe use and trust boundaries
 
-- **Keep Chrome sandboxing enabled** on untrusted websites. `--no-sandbox` and `BRONTO_CHROME_NO_SANDBOX=1` weaken browser isolation; existing CI uses this only on ephemeral isolated runners for narrow trusted fixtures and specifically allowlisted first-party public pages.
+- **Keep Chrome sandboxing enabled** on untrusted websites. `--no-sandbox` and `BRONTO_CHROME_NO_SANDBOX=1` weaken browser isolation; some isolated fixture tests run with this explicit override **only for locally generated, trusted HTML**. All public-site workflows require sandboxed Chromium, with a launch preflight and no fallback bypass.
 - Prefer a local development server or HTML fixtures you control; Bronto Layout is **not** a general website isolation tool or an authorization bypass.
 - Audit reports, full-page captures and paired screenshots may reveal sensitive DOM text, authenticated pages, pasted inputs or asset URLs. Treat reports as private until inspected and redact before sharing.
 - The repository does not use telemetry or hosted services. Adding third-party calls, external uploads, executable scenario scripts or broad arbitrary network targets requires separate security review.

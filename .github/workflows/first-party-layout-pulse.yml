@@ -1,0 +1,51 @@
+name: First-party layout pulse
+
+# The diagnostic is independent of package PR gates and never touches private
+# sessions, browser actions or pages. Scheduled results may be red when deployed sites change;
+# this is an observation to investigate, not proof of a source regression.
+on:
+  schedule:
+    - cron: '23 6 * * 1' # Weekly Monday, UTC. Avoid :00 GitHub scheduler contention.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bronto-layout-first-party-pulse
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Build source-pinned tool and check six target contracts offline
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node scripts/first-party-pulse.mjs --plan
+      - name: Prove sandboxed Chromium can launch before public navigation
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '0'
+        run: |
+          node bin/bronto-layout.mjs doctor --verify-launch --json > "$RUNNER_TEMP/bronto-pulse-browser-preflight.json"
+      - name: Check first-party public routes and emit sanitized findings only
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '0'
+        run: node scripts/first-party-pulse.mjs --run
+      - name: Retain compact longitudinal metadata (no browser captures)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: first-party-layout-pulse
+          path: ${{ runner.temp }}/bronto-first-party-pulse-summary.json
+          if-no-files-found: ignore
+          retention-days: 30

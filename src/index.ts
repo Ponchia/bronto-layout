@@ -1,6 +1,8 @@
 export * from './core.js';
 export * from './actions.js';
 export * from './browser.js';
+export { checkPlaywrightPage } from './playwright.js';
+export type { PlaywrightPageLike } from './playwright.js';
 export { queryComposedElements } from './composed-selector.js';
 export * from './contract.js';
 export * from './sweep.js';

@@ -1,5 +1,34 @@
 # Validation notes
 
+## 2026-10-13: Astro confirms deferred lazy images are not visible pending defects
+
+Source inspection of Astro Docs English and Spanish HTML found **41 images**
+per language, including **three `loading="lazy"` images**. The older external
+run treated CSS-visible, far-below-fold lazy images as generic pending-image
+review leads, even though they were intentionally deferred from the viewport.
+
+Three controlled real-Chromium fixtures confirmed that: offscreen lazy paint
+must be explicitly uninspected, scrolling it into view allows normal loading,
+and **visible** unfinished lazy media retains its `pending-image` warning.
+Strict coverage and whole-page field scoring fail closed for deferred paint.
+
+The [sandboxed Astro-only run 38442002226](https://github.com/Ponchia/bronto-layout/actions/runs/38442002226)
+then completed **8/8 responsive English/Spanish captures** with **16/16
+audit and screenshot SHA-256 checks**. Measured layout issues remained zero.
+Across the comparable named states, previously recorded pending-image
+observations totaled **15**, versus **zero** pending leads in the fresh run.
+The new run instead reported **12 explicitly deferred offscreen images
+across six mobile/tablet states**, each with `known-uninspected-content`
+coverage. Both 1280px states remained supported-scope-measured.
+A contact-sheet review showed the expected Astro page structure but is not
+an independent visual-quality label.
+
+The runs occurred at different times, so three fewer deferred than historical
+pending observations is **not** proof that each exact element retained the
+same loading state. Old captures remain immutable; the improved precision
+is the explicit distinction between normal deferral, visible pending media
+and potentially broken completed images, not a claim of improved Astro UX
+or established detector precision/recall.
 ## 2026-10-13: source-inspired Svelte mobile toggle regression
 
 The [Svelte website's October 2024 mobile playground correction](https://github.com/sveltejs/svelte.dev/pull/548)
@@ -17,7 +46,6 @@ This tests semantic design intent using existing rules without claiming
 generic automatic defect detection, visual correctness, independent
 Svelte history reproduction or human-assigned detector accuracy. See
 [the historical regression note](oss-historical-flex-regression.md).
-
 
 ## 2026-10-13: independent pinned Eleventy source build
 

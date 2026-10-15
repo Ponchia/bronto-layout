@@ -1,6 +1,6 @@
 {
   "name": "@ponchia/layout",
-  "version": "0.4.0",
+  "version": "0.5.0-beta.1",
   "description": "Open-source layout contracts, responsive diagnostics, and agent-ready CLI",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,7 @@
     "ajv": "^8.20.0",
     "eslint": "^9.39.5",
     "globals": "^17.13.0",
+    "playwright-core": "1.63.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.71.1"
   },
@@ -85,7 +86,11 @@
     },
     "./schemas/layout-contract.schema.json": "./schemas/layout-contract.schema.json",
     "./schemas/batch-manifest.schema.json": "./schemas/batch-manifest.schema.json",
-    "./schemas/layout-actions.schema.json": "./schemas/layout-actions.schema.json"
+    "./schemas/layout-actions.schema.json": "./schemas/layout-actions.schema.json",
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "default": "./dist/playwright.js"
+    }
   },
   "files": [
     "bin",

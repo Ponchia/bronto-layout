@@ -41,6 +41,7 @@ Options:
   --normal-motion      Explicitly disable a saved reduced-motion scenario
   --scan MIN:MAX:STEP   Sample a responsive width range (maximum 200 coarse samples)
   --refine              Bisect observed state changes to one-pixel intervals
+  --interior-probes N   Probe N evenly spaced widths per coarse interval (0..8; default 0)
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
   --max-samples N       Maximum samples, including refinement (default: 200)
   --dom-limit N         Audit: max visited DOM elements (1000..50000; default 18000; incomplete if exceeded)
@@ -85,7 +86,7 @@ const OPTIONS = {
   spec: { type: 'string' }, manifest: { type: 'string' }, parallel: { type: 'string' }, comparison: { type: 'string' }, url: { type: 'string' }, baseline: { type: 'string' }, widths: { type: 'string' },
   width: { type: 'string' }, height: { type: 'string' }, mobile: { type: 'boolean' }, desktop: { type: 'boolean' }, locale: { type: 'string' },
   'color-scheme': { type: 'string' }, 'reduced-motion': { type: 'boolean' }, 'normal-motion': { type: 'boolean' }, scan: { type: 'string' },
-  refine: { type: 'boolean' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' }, 'dom-limit': { type: 'string' },
+  refine: { type: 'boolean' }, 'interior-probes': { type: 'string' }, 'css-breakpoints': { type: 'boolean' }, 'max-samples': { type: 'string' }, 'dom-limit': { type: 'string' },
   selector: { type: 'string', multiple: true }, 'css-sources': { type: 'boolean' }, 'container-queries': { type: 'boolean' }, 'layout-shifts': { type: 'boolean' },
   'ready-selector': { type: 'string' }, settle: { type: 'string' }, 'stable-for': { type: 'string' }, timeout: { type: 'string' },
   chrome: { type: 'string' }, 'verify-launch': { type: 'boolean' }, 'no-sandbox': { type: 'boolean' }, json: { type: 'boolean' }, compact: { type: 'boolean' }, sarif: { type: 'boolean' }, report: { type: 'string' },
@@ -154,6 +155,7 @@ export function configFromArgs(a) {
     settle: int(a.settle ?? '0', '--settle', 0, 30000),
     stableFor,
     maxSamples: int(a['max-samples'] ?? '200', '--max-samples', 1, 2000),
+    interiorProbes: int(a['interior-probes'] ?? '0', '--interior-probes', 0, 8),
     auditDOMLimit: int(a['dom-limit'] ?? '18000', '--dom-limit', 1000, 50000),
     readySelector: a['ready-selector'] ?? undefined,
     mobile: Boolean(a.mobile && !a.desktop),
@@ -189,7 +191,7 @@ export function validateCommandOptions(a) {
         'selector','draft','accept','out','parallel','chrome','no-sandbox','full-page-evidence',
         'frame-inventory','grid-gap-review','sibling-overlap-review','dom-limit','verify-launch',
         'stable-for','layout-shifts','height','mobile','desktop','locale','color-scheme',
-        'reduced-motion','normal-motion','refine','css-breakpoints','max-samples',
+        'reduced-motion','normal-motion','refine','interior-probes','css-breakpoints','max-samples',
         'css-sources','container-queries','ready-selector','settle','timeout','fail-on-skip',
         'fail-on-coverage-gaps','dry-run','force'
       ].some(key => a[key] !== undefined)) {
@@ -202,6 +204,8 @@ export function validateCommandOptions(a) {
   if (a.compact && (!a.json || !['check', 'scan', 'compare', 'batch', 'audit'].includes(a.command))) {
     throw new Error('--compact requires --json with check, scan, or compare');
   }
+  if (a['interior-probes'] !== undefined && !['check','scan','compare'].includes(a.command))
+    throw new Error('--interior-probes applies only to check, scan and compare');
   if (a['css-breakpoints'] && !a.scan) throw new Error('--css-breakpoints requires --scan MIN:MAX:STEP');
   if (a['css-breakpoints'] && !['check', 'scan', 'compare', 'audit'].includes(a.command)) throw new Error('--css-breakpoints applies only to check, scan and compare');
   if (a['css-sources'] && !['inspect', 'check', 'scan'].includes(a.command)) throw new Error('--css-sources applies only to inspect, check and scan');
@@ -228,7 +232,7 @@ export function validateCommandOptions(a) {
   if (a['sibling-overlap-review'] && a.command !== 'audit') throw new Error('--sibling-overlap-review applies only to audit');
   if (a.actions && !['suggest', 'audit'].includes(a.command)) throw new Error('--actions applies only to suggest or audit; checks replay saved contract.actions');
   if (a.command === 'review-draft' &&
-      ['spec','width','widths','scan','refine','selector','actions','mobile','desktop',
+      ['spec','width','widths','scan','refine','interior-probes','selector','actions','mobile','desktop',
         'reduced-motion','normal-motion','color-scheme','locale','height','settle',
         'stable-for','ready-selector','css-breakpoints','layout-shifts'].some(key => a[key] !== undefined)) {
     throw new Error('review-draft replays the original widths, scenario and actions; recreate a draft to change them');

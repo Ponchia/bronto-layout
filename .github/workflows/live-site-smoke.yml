@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -61,6 +61,14 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm run build
+      - name: Verify sandboxed Chrome startup before visiting any public site
+        env:
+          BRONTO_CHROME_NO_SANDBOX: '0'
+        run: |
+          # Chrome for Testing runs sandboxed in hosted Linux Actions CI. Fail
+          # before network navigation if that ceases to be true; do not enable
+          # --no-sandbox as a fallback for even owned public domains.
+          node bin/bronto-layout.mjs doctor --verify-launch --json > "$RUNNER_TEMP/bronto-browser-preflight.json"
       - name: Validate the live-site contracts offline
         run: |
           for contract in examples/personal-site.json examples/sense6-gallery.json examples/sense6-ar.json examples/sense6-learn.json examples/brontoui-home.json examples/brontoui-operations.json; do
@@ -70,10 +78,10 @@ jobs:
         id: audit
         if: ${{ !inputs.batch }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
-          # The runner is an ephemeral, isolated CI machine. Chrome sandboxing
-          # remains enabled by default everywhere else.
+          # Sandbox is required even for our public domains. A disposable
+          # runner does not justify removing Chromium's process isolation.
           mkdir -p reports logs
           set +e  # Collect failures from every site rather than stopping after the first.
           failures=0
@@ -82,7 +90,10 @@ jobs:
             echo "::group::${name}"
             extra=()
             if [ "$name" = "sense6-ar" ]; then extra+=(--locale ar); fi
-            node bin/bronto-layout.mjs check --spec "$contract" --ready-selector body --settle 600 --timeout 30000 "${extra[@]}" --report "reports/${name}.json" > "logs/${name}.txt" 2>&1
+            node bin/bronto-layout.mjs check --spec "$contract" \
+              --ready-selector body --settle 600 --timeout 30000 \
+              --fail-on-skip --interior-probes 1 "${extra[@]}" \
+              --report "reports/${name}.json" > "logs/${name}.txt" 2>&1
             status=$?
             cat "logs/${name}.txt"
             printf '\nCLI exit status: %s\n' "$status"
@@ -98,17 +109,17 @@ jobs:
       - name: Audit the first-party multilingual batch
         if: ${{ inputs.batch }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           mkdir -p reports logs
           node bin/bronto-layout.mjs batch --manifest examples/live-sites-batch.json \
             --json --compact --ready-selector body --settle 600 --timeout 30000 \
-            --report reports/batch.json > logs/batch.txt 2>&1
+            --fail-on-skip --report reports/batch.json > logs/batch.txt 2>&1
           cat logs/batch.txt
       - name: Audit CSS breakpoints on selected first-party sites
         if: ${{ inputs.css_breakpoints }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           # Opt-in only: additional navigations and viewport samples can be slow.
           mkdir -p reports logs
@@ -137,10 +148,10 @@ jobs:
       - name: Inspect live first-party CSS source hints
         if: ${{ inputs.css_sources }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           # Run only on this ephemeral CI machine with our known public sites.
-          # On a developer machine keep Chrome sandboxed for arbitrary pages.
+          # Keep Chrome sandboxed here and on developer machines.
           mkdir -p reports logs
           for name in personal-site sense6-gallery; do
             if [ "$name" = "personal-site" ]; then
@@ -177,7 +188,7 @@ jobs:
       - name: Observe loading layout shifts on first-party pages
         if: ${{ inputs.layout_shifts }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           # Lab-only observations; no hard-coded Web Vitals score budget.
           mkdir -p reports logs
@@ -215,7 +226,7 @@ jobs:
       - name: Audit DOM geometry quiet windows on first-party pages
         if: ${{ inputs.geometry_stability }}
         env:
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           # Diagnostic only. A quiet window does not prove that a site never
           # moves later or that all visual styling has been checked.
@@ -271,7 +282,7 @@ jobs:
           # selects this audit step, rather than silently ignoring the request.
           GRID_GAP_REVIEW: ${{ inputs.grid_gap_review }}
           SIBLING_OVERLAP_REVIEW: ${{ inputs.sibling_overlap_review }}
-          BRONTO_CHROME_NO_SANDBOX: '1'
+          BRONTO_CHROME_NO_SANDBOX: '0'
         run: |
           # Manual-only CI job: public first-party URLs, isolated runner.
           # A measured failure is not necessarily an unwanted design choice.

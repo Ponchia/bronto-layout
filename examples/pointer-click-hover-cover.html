@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pointer action: hover reveals an obstructing layer</title>
+  <style>
+    body { margin:0; font:16px system-ui; }
+    #open { margin:30px; width:190px; height:62px; font:inherit; }
+    #panel { padding:14px; }
+    #blocker { position:fixed; inset:0; z-index:10; background:rgba(80,60,60,.2); }
+  </style>
+</head>
+<body>
+  <button id="open">Hover here</button>
+  <div id="blocker" hidden>Obscuring layer appears only on hover</div>
+  <section id="panel" hidden>Not reachable through the overlay</section>
+  <script>
+    const button = document.getElementById('open');
+    button.addEventListener('mouseenter', () => {
+      document.getElementById('blocker').hidden = false;
+    });
+    button.addEventListener('click', e => {
+      const panel = document.getElementById('panel');
+      panel.hidden = false;
+      panel.dataset.trusted = String(e.isTrusted);
+    });
+  </script>
+</body>
+</html>

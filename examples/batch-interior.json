@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "responsive-island",
+      "mode": "check",
+      "spec": "responsive-island.json",
+      "scan": "320:480:160",
+      "interiorProbes": 3,
+      "refine": true,
+      "failOnSkip": true
+    }
+  ]
+}

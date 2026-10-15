@@ -116,7 +116,8 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
       findings.some(item => item?.code === 'embedded-frame-uninspected');
     const canvasGap = (view?.coverage?.visibleCanvases ?? 0) > 0 ||
       findings.some(item => item?.code === 'canvas-content-uninspected');
-    const coverageGap = frameGap || canvasGap ||
+    const deferredMediaGap = (view?.coverage?.deferredOffscreenLazyImages ?? 0) > 0;
+    const coverageGap = frameGap || canvasGap || deferredMediaGap ||
       (coverageStatus !== undefined && coverageStatus !== 'supported-scope-measured');
     // Unexpected future statuses must be named explicitly instead of being
     // relabeled as a familiar gap by a coincidental old warning code.
@@ -126,6 +127,7 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
       ? 'Incomplete or unsupported audit coverage: ' + coverageStatus
       : frameGap ? 'Embedded-frame content was not audited'
       : canvasGap ? 'Canvas paint content was not audited'
+      : deferredMediaGap ? 'Offscreen lazy-loaded image paint was not audited'
       : 'Incomplete or unsupported audit coverage: ' + coverageStatus;
     const complete = sample.complete === true && sample.screenshotVerified === true &&
       report?.mode === 'audit' && report?.summary?.viewports === 1 &&
@@ -148,7 +150,7 @@ export function scoreFieldEvidence(index, labels, evidenceById) {
     limitations: [
       'Accuracy applies only to these named, independently reviewed page states',
       'Detector-code/viewport classification is not pixel-level visual quality',
-      'Any detected embedded-frame or canvas-paint gap excludes whole-page detector scoring rather than counting a false clean page',
+      'Any detected embedded-frame, canvas-paint or deferred-image gap excludes whole-page detector scoring rather than counting a false clean page',
       'A screenshot covers only the initial browser viewport; reviewers must inspect below-fold content separately',
       'Browser, network and rendered content may differ on later visits',
       'No cross-tool superiority or WCAG conformance claim'

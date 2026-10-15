@@ -1,0 +1,265 @@
+# Registry publishing is deliberately separate from GitHub source prereleases.
+# The FIRST @ponchia/layout version must be bootstrapped by an authorized npm
+# account. Trusted publishing can only be configured after a package exists.
+# Later exact-version releases use OIDC with a protected GitHub Environment.
+name: Publish npm beta
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: read
+concurrency:
+  group: bronto-layout-npm-publish
+  cancel-in-progress: false
+jobs:
+  # Reuse the exact same CI and hosted macOS gates that protect main. Do not
+  # independently weaken browser/benchmark coverage for npm releases.
+  verify-ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+  verify-macos:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/macos-portability.yml
+  preflight:
+    needs: [verify-ci, verify-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+      tarball: ${{ steps.meta.outputs.tarball }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Validate explicit prerelease tag, ancestry and npm identity
+        id: meta
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            echo '::error::Only explicitly tagged beta prereleases may enter the npm publisher'; exit 2
+          fi
+          version="${RELEASE_TAG#v}"
+          [[ "$(node -p 'require("./package.json").version')" == "$version" ]] || {
+            echo '::error::The immutable Git tag and package version differ'; exit 2;
+          }
+          git fetch origin main:refs/remotes/origin/main --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo '::error::The tagged commit is not an ancestor of reviewed main'; exit 2
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tarball=ponchia-layout-$version.tgz" >> "$GITHUB_OUTPUT"
+      - name: Refuse unbootstrapped npm scope or an already-published version
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Fail before any publication if @ponchia/layout does not already
+          # exist. The registry does not authorize first releases via OIDC.
+          if ! npm view @ponchia/layout name --json --registry https://registry.npmjs.org > "$RUNNER_TEMP/npm-current.json" 2> "$RUNNER_TEMP/npm-read-error.log"; then
+            echo '::error::First registry release is not bootstrapped or npm is unreachable. Follow docs/npm-publishing.md; do not attempt OIDC yet.'
+            exit 2
+          fi
+          if npm view "@ponchia/layout@$RELEASE_VERSION" version --json --registry https://registry.npmjs.org > "$RUNNER_TEMP/npm-version.json" 2> "$RUNNER_TEMP/npm-version-error.log"; then
+            echo '::error::This version already exists in npm; refusing a second publish'; exit 2
+          fi
+          if ! grep -q 'E404' "$RUNNER_TEMP/npm-version-error.log"; then
+            echo '::error::npm lookup failed for a reason other than a missing version'; exit 2
+          fi
+      - name: Build checked npm-ready archive without install lifecycle scripts
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm run lint
+          npm run test:unit
+          npm run test:package
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/npm-pack.json"
+          node - "$RUNNER_TEMP/npm-pack.json" "$RELEASE_VERSION" <<'NODE'
+          const fs = require('node:fs');
+          const item = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))[0];
+          const version = process.argv[3];
+          const files = new Set(item.files.map(x => x.path));
+          const required = ['bin/bronto-layout.mjs','dist/index.js','dist/index.d.ts','dist/core.js',
+            'dist/core.d.ts','schemas/layout-contract.schema.json','README.md','LICENSE','SECURITY.md'];
+          const forbidden = item.files.filter(x => /(^|\/)(\.env|\.git|node_modules|secrets?|tests|scripts)(\/|$)|\.(pem|key)$/i.test(x.path));
+          if (item.name !== '@ponchia/layout' || item.version !== version ||
+              item.filename !== `ponchia-layout-${version}.tgz` ||
+              item.files.length < 100 || required.some(path => !files.has(path)) || forbidden.length) {
+            throw Error('Refusing unexpected package identity, missing compiled exports or unsafe tarball files');
+          }
+          console.log(`Audited ${item.name}@${version}: ${item.files.length} files, ${item.size} bytes`);
+          NODE
+      - name: Verify isolated tarball consumer and sandboxed Chromium
+        env:
+          TARBALL: ${{ steps.meta.outputs.tarball }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/npm-consumer"
+          npm install --ignore-scripts --no-audit --no-fund --no-package-lock --prefix "$RUNNER_TEMP/npm-consumer" "$RUNNER_TEMP/$TARBALL"
+          "$RUNNER_TEMP/npm-consumer/node_modules/.bin/bronto-layout" --version
+          "$RUNNER_TEMP/npm-consumer/node_modules/.bin/bronto-layout" doctor --verify-launch --json > "$RUNNER_TEMP/npm-browser-preflight.json"
+          "$RUNNER_TEMP/npm-consumer/node_modules/.bin/bronto-layout" check --spec examples/portfolio-alignment.json --json --compact > "$RUNNER_TEMP/npm-positive.json"
+          set +e
+          "$RUNNER_TEMP/npm-consumer/node_modules/.bin/bronto-layout" check --spec examples/portfolio-alignment.json --url examples/portfolio-alignment-broken.html --json --compact > "$RUNNER_TEMP/npm-negative.json"
+          negative=$?
+          set -e
+          test "$negative" -eq 1
+          node - "$RUNNER_TEMP/npm-positive.json" "$RUNNER_TEMP/npm-negative.json" <<'NODE'
+          const fs = require('node:fs');const [good,bad] = process.argv.slice(2).map(p => JSON.parse(fs.readFileSync(p,'utf8')));
+          if (good.mode !== 'check' || good.summary?.failed || good.summary?.passed < 1 ||
+              bad.mode !== 'check' || bad.summary?.failed < 1) throw Error('Installed package failed positive or deliberate regression control');
+          NODE
+      - name: Record exact release bytes
+        id: pack
+        env:
+          TARBALL: ${{ steps.meta.outputs.tarball }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum "$RUNNER_TEMP/$TARBALL" > "$RUNNER_TEMP/SHA256SUMS.txt"
+          ( cd "$RUNNER_TEMP" && sha256sum -c SHA256SUMS.txt )
+          sha="$(cut -d' ' -f1 "$RUNNER_TEMP/SHA256SUMS.txt")"
+          [[ "$sha" =~ ^[0-9a-f]{64}$ ]]
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          printf 'Validated immutable %s with SHA-256 %s\n' "$TARBALL" "$sha" >> "$GITHUB_STEP_SUMMARY"
+      - name: Send only the validated tarball to the isolated release job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-package-preflight
+          path: |
+            ${{ runner.temp }}/${{ steps.meta.outputs.tarball }}
+            ${{ runner.temp }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 2
+  publish-npm:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Require trusted-publisher-capable npm and Node
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'const v=process.versions.node.split(".").map(Number);if(v[0]<24)process.exit(1)'
+          npm --version
+          node -e 'const {execFileSync}=require("node:child_process");const v=execFileSync("npm",["--version"],{encoding:"utf8"}).trim().split(".").map(Number);if(v[0]<11||(v[0]===11&&v[1]<5))process.exit(1)'
+      - name: Download checked build bytes without checking out executable source
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: npm-package-preflight
+          path: ${{ runner.temp }}/checked-package
+      - name: Verify hash and exact expected package identity
+        shell: bash
+        env:
+          SHA256: ${{ needs.preflight.outputs.sha256 }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TARBALL: ${{ needs.preflight.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/checked-package"
+          test "$(sha256sum "$TARBALL" | cut -d' ' -f1)" = "$SHA256"
+          sha256sum -c SHA256SUMS.txt
+          node - "$TARBALL" "$VERSION" <<'NODE'
+          const {execFileSync}=require('node:child_process');
+          const path=process.argv[2],version=process.argv[3];
+          const pkg=JSON.parse(execFileSync('tar',['-xOf',path,'package/package.json'],{encoding:'utf8'}));
+          if(pkg.name!=='@ponchia/layout'||pkg.version!==version||pkg.repository?.url!=='https://github.com/Ponchia/bronto-layout.git')
+            throw Error('Refusing wrong npm scope, version or upstream repository');
+          NODE
+      - name: Publish checked tarball under beta dist-tag (npm OIDC)
+        shell: bash
+        env:
+          TARBALL: ${{ needs.preflight.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/checked-package"
+          # No checkout, dependencies or lifecycle scripts in OIDC job. Trusted
+          # issuer must exactly match Ponchia/bronto-layout, npm-release.yml
+          # and the protected npm-publish GitHub Environment.
+          npm publish "./$TARBALL" --ignore-scripts --provenance --access public --tag beta --registry https://registry.npmjs.org
+      - name: Observe registry response without retrying an accepted publication
+        shell: bash
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set +e
+          for attempt in 1 2 3 4 5; do
+            echo "Verifying npm registry metadata (attempt $attempt)"
+            npm view "@ponchia/layout@$VERSION" version dist.integrity dist.attestations --json --registry https://registry.npmjs.org > "$RUNNER_TEMP/npm-observed.json" 2> /dev/null && break
+            sleep 5
+          done
+          if test -s "$RUNNER_TEMP/npm-observed.json"; then
+            echo 'Published npm registry metadata observed; check provenance and dist-tag with the published version.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Registry is not yet readable. npm publish may have succeeded; verify manually, never blindly rerun the job.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # A GitHub release follows npm success. Unlike source-only beta.0/.1,
+  # future versions publish to npm first and only then announce the same bits.
+  github-release:
+    needs: [preflight, publish-npm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Recover the exact tarball already verified before npm approval
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: npm-package-preflight
+          path: ${{ runner.temp }}/checked-package
+      - name: Verify artifact and create the beta GitHub release after successful npm publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TARBALL: ${{ needs.preflight.outputs.tarball }}
+          EXPECTED_SHA: ${{ needs.preflight.outputs.sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/checked-package"
+          test "$(sha256sum "$TARBALL" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          sha256sum -c SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" -R Ponchia/bronto-layout > /dev/null 2>&1; then
+            echo 'An existing GitHub release is immutable; inspect it manually rather than overwrite attachments.'
+            exit 2
+          fi
+          cat > "$RUNNER_TEMP/npm-beta-release-notes.md" <<'NOTES'
+          Experimental public Bronto Layout beta for local layout contracts, responsive geometry and agent integrations. The exact vetted tarball attached here was first published to the npm registry under the `beta` dist-tag through protected trusted publishing. Consumers must explicitly opt into a prerelease; ordinary `latest` is not advanced by this workflow.
+
+          Requires Node.js 22+ and a separately installed Chrome/Chromium for browser-based CLI checks. Supports Chromium-family geometry, not guaranteed visual design, WCAG accessibility, closed shadow roots, frame interiors or unobserved browser states. A script-disabled CSP-sandboxed top-level document remains unverified rather than weakening the page policy.
+
+          Real-world precision/recall and independent developer adoption remain unestablished. No application telemetry, automatic CSS repair, dashboard or npm token is involved.
+          NOTES
+          gh release create "$RELEASE_TAG" "$TARBALL" SHA256SUMS.txt \
+            -R Ponchia/bronto-layout --verify-tag --prerelease --latest=false \
+            --title "Bronto Layout $RELEASE_TAG — npm beta" \
+            --notes-file "$RUNNER_TEMP/npm-beta-release-notes.md"
+          echo "Published GitHub prerelease from validated npm archive: $RELEASE_TAG ($EXPECTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
