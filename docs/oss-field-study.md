@@ -83,7 +83,7 @@ and evidence integrity, not independent human correctness labels.
 
 | External project | Original observation | How to interpret it |
 | --- | --- | --- |
-| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Avatar images were still loading during capture, not proven broken. |
+| Astro Docs EN/ES | 6 review-only `pending-image` states (mobile/tablet) | Published markup includes 3 explicit `loading="lazy"` images per language. The original audit did not distinguish unfinished **offscreen** lazy media; these warnings cannot establish visible loading failures. |
 | Docusaurus | 4 states without findings | No measured issue observed; not complete visual quality. |
 | Vite Guide | **10px document extent beyond usable scrollport at 320px**, plus 4 skip-link text clipping warnings | Vite's deployed CSS sets the body minimum to 320px and intentionally clips root overflow. Unwanted user-visible scrolling has **not** been established. |
 | Svelte Docs | 4 states without findings | No measured issue in this initial browser state. |
@@ -110,6 +110,26 @@ excludes an enormous locally scrollable code descendant—even when its
 container itself overhangs the scrollport. These improvements change the
 evidence explanation and attribution, **not** the numerical measurement or
 the strict contract exit code.
+
+The published Astro EN/ES HTML was also inspected for the persistent
+`pending-image` leads: **41 `<img>` elements per language**, of which
+**38 declared `loading="eager"` and 3 declared `loading="lazy"`**.
+At mobile widths, Bronto Layout's original walker counted CSS-visible
+but completely offscreen lazy images among generic pending images.
+The reclassification retains their uninspected paint as a known coverage
+gap without calling intentionally delayed loading a defect. The
+[Astro-only sandboxed capture 38442002226](https://github.com/Ponchia/bronto-layout/actions/runs/38442002226)
+completed **8/8 states and verified 16/16 screenshot/report hashes**.
+The earlier observations totaled 15 pending images across six responsive
+states; the new capture had **zero** pending warnings and identified
+**12 intentionally deferred offscreen lazy images** across the corresponding
+six mobile/tablet states. Each is now `known-uninspected-content`, while
+both 1280px states stayed fully traversed without known media gaps.
+Different runs can have different loading timings, so these aggregate counts
+must not be interpreted as element-by-element transitions. A lazy image
+intersecting the viewport **still** generates a pending warning until loaded.
+A review of the new initial-viewport screenshots confirmed expected page
+structure, **not** independently labeled page-quality correctness.
 
 The external source inspection motivated two separately tested changes:
 canvas paint is explicitly marked uninspected rather than clean, and visually

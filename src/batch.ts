@@ -20,6 +20,11 @@ export interface CheckBatchJob extends BatchJobBase {
   spec: string;
   url?: string;
   stableFor?: number;
+  /** Optional wider responsive sampling, never proof about unobserved widths. */
+  interiorProbes?: number;
+  refine?: boolean;
+  /** Fail a strict contract job rather than accepting unmeasurable checks. */
+  failOnSkip?: boolean;
   actions?: never;
   gridGapReview?: never;
   siblingOverlapReview?: never;
@@ -34,6 +39,9 @@ export interface AuditBatchJob extends BatchJobBase {
   url: string;
   spec?: never;
   stableFor?: never;
+  interiorProbes?: never;
+  refine?: never;
+  failOnSkip?: never;
   /** Declarative action file path, relative to manifest (never JavaScript). */
   actions?: string;
   gridGapReview?: boolean;
@@ -56,7 +64,7 @@ const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v);
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 const allowed = new Set(['id', 'mode', 'spec', 'url', 'locale', 'widths', 'scan', 'cssBreakpoints', 'colorScheme', 'reducedMotion', 'mobile', 'layoutShifts', 'stableFor',
-  'actions', 'gridGapReview', 'siblingOverlapReview', 'frameInventory', 'failOnCoverageGaps', 'domLimit']);
+  'actions', 'gridGapReview', 'siblingOverlapReview', 'frameInventory', 'failOnCoverageGaps', 'domLimit', 'interiorProbes', 'refine', 'failOnSkip']);
 const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/i;
 
 /**
@@ -91,7 +99,17 @@ export function parseBatchManifest(value: unknown): BatchManifest {
       for (const field of ['actions','gridGapReview','siblingOverlapReview','frameInventory','failOnCoverageGaps','domLimit']) {
         if (job[field] !== undefined) throw new Error(label + ' ' + field + ' is only supported for audit');
       }
+      if (job.interiorProbes !== undefined && (typeof job.interiorProbes !== 'number' || !Number.isSafeInteger(job.interiorProbes) ||
+        job.interiorProbes < 0 || job.interiorProbes > 8)) {
+        throw new Error(label + ' interiorProbes must be an integer from 0 to 8');
+      }
+      for (const field of ['refine', 'failOnSkip']) {
+        if (job[field] !== undefined && typeof job[field] !== 'boolean')
+          throw new Error(label + ' ' + field + ' must be boolean');
+      }
     } else {
+      for (const field of ['interiorProbes','refine','failOnSkip'])
+        if (job[field] !== undefined) throw new Error(label + ' ' + field + ' is only supported for check');
       if (job.spec !== undefined) throw new Error(label + ' audit cannot contain a spec (zero-contract mode)');
       if (!nonEmpty(job.url)) throw new Error(label + ' audit requires an explicit URL');
       if (job.stableFor !== undefined) throw new Error(label + ' audit does not support stableFor without named selectors');

@@ -45,6 +45,10 @@ export interface PageAuditObservations {
   visibleElements: number;
   totalImages: number;
   unloadedImages: number;
+  /** Unfinished explicit loading=lazy images fully outside the sampled viewport.
+   * Their paint is unobserved, but deferral alone is not an image failure.
+   */
+  deferredOffscreenLazyImages?: number;
   brokenImageCount: number;
   brokenImages: ImageLead[];
   omittedBrokenImages: number;
@@ -110,13 +114,19 @@ export function analyzePageAudit(
   const findings: AuditFinding[] = [];
   const contentWidth = snapshot.viewport.contentWidth ?? snapshot.viewport.width;
   const overflow = Math.max(0, snapshot.document.width - contentWidth);
+  // Clipping changes what the measured scroll-width excess can establish.
+  // Retain the number as an observed fact but don't turn it into a strict
+  // automatic defect if CSS intentionally makes that extent inaccessible.
+  const clipped = [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX]
+    .some(style => style === 'clip' || style === 'hidden');
   if (overflow > 1) findings.push({
-    code: 'document-horizontal-overflow', classification: 'measured', severity: 'error',
+    code: 'document-horizontal-overflow',
+    classification: clipped ? 'review' : 'measured',
+    severity: clipped ? 'warning' : 'error',
     measuredPx: Number(overflow.toFixed(2)),
     message: 'Document scroll width exceeds the usable viewport by ' + overflow.toFixed(2) +
       ' CSS px. ' + (
-        [snapshot.document.rootOverflowX, snapshot.document.bodyOverflowX].some(
-          style => style === 'clip' || style === 'hidden')
+        clipped
           ? 'Root or body CSS declares horizontal clipping; this width difference does not by itself prove user-visible scrolling. Review intentional clipping before making changes.'
           : 'This may be intentional; review the component before changing it.'
       ),
@@ -182,10 +192,11 @@ export function analyzePageAudit(
   if (evidence.unloadedImages > 0) findings.push({
     code: 'pending-image', classification: 'review', severity: 'warning',
     count: evidence.unloadedImages,
-    message: evidence.unloadedImages + ' visible image(s) had not finished loading during the inspection'
+    message: evidence.unloadedImages + ' CSS-visible image(s) were still pending during inspection (offscreen deferred lazy images are excluded)'
   });
   const coverageStatus: AuditCoverageStatus = evidence.truncated ? 'truncated'
-    : evidence.embeddedFrames > 0 || (evidence.visibleCanvases ?? 0) > 0
+    : evidence.embeddedFrames > 0 || (evidence.visibleCanvases ?? 0) > 0 ||
+      (evidence.deferredOffscreenLazyImages ?? 0) > 0
       ? 'known-uninspected-content' : 'supported-scope-measured';
   return {
     viewport: snapshot.viewport,
@@ -196,6 +207,8 @@ export function analyzePageAudit(
         'Closed shadow roots cannot be inspected or counted reliably',
         'Canvas/WebGL and visual paint-order relationships are not analyzed',
         'Only the measured viewport and navigation state are observed',
+        ...((evidence.deferredOffscreenLazyImages ?? 0) > 0 ?
+          [evidence.deferredOffscreenLazyImages + ' offscreen loading=lazy image(s) did not finish loading; their paint is uninspected, not a broken-image finding'] : []),
         ...(evidence.gridContainersOmitted ? ['Grid gap review omitted ' + evidence.gridContainersOmitted + ' candidate containers due to bounded inspection limits'] : []),
         ...(evidence.overlapContainersOmitted ? ['Sibling overlap review omitted ' + evidence.overlapContainersOmitted + ' candidate containers due to bounded inspection limits'] : [])
       ]

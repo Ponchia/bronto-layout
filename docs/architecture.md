@@ -196,6 +196,28 @@ The audit summarizes viewport coverage and reports bounded omissions rather
 than hiding them. It deliberately does not recurse into frame documents or
 claim to understand canvas/WebGL internals.
 
+The DOM traversal intentionally includes CSS-visible elements below the
+current viewport. That is important for detecting document-wide overflow,
+but `img.loading = "lazy"` can deliberately leave below-fold image requests
+unfinished. Those **fully offscreen** lazy images are now counted separately
+as `coverage.deferredOffscreenLazyImages`; their unfinished state is not an
+ordinary `pending-image` review lead. Instead the audit marks paint coverage
+`known-uninspected-content` and explains how many lazy media elements were
+deferred. A lazy image intersecting the viewport **continues to be reported
+as pending** while its request is unfinished, and completed failed images
+remain measured `broken-image` findings. This distinction uses browser DOM
+geometry and `HTMLImageElement.loading`, not class names, source URL rules or
+a blanket dismissal of asynchronous images. It does not prove images below
+the fold will decode correctly on a later scroll.
+
+The old captures predate this split. They cannot establish that an Astro
+`pending-image` warning was a broken/visible image without a fresh capture
+or separately inspected browser state. Strict coverage mode and human
+field-scoring must exclude known deferred paint gaps; the top-level DOM
+traversal itself can still be measured successfully.
+
+
+
 Zero-contract `audit --actions FILE` uses the same strict action parser and
 `runAction` CDP executor as explicit contracts, with **one fresh page navigation
 per viewport**. The browser-observation adapter runs after the declared

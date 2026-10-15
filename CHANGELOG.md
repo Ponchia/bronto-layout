@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- Classify clipped-root horizontal extent as measured review evidence rather than an automatic error; a visible scrolling defect is not established solely by `scrollWidth`.
+- Refuse all-out-of-range layout contracts with `NO_APPLICABLE_RULES` and exit 2; no successful zero-assertion outcome.
+- Bound both automatic audit and strict-contract overflow-candidate DOM traversal without spreading giant child arrays; disclose any truncated sibling walk as incomplete coverage. Refresh beta security-policy documentation.
+- Permit manual OSS menu validation to compare the original DOM-click baseline against a temporary, opt-in `pointer-click` version of the **same five fixed public scenarios**, without mutating the historical cohort or broadening URL inputs.
+- Add opt-in `pointer-click` browser actions with Chrome mouse input and viewport/overlay hit-testing, including open Shadow DOM support and a post-hover recheck. Preserve legacy DOM `click` semantics for backward compatibility. Source-reviewed fixtures distinguish a genuinely clickable button from obstructed and offscreen buttons; no claims of touch or keyboard accessibility.
+- Add an optional, zero-runtime-dependency Playwright Page/Frame adapter for evaluating an already prepared DOM state using approved contracts; explicitly refuse undeclared width/state and do not navigate or replay actions.
+- Require full Node 22/24 Chromium and hosted macOS gates again on future npm prerelease tags; publish GitHub prerelease artifacts only after successful protected npm OIDC publication, using the same verified tarball.
+
+- Prepare the explicit, protected npm publishing workflow for **future** beta tags and document the one-time authenticated registry bootstrap. No registry version is published by this change.
+
+- Add weekly, opt-in first-party public-site layout pulse across six reviewed contracts (42 sampled responsive viewports). Enforce sandboxed Chromium, strict missing-measurement classification, fixed URLs, no automatic CSS changes and sanitized-only historical CI summaries with rule IDs/widths and measured deviation, separate from package PR gates and independent field labels.
+
+- Record verified GitHub beta.1 distribution and first-party pilot results, without making accuracy or external-adoption claims.
+
+## 0.5.0-beta.1 (source candidate — GitHub release pending CI; npm registry not published)
+
+- Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting `CSP_SANDBOX_UNINSPECTABLE` (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during the first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
+- Chromium integration tests cover an HTTP-served positive control, enforced sandbox, allowed scripts and Report-Only policy; offline CLI consumers verify the extra shipped module. No source-level CSS repair or script-disabled DOM inspection was introduced.
+
+## 0.5.0-beta.0 (14 October 2026 — GitHub prerelease; npm registry not published)
+
+- Opt-in `--interior-probes 0..8` for contract checks, scans and comparisons to sample responsive defects whose coarse endpoints agree, with bounded up-front sampling budgets and explicit JSON metadata for unsampled widths. Neither probing nor refinement certifies all intervening widths.
+- Batch contract jobs can select `interiorProbes`, `refine` and `failOnSkip` independently; JSON Schema and parser remain in sync and audit jobs cannot use contract-only flags.
+- Source-based reusable GitHub Action with sandboxed Chrome startup and local-only compact reports; no implicit artifact uploads or npm registry dependency. Add first-party beta testing worksheet and agent integration instructions.
+- [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) published from tested `main` commit `76d2523` with checksum-verified npm-compatible `.tgz`; **no npm registry publication or adoption/accuracy claim**.
+
+
+- Distinguish deliberately deferred offscreen `loading=lazy` images from genuinely pending visible media while recording known uninspected paint and excluding it from whole-page accuracy scoring. Controlled Chrome fixtures and an Astro EN/ES sandboxed browser run (8/8 states, 16/16 hashes) observed 15 earlier pending-image entries versus none in the new capture, with 12 deferred-image observations; network timing differs and no independent quality labels exist.
 - Extend the pinned Eleventy source-built study with two distinct and
   independently verified generated-CSS regressions: a non-overflowing 18px
   desktop centering defect caught only by its approved semantic contract,

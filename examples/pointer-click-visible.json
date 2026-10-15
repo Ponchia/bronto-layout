@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "url": "pointer-click-visible.html",
+  "widths": [
+    375
+  ],
+  "actions": [
+    {
+      "type": "pointer-click",
+      "selector": "#open"
+    }
+  ],
+  "selectors": {
+    "panel": "#panel:not([hidden])[data-trusted=\"true\"]",
+    "button": "#open"
+  },
+  "rules": [
+    {
+      "id": "panel-opened-with-expected-event",
+      "type": "selector-count",
+      "element": "panel",
+      "exactly": 1
+    },
+    {
+      "id": "button-present",
+      "type": "selector-count",
+      "element": "button",
+      "exactly": 1
+    }
+  ]
+}

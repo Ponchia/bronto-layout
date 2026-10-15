@@ -42,8 +42,10 @@ test('explicit root clipping remains a measured extent, but the report avoids as
   snapshot.document.rootOverflowX='clip';
   snapshot.document.bodyOverflowX='clip';
   const report=analyzePageAudit(snapshot,obs());
-  assert.equal(report.summary.errors,1);
-  assert.equal(report.findings[0].classification,'measured');
+  assert.equal(report.summary.errors,0);
+  assert.equal(report.summary.warnings,1);
+  assert.equal(report.findings[0].classification,'review');
+  assert.equal(report.findings[0].severity,'warning');
   assert.equal(report.findings[0].measuredPx,10);
   assert.match(report.findings[0].message,/does not by itself prove user-visible scrolling/);
 });
@@ -60,6 +62,33 @@ test('review-only text clipping and pending loading never become certain layout 
   assert.equal(report.summary.warnings, 2);
   assert.ok(report.findings.every(f => f.classification === 'review'));
 });
+test('offscreen deferred lazy media is a coverage gap, not a pending-image defect', () => {
+  const observed = { ...obs(), totalImages: 3,
+    deferredOffscreenLazyImages: 2, unloadedImages: 0 };
+  const result = analyzePageAudit(snap(), observed);
+  assert.equal(result.summary.errors, 0);
+  assert.equal(result.summary.warnings, 0);
+  assert.equal(result.summary.verified, false);
+  assert.equal(result.summary.supportedScopeMeasured, true);
+  assert.equal(result.coverage.status, 'known-uninspected-content');
+  assert.equal(result.coverage.deferredOffscreenLazyImages, 2);
+  assert.ok(result.coverage.limitations.some(line =>
+    line.includes('2 offscreen loading=lazy image(s)')));
+  assert.ok(!result.findings.some(f => f.code === 'pending-image'));
+  // A truly pending CSS-visible image remains an actionable review lead.
+  observed.unloadedImages = 1;
+  const mixed = analyzePageAudit(snap(), observed);
+  assert.equal(mixed.summary.warnings, 1);
+  assert.equal(mixed.findings[0].code, 'pending-image');
+  assert.equal(mixed.findings[0].count, 1);
+  assert.equal(mixed.coverage.deferredOffscreenLazyImages, 2);
+  // Unloaded media that is *not* known to be offscreen lazy retains old semantics.
+  observed.deferredOffscreenLazyImages = 0;
+  const onscreen = analyzePageAudit(snap(), observed);
+  assert.equal(onscreen.summary.verified, true);
+  assert.equal(onscreen.summary.warnings, 1);
+});
+
 test('broken resource reports remain capped and do not expose arbitrary URL credentials', () => {
   const observations = obs();
   observations.brokenImageCount = 30;

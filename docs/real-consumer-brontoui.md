@@ -100,6 +100,12 @@ which prefers stable Chrome in browser autodetection. Browser executable
 selection alone does not prove successful startup; do not silently add
 `--no-sandbox` as a recovery strategy for untrusted sites.
 
+## Follow-up: v0.5 responsive island (14 October 2026)
+
+[BrontoUI PR #260](https://github.com/Ponchia/bronto-ui/pull/260) upgraded its existing required contract workflow to the immutable `v0.5.0-beta.0` source and added `--interior-probes 1 --refine --fail-on-skip`. A deliberate **8px** dashboard alignment defect exists only at 395–410px: the 403px interior probe detects it while the original 375px and 430px endpoints both pass. The complete PR CI including browser and security gates passed before merge.
+
+This result extends the earlier historical 159/159 baseline; those numbers are not a new full-sweep total for the beta upgrade. It measures an intentional defect, not a naturally occurring one or an independent false-positive rate. The layout tool and Playwright remain complementary.
+
 ## Apply the pattern to another repository
 
 Keep a small set of responsive contracts beside the website that owns

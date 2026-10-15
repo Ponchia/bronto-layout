@@ -1,8 +1,35 @@
-# Public alpha gate (v0.4 candidate; no publication authorized)
+# Public beta gate (v0.5.0-beta.1 GitHub prerelease; npm publication pending)
 
 See the [manual npm alpha runbook](npm-alpha-runbook.md) for safe registry preflight and verification.
 
-This is a release-preparation checklist, **not** a claim of production readiness. `@ponchia/layout` has not been published to npm. Publication, a tag, version bump and public release announcement are separate decisions.
+This is the historical release-preparation checklist, **not** a claim of production readiness. [v0.5.0-beta.1 is available on GitHub](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) as a prerelease with a verified tarball; `@ponchia/layout` has **not** been published to npm. The GitHub tag and npm registry publish are separate decisions.
+
+## npm distribution gate
+
+- [x] Prepare a tag-only, SHA-verified OIDC publisher with manual GitHub Environment approval, no long-lived npm tokens, and no repository scripts in the publish job ([npm publishing protocol](npm-publishing.md)).
+- [ ] An authenticated maintainer bootstraps `@ponchia/layout@0.5.0-beta.1` to npm from the checksum-verified GitHub tarball using `--tag beta` and checks the registry install. This step cannot use OIDC until the package exists.
+- [ ] Register the exact npm trusted publisher (owner `Ponchia`, repository `bronto-layout`, workflow `npm-release.yml`, environment `npm-publish`).
+- [ ] Verify an additional new beta version through the reviewed OIDC workflow and registry provenance, without changing `latest`.
+
+## CSP-safe beta.1 and field observations (14 October 2026)
+
+- [x] Fail closed on script-disabled top-level HTTP CSP sandbox with typed `CSP_SANDBOX_UNINSPECTABLE` and exit 2 ([PR #95](https://github.com/Ponchia/bronto-layout/pull/95)); never bypass document or browser sandboxing.
+- [x] Merge and verify [beta.1 source](https://github.com/Ponchia/bronto-layout/pull/96) on Node 22/24 Chromium and macOS. Repack exact merged `main`, download its release assets, SHA-256 check and verify a clean consumer install of version `0.5.0-beta.1`.
+- [x] Record first-party downstream usage, controlled regressions, blocked runner environments and an unverified Spatial report surface in [beta pilot findings](first-party-beta-pilots.md); do **not** turn synthetic results into precision/recall.
+- [ ] Obtain independent human field labels and external first-use feedback; promote optional project gates only when their sandboxed browser prerequisites are met.
+
+## Beta hardening and integration (14 October 2026)
+
+- [x] Prepare `0.5.0-beta.0` source/package identity without tagging or claiming npm publication.
+- [x] Implement bounded, opt-in interior-width probes, with explicit sampling/unsampled gaps in JSON and pure/browser fixture tests.
+- [x] Allow finite batch check jobs to specify `interiorProbes`, `refine` and `failOnSkip` without accepting arbitrary scripts.
+- [x] Provide a reusable source-based GitHub Action with local-only JSON reports, explicit sandboxed browser preflight and no implicit artifact uploads.
+- [x] Document source consumption, agent workflows and private first-party field-trial records without asking developers to post sensitive captures.
+- [x] Validate the exact beta head on GitHub Node 22/24, hosted macOS and reusable Action smoke; compare the installed tarball from the merged `main` commit (all five hosted jobs passed).
+- [ ] Confirm publishing permissions/identity for `@ponchia/layout`, then authorize a separate prerelease npm publish. `npm whoami` here returned `ENEEDAUTH`.
+- [x] Publish the reviewed [GitHub beta prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.0) after the all-green `main` gates; download the attached tarball and `SHA256SUMS.txt`, verify SHA-256 and the clean consumer CLI, exported API and batch plan.
+- [ ] Publish an npm `beta` dist-tag separately after authorized publisher access, then verify registry installation; do not claim npm availability until that succeeds.
+- [x] Collect first-party observations from real owned-project integrations (see [pilot findings](first-party-beta-pilots.md)). Independent precision/recall and adoption claims still require separately labeled external trials.
 
 ## Public repository and first-run readiness (13 October 2026)
 
@@ -59,6 +86,9 @@ This is a release-preparation checklist, **not** a claim of production readiness
 
 ## Independent quality evidence
 
+- [x] Re-capture the [Astro-only eight-state external cohort](oss-field-study.md) after separating unfinished offscreen `loading=lazy` images: [run 38442002226](https://github.com/Ponchia/bronto-layout/actions/runs/38442002226) completed 8/8 states, 16/16 verified hashes, 0 visible pending-image warnings and 12 explicit deferred media observations across six states. Initial-viewport screenshots were inspected, but no independent whole-page quality labels were assigned.
+- [ ] Obtain independent human review of Astro's below-fold images and source-defined expected loading behavior. A completed screenshot plus documented deferral is not proof that deferred image paint becomes correct later.
+
 - [x] Build the [pinned Eleventy OSS source site](oss-source-built-study.md) on a disposable runner ([run 38425982845](https://github.com/Ponchia/bronto-layout/actions/runs/38425982845)): **88/88 responsive checks**, one induced **18px semantic alignment failure**, and **0 generic audit issues**; all four initial JSON report hashes verified. This is mechanical, not human-labeled accuracy.
 - [x] Capture and inspect Eleventy's **8 baseline and 2 mutation screenshots** with a verified, portable evidence index in [run 38427558662](https://github.com/Ponchia/bronto-layout/actions/runs/38427558662). All artifact SHA-256 checks passed and the 18px alignment displacement is visible. This is a first-party reviewer inspection, **not independent human accuracy labeling**.
 
@@ -73,6 +103,7 @@ This is a release-preparation checklist, **not** a claim of production readiness
 - [x] Complete the [fixed external deep-scroll study](oss-scroll-state-study.md) against Vite and Docusaurus: **4/4 verified scroll states**, **12/12 responsive contract evaluations**, and **13/13 portable artifact hashes** in [run 38415585449](https://github.com/Ponchia/bronto-layout/actions/runs/38415585449). The previous Vite 10px clipped-root width observation remains, without a claim of user-visible overflow or independent whole-page correctness.
 - [x] Run the [fixed open-source mobile-navigation state cohort](oss-mobile-state-study.md) in sandboxed Chrome: **5/5 opened states**, **15/15 passing explicit assertions**, **0 measured errors**, and 21/21 evidence hashes verified in [run 38383862119](https://github.com/Ponchia/bronto-layout/actions/runs/38383862119). This is automated state validation, not independently human-labelled design quality.
 - [ ] Obtain independent human usability/keyboard review of the opened menus; the current DOM-state and viewport checks cannot certify focus order or touch ergonomics.
+- [ ] Re-run fixed, independently maintained mobile-menu cases with opt-in `pointer-click` browser hit testing before claiming mouse reachability; prior `click`-only results proved DOM-handler state, not physical clickability.
 
 - [x] Controlled labeled fixture benchmark (33 cases as of the initial v0.4 candidate) and element-location assertions.
 - [x] 30 first-party URL/viewport captures from the manual workflow, with SHA-256 integrity checks. No human labels yet.

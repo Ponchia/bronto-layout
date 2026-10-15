@@ -220,6 +220,15 @@ modifies a review file. `score` excludes pending/unreviewable entries and
 refuses accuracy scoring when no independently reviewed entries remain; with
 `--assert`, any unfinished capture also causes a nonzero exit.
 
+**Known uninspected lazy media:** CSS-visible lazy images fully outside the
+captured viewport may not finish loading by design. They do not count as
+ordinary `pending-image` warnings, but their paint is explicitly marked
+`known-uninspected-content` under `coverage.deferredOffscreenLazyImages`.
+Like visible canvases and uninspected frames, those states must not silently
+enter the whole-page true-negative denominator. If a reviewer intentionally
+inspects only an independently specified subregion, document that distinct
+scoring protocol; do not reinterpret old whole-page labels.
+
 ## Label independently
 
 Before consulting `audit.json` findings, a named human reviewer should

@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { chromeExecutable } from './chrome-detect.mjs';
 import { startBrowser } from './chromium-session.mjs';
+import { rejectUninspectableCspSandbox } from './csp-navigation.mjs';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
@@ -17,6 +18,7 @@ import { describeSuggestedContracts, describeProposalReview, describeApprovedCon
 import { captureContainerQueryEvidence } from '../dist/container-queries.js';
 import { parseContract, validWidth } from '../dist/contract.js';
 import { parseLayoutActions } from '../dist/actions.js';
+import { pointerClick } from './pointer-click.mjs';
 import { evaluateLayout } from '../dist/core.js';
 import { compareReports } from '../dist/compare.js';
 import { toSarif } from '../dist/sarif.js';
@@ -130,6 +132,7 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
       if (mainResponse?.response?.status >= 400) {
         throw new Error(`Navigation returned HTTP ${mainResponse.response.status} for ${mainResponse.response.url}`);
       }
+      rejectUninspectableCspSandbox(mainResponse?.response);
     }
   } catch (error) {
     loaded.cancel(); loaded.promise.catch(() => {});
@@ -164,6 +167,8 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
 }
 /** Execute only explicitly declared browser actions; no arbitrary JS from the contract. */
 async function runAction(cdp, action, timeout) {
+  if (action.type === 'pointer-click')
+    return pointerClick(cdp, action.selector, timeout, queryComposedElements);
   const args = JSON.stringify(action);
   const resolveSelector = queryComposedElements.toString();
   await cdp.eval(`(async () => {
@@ -357,9 +362,14 @@ async function check(a) {
         if (screenshot) evidence.push({ width, screenshot });
       }
       return report;
-    }, Boolean(a.refine), config.maxSamples);
+    }, Boolean(a.refine), config.maxSamples, config.interiorProbes);
     const total = summary(checked.reports);
-    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions,
+    if (total.passed + total.failed === 0) {
+      const error = new Error('No applicable layout rules were evaluated at the sampled viewport widths; all rules were outside their declared width ranges or otherwise unmeasured. Choose appropriate widths or review the contract; this is unverified, not a passing layout.');
+      error.code = 'NO_APPLICABLE_RULES';
+      throw error;
+    }
+    return { schemaVersion: 1, mode: 'check', url: publicURL, summary: total, reports: checked.reports, transitions: checked.transitions, sampling: checked.sampling,
       ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
       ...(a['css-sources'] ? { cssSourceLeads, omittedCSSSourceWidths } : {}),
       ...(a['evidence-dir'] ? { evidence } : {}) };
@@ -522,11 +532,11 @@ async function compare(a) {
             ...candidate.findings.map(f => ({ ...f, id: `candidate:${f.id}` }))
           ]
         };
-      }, Boolean(a.refine), config.maxSamples);
+      }, Boolean(a.refine), config.maxSamples, config.interiorProbes);
       const selectedWidths = sweep.reports.map(r => r.viewport.width);
       const comparison = compareReports(baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url, publicURL,
         selectedWidths.map(width => baseSnapshots.get(width)), selectedWidths.map(width => candidateSnapshots.get(width)));
-      return { ...comparison, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
+      return { ...comparison, sampling: sweep.sampling, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
         ...(a['evidence-dir'] ? { evidence } : {}) };
     } finally { baselineTarget.close(); }
   }, spec.scenario);
@@ -754,10 +764,12 @@ async function main() {
 main().catch(async error => {
   process.exitCode = 2;
   const message = error instanceof Error ? error.message : String(error);
+  const code = ['CSP_SANDBOX_UNINSPECTABLE', 'NO_APPLICABLE_RULES'].includes(error?.code)
+    ? error.code : 'CLI_ERROR';
   const args = process.argv.slice(2);
   const report = {
     schemaVersion: 1, mode: 'error', status: 'error', exitCode: 2,
-    error: { code: 'CLI_ERROR', message }
+    error: { code, message }
   };
   if (args.includes('--json')) console.log(JSON.stringify(report, null, 2));
   else console.error('Bronto Layout: ' + message);

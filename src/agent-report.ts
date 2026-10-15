@@ -1,6 +1,6 @@
 import type { LayoutFinding, LayoutReport } from './core.js';
 import type { LayoutComparison } from './compare.js';
-import type { RuleTransition } from './sweep.js';
+import type { RuleTransition, SweepSampling } from './sweep.js';
 import type { CSSFailureSourceLead } from './css-failure-leads.js';
 
 /** A bounded output shape for coding agents. It never asserts correctness at untested widths. */
@@ -61,7 +61,8 @@ function compactFinding(finding: LayoutFinding, width: number) {
     ...(finding.paths?.length ? { paths: finding.paths.slice(0, 6) } : {}),
     ...(finding.evidence?.length ? { evidence: finding.evidence.slice(0, 4) } : {}),
     ...(finding.overflowCandidates?.length
-      ? { overflowCandidates: finding.overflowCandidates.slice(0, 4) } : {})
+      ? { overflowCandidates: finding.overflowCandidates.slice(0, 4) } : {}),
+    ...(finding.overflowCandidatesTruncated ? { overflowCandidatesTruncated: true } : {})
   };
 }
 
@@ -70,6 +71,7 @@ interface CheckData {
   reports: LayoutReport[];
   summary: { passed: number; failed: number; skipped: number };
   transitions: RuleTransition[];
+  sampling?: SweepSampling;
   cssBreakpointScan?: { thresholds: number[]; widths: number[]; addedWidths: number[] };
   cssSourceLeads?: CSSFailureSourceLead[];
   omittedCSSSourceWidths?: number;
@@ -100,6 +102,7 @@ export function compactCheckReport(result: CheckData) {
     unmeasurable: unmeasurable.values,
     omittedUnmeasurable: unmeasurable.omitted,
     transitions: result.transitions,
+    ...(result.sampling ? { sampling: result.sampling } : {}),
     ...(result.cssBreakpointScan ? { cssBreakpointScan: result.cssBreakpointScan } : {}),
     ...(result.cssSourceLeads ? { cssSourceLeads: result.cssSourceLeads, omittedCSSSourceWidths: result.omittedCSSSourceWidths ?? 0 } : {}),
     ...(result.evidence ? { evidence: result.evidence } : {})
@@ -110,6 +113,7 @@ export function compactCheckReport(result: CheckData) {
 export function compactCompareReport(result: LayoutComparison & {
   cssBreakpointScan?: { thresholds: number[]; widths: number[]; addedWidths: number[] };
   evidence?: { width: number; screenshot: string }[];
+  sampling?: SweepSampling;
 }) {
   const changes = bounded(result.changes.filter(c => c.kind !== 'unchanged'));
   const remaining = bounded(result.candidate.flatMap(report => report.findings
@@ -134,6 +138,7 @@ export function compactCompareReport(result: LayoutComparison & {
     } } : {}),
     ...(result.candidate.some(r => r.layoutShifts) ? { layoutShifts: {
       baseline: compactShifts(result.baseline), candidate: compactShifts(result.candidate) } } : {}),
+    ...(result.sampling ? { sampling: result.sampling } : {}),
     changes: changes.values,
     omittedChanges: changes.omitted,
     remainingFailures: remaining.values,
