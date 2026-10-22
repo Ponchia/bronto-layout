@@ -16,7 +16,7 @@ export async function captureFrameInventoryWithCDP(cdp: {
     });
   } catch (error) {
     throw new Error('Frame inventory requires Chromium DOMSnapshot.captureSnapshot: ' +
-      (error instanceof Error ? error.message : String(error)));
+      (error instanceof Error ? error.message : String(error)), { cause: error });
   }
   return summarizeFrameInventory(tree.frameTree, snapshot, visibleDomFrames);
 }
