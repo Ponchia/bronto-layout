@@ -234,7 +234,7 @@ async function discoverCSSBreakpointWidths(cdp, url, coarseWidths, config, fixtu
     await measure(cdp, url, width, {}, config, fixture, actions);
     let data;
     try { data = await cdp.send('CSS.getMediaQueries'); }
-    catch (error) { throw new Error('--css-breakpoints requires CSS.getMediaQueries: ' + error.message); }
+    catch (error) { throw new Error('--css-breakpoints requires CSS.getMediaQueries: ' + error.message, { cause: error }); }
     sources.push(mediaBreakpointSamples(data.medias ?? [], min, max));
   }
   const discovered = combineCSSBreakpointSamples(coarseWidths, ...sources);

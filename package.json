@@ -34,9 +34,9 @@
     "oss:scroll:validate": "npm run build && node --test tests/oss-scroll-states.test.mjs && for spec in benchmarks/oss-scroll/*.json; do node bin/bronto-layout.mjs validate --spec \"$spec\" --json >/dev/null || exit 1; done"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "ajv": "^8.20.0",
-    "eslint": "^9.39.5",
+    "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "playwright-core": "1.63.0",
     "typescript": "^5.8.3",

@@ -37,7 +37,7 @@ async function savePairedViewport(cdp, evidenceDir, version, width) {
     await writeFile(file, png, { flag: 'wx' });
   } catch (error) {
     if (error?.code === 'EEXIST') throw new Error(
-      'Comparison screenshot already exists; choose a fresh --evidence-dir to preserve reviewer evidence: ' + file);
+      'Comparison screenshot already exists; choose a fresh --evidence-dir to preserve reviewer evidence: ' + file, { cause: error });
     throw error;
   }
   return {file, sha256: createHash('sha256').update(png).digest('hex'), coverage: 'viewport-only'};
@@ -154,7 +154,7 @@ export function createAuditCommand({
         await writeFile(file, gallery, { flag: 'wx' });
       } catch (error) {
         if (error?.code === 'EEXIST') throw new Error(
-          'Comparison gallery already exists; choose a fresh --evidence-dir: ' + file);
+          'Comparison gallery already exists; choose a fresh --evidence-dir: ' + file, { cause: error });
         throw error;
       }
       result.comparisonGallery = {file, format:'static-offline-html', scripts:false, pairs:result.comparisonEvidence.length};

@@ -60,7 +60,7 @@ export async function inspectCSSWithCDP(
     try {
       await cdp.send('CSS.enable');
     } catch (error) {
-      throw new Error('--css-sources requires CSS.enable support: ' + (error as Error).message);
+      throw new Error('--css-sources requires CSS.enable support: ' + (error as Error).message, { cause: error });
     }
     const doc = await cdp.send('DOM.getDocument', { depth: 1, pierce: true });
     const aliases: CSSAliasInspection[] = [];
