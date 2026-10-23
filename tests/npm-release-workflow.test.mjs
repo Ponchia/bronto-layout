@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 const workflow=readFileSync(new URL('../.github/workflows/npm-release.yml',import.meta.url),'utf8');
 const ci=readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8');
@@ -63,4 +66,26 @@ test('registry observation fails closed and is isolated from publication authori
   assert.doesNotMatch(publish,/actions\/checkout|npm (?:ci|install) |node scripts\//);
   const verification = workflow.slice(workflow.indexOf('  verify-registry:'), workflow.indexOf('  github-release:'));
   assert.doesNotMatch(verification,/set \+e|id-token: write|contents: write|npm publish|environment: npm-publish/);
+});
+
+test('release checksum entries survive artifact relocation and reject changed bytes',()=>{
+  assert.match(workflow,/\(cd "\$RUNNER_TEMP" && sha256sum "\$TARBALL" > SHA256SUMS\.txt\)/);
+  assert.doesNotMatch(workflow,/sha256sum "\$RUNNER_TEMP\/\$TARBALL" > "\$RUNNER_TEMP\/SHA256SUMS\.txt"/);
+  const root=mkdtempSync(path.join(tmpdir(),'layout-release-relocation-'));
+  const producer=path.join(root,'producer'),consumer=path.join(root,'consumer');
+  mkdirSync(producer);mkdirSync(consumer);
+  const name='ponchia-layout-0.5.0-beta.2.tgz',bytes=Buffer.from('synthetic release archive');
+  const sha=b=>createHash('sha256').update(b).digest('hex');
+  try {
+    writeFileSync(path.join(producer,name),bytes);
+    writeFileSync(path.join(producer,'SHA256SUMS.txt'),`${sha(bytes)}  ${name}\n`);
+    for(const file of [name,'SHA256SUMS.txt'])copyFileSync(path.join(producer,file),path.join(consumer,file));
+    rmSync(producer,{recursive:true});
+    const [,expected,relative]=readFileSync(path.join(consumer,'SHA256SUMS.txt'),'utf8').match(/^([a-f0-9]{64}) {2}([^\r\n]+)\n$/);
+    assert.equal(path.isAbsolute(relative),false);
+    assert.equal(relative,name);
+    assert.equal(sha(readFileSync(path.join(consumer,relative))),expected);
+    writeFileSync(path.join(consumer,name),'tampered archive');
+    assert.notEqual(sha(readFileSync(path.join(consumer,relative))),expected);
+  } finally {rmSync(root,{recursive:true,force:true});}
 });

@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum "$RUNNER_TEMP/$TARBALL" > "$RUNNER_TEMP/SHA256SUMS.txt"
+          (cd "$RUNNER_TEMP" && sha256sum "$TARBALL" > SHA256SUMS.txt)
           ( cd "$RUNNER_TEMP" && sha256sum -c SHA256SUMS.txt )
           sha="$(cut -d' ' -f1 "$RUNNER_TEMP/SHA256SUMS.txt")"
           [[ "$sha" =~ ^[0-9a-f]{64}$ ]]
