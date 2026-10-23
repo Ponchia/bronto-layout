@@ -5,8 +5,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
-    # ESLint's 9.x runtime and config must be upgraded as a pair.
-    # A standalone @eslint/js 10 major PR failed both Node/Chromium gates.
+    groups:
+      eslint:
+        patterns: ['eslint', '@eslint/js', 'typescript-eslint']
+        update-types: ['minor', 'patch']
+    # ESLint 10 and its config must stay on compatible majors.
+    # Group routine lint updates; review a future major migration together.
     ignore:
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
@@ -21,3 +25,6 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns: ['*']
