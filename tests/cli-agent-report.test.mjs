@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync, linkSync, existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 const cwd = path.resolve(import.meta.dirname, '..');
 const cli = path.join(cwd, 'bin/bronto-layout.mjs');
 const run = args => spawnSync(process.execPath, [cli, ...args], {
@@ -120,5 +121,36 @@ test('report paths preserve other explicit inputs and primary generated files be
     const result=run(['init','--out',output,'--report',output,'--json']);
     assert.equal(result.status,2,result.stderr||result.stdout);
     assert.equal(existsSync(output),false,'conflicting outputs should not create or overwrite a contract');
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
+
+test('contract-relative local targets are protected before startup and on invalid-option failure paths',()=>{
+  const dir=mkdtempSync(path.join(os.tmpdir(),'bronto-report-contract-target-'));
+  try {
+    const page=path.join(dir,'page.html'),spec=path.join(dir,'c.json');
+    const original='<!doctype html><main>owned fixture</main>';
+    writeFileSync(page,original);
+    const symlink=path.join(dir,'page-alias.html'),hardlink=path.join(dir,'page-hardlink.html');
+    symlinkSync(page,symlink);linkSync(page,hardlink);
+    for(const url of ['page.html',page,pathToFileURL(page).href]) {
+      writeFileSync(spec,JSON.stringify({url,selectors:{},rules:[{id:'fit',type:'document-overflow'}]}));
+      for(const command of ['check','scan','compare']) {
+        for(const destination of [page,symlink,hardlink]) {
+          const result=run([command,'--spec',spec,'--report',destination,
+            '--chrome','/missing/chrome-for-collision-preflight','--json']);
+          assert.equal(result.status,2,result.stderr||result.stdout);
+          assert.match(JSON.parse(result.stdout).error.message,/--report must not overwrite --spec target/);
+          assert.equal(readFileSync(page,'utf8'),original);
+        }
+      }
+      const invalid=run(['check','--spec',spec,'--report',page,'--json','--sarif']);
+      assert.equal(invalid.status,2,invalid.stderr||invalid.stdout);
+      assert.match(JSON.parse(invalid.stdout).error.message,/Choose --json or --sarif/);
+      assert.equal(readFileSync(page,'utf8'),original,'the error handler must protect contract-relative resources too');
+    }
+    writeFileSync(spec,'{"url":"page.html", malformed JSON');
+    const invalid=run(['check','--spec',spec,'--report',page,'--json']);
+    assert.equal(invalid.status,2,invalid.stderr||invalid.stdout);
+    assert.equal(readFileSync(page,'utf8'),original,'malformed JSON cannot authorize overwriting an unresolved input');
   } finally {rmSync(dir,{recursive:true,force:true});}
 });

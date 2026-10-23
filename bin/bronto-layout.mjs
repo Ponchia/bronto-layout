@@ -754,8 +754,8 @@ async function validate(a) {
     rules: spec.rules.map(({ id, type }) => ({ id, type })) };
   await output(a, data, `Valid layout contract: ${data.selectors.length} selectors, ${data.rules.length} rules${data.widths.length ? `, ${data.widths.length} widths` : ''}`);
 }
-/** Protect source JSON and explicitly named local targets on both successful
- * output and error-report paths. File identity includes symlinks/hardlinks.
+/** Protect source JSON and local targets on both successful output and error
+ * paths, including contract-relative URLs. Identity includes symlinks/hardlinks.
  */
 async function reportInputConflict(a) {
   if (!a?.report) return undefined;
@@ -769,6 +769,23 @@ async function reportInputConflict(a) {
   }
   for (const [flag, file] of files)
     if (await sameEvidenceFile(file, a.report)) return flag;
+  if (a.spec && ['check', 'scan', 'compare', 'validate'].includes(a.command)) {
+    let spec;
+    try { spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8'))); }
+    catch (error) {
+      // A missing contract cannot have supplied a target. For malformed or
+      // unreadable existing input, the error handler must not guess that a
+      // report destination is unrelated to the contract's local resources.
+      if (['ENOENT', 'ENOTDIR'].includes(error?.code)) return undefined;
+      throw error;
+    }
+    if (!a.url && spec.url) {
+      const target = resolveURL(a, spec);
+      if (!/^https?:\/\//.test(target) && await sameEvidenceFile(
+        target.startsWith('file://') ? fileURLToPath(target) : target, a.report
+      )) return 'spec target (contract.url)';
+    }
+  }
   return undefined;
 }
 let parsedCLIArgs;
