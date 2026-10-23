@@ -1,55 +1,91 @@
-# npm publication: first bootstrap and protected OIDC updates
+# npm beta publication
 
-**Registry status (14 October 2026):** `@ponchia/layout` has not been published to npm (`E404`). Bronto Layout's experimental [v0.5.0-beta.1 GitHub release](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) is available as a checksum-verified npm-compatible `.tgz`. The development environment is not authenticated (`npm whoami` returns `ENEEDAUTH`).
+Lifecycle: current
 
-## 1. One-time first publication (authenticated owner)
+The intended package identity is `@ponchia/layout`, published by an authorized
+owner of that npm scope from `Ponchia/bronto-layout`. Verify the live npm
+identity and permission before the first write. First publication and subsequent
+trusted-publisher releases have different authentication paths. The current
+registry state must be checked live; a GitHub tag or release is not npm availability.
 
-The npm scope is already used for [@ponchia/ui](https://www.npmjs.com/package/@ponchia/ui) and [@ponchia/annotations](https://www.npmjs.com/package/@ponchia/annotations). The npm account `ponchia` maintains `@ponchia/ui`. **Do not rename the scope** or mistake an existing GitHub package for an npm registry release.
+## First publication
 
-**Important:** npm's trusted-publisher configuration requires an existing package. The first publish must be performed by the authenticated maintainer; the GitHub OIDC workflow cannot publish a nonexistent `@ponchia/layout` package. No usable npm credential is installed in the devbox or GitHub repository. Do not commit a token, paste an OTP into a log, or enable public-site browser sandbox bypass to complete this step.
-
-After reviewing the existing [GitHub beta.1 release](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1), download its `.tgz` and `SHA256SUMS.txt` into the **same clean directory**. On an authorized computer with npm 11+ and the correct `ponchia` npm account authenticated:
-
-```sh
-sha256sum -c SHA256SUMS.txt
-# Expected archive checksum:
-# f471a03498980d80ce304aa45a04e8b468736f51478822b7620ffc147a7b1de8
-npm whoami --registry https://registry.npmjs.org
-npm view @ponchia/layout@0.5.0-beta.1 version --registry https://registry.npmjs.org
-# The exact version should still return E404; do not overwrite any package.
-npm publish ./ponchia-layout-0.5.0-beta.1.tgz \
-  --ignore-scripts --access public --tag beta --provenance=false \
-  --registry https://registry.npmjs.org
-```
-
-The last command is an irreversible registry write; **only the authorized maintainer executes it**. The local bootstrap cannot produce OIDC provenance, so `--provenance=false` is explicit. Do not claim that it has supply-chain attestation. If the network fails after submission, **look up the registry state before any retry**; npm never permits republishing the same name/version. Verify the exact package, install as an external consumer, confirm `dist-tags.beta` and ensure `latest` wasn't inadvertently assigned:
+Qualify a new beta from reviewed main using the [release gates](release-checklist.md).
+Use its exact built archive, not an old tarball merely because it already exists.
+The following placeholders must come from that qualified candidate:
 
 ```sh
-npm view @ponchia/layout@0.5.0-beta.1 version dist.integrity --json
-npm view @ponchia/layout dist-tags --json
-npm install --prefix ./consumer @ponchia/layout@0.5.0-beta.1
-./consumer/node_modules/.bin/bronto-layout --version
+VERSION=0.5.0-beta.2
+TARBALL="/absolute/path/ponchia-layout-$VERSION.tgz"
+npm whoami --registry=https://registry.npmjs.org
+npm view "@ponchia/layout@$VERSION" version --registry=https://registry.npmjs.org
+sha256sum "$TARBALL"
 ```
 
-A successful local bootstrap allows us to secure **subsequent, differently versioned** releases using GitHub OIDC.
+A missing version is expected; an authorization, network or rate-limit error
+is not proof of availability. Verify the expected SHA-256 and package identity,
+then perform the separately authorized first release:
 
-## 2. Configure the trusted publisher (npm account settings)
+```sh
+npm publish "$TARBALL" --ignore-scripts --access public --tag beta \
+  --provenance=false --registry=https://registry.npmjs.org
+```
 
-In npm's newly published `@ponchia/layout` **Settings → Trusted publishing**, register exactly:
+Use normal npm login and 2FA. Complete browser/passkey challenges interactively;
+never paste a password or token into an issue, transcript or repository. Local
+bootstrap cannot establish hosted OIDC provenance. Do not claim it does.
 
-| Field | Value |
+Immediately verify the exact public archive using the checked source tree:
+
+```sh
+node scripts/verify-registry-release.mjs --version "$VERSION" --tarball "$TARBALL"
+```
+
+Then install `@ponchia/layout@<exact-version>` in a fresh directory with
+`--ignore-scripts`, exercise its installed binary/API, and run `npm audit signatures`.
+Retain evidence outside the public source repository when it contains private paths.
+
+## Configure the trusted publisher
+
+Once the package exists, use npm package settings or `npm trust` with normal
+interactive account authentication to set:
+
+| Setting | Value |
 | --- | --- |
 | Provider | GitHub Actions |
-| GitHub owner | `Ponchia` |
+| Organization/user | `Ponchia` |
 | Repository | `bronto-layout` |
-| Workflow filename | `npm-release.yml` |
-| GitHub environment | `npm-publish` |
-| Allowed action | `npm publish` |
+| Workflow | `npm-release.yml` |
+| Environment | `npm-publish` |
+| Allowed action | Direct `npm publish` |
 
-Only enter the **filename**, not `.github/workflows/npm-release.yml`. Our [tag-driven release workflow](../.github/workflows/npm-release.yml) runs on GitHub-hosted CI with protected `npm-publish` Environment review. It reruns the exact normal Node 22/24 Chromium and macOS workflows at the tag, then validates that the tag is a beta, its commit is reachable from `main`, its version matches `package.json`, the npm version does not already exist, tests pass, and the archive has compiled JS/type declarations and no private files. Its nonprivileged job builds and verifies a source archive. After **manual GitHub environment approval**, the one OIDC job downloads the **exact SHA-256-checked tarball** without checking out or executing project source, then publishes under `--tag beta` with no long-lived credential. It never publishes on a PR or ordinary `main` push.
+Do not widen the trust to other repositories, remove environment review, enable
+extra tag-management privileges or weaken npm account security. Keep the
+existing protected GitHub environment. The first publisher needs an existing
+package; its identity is separate from GitHub authentication.
 
-Choose a **new reviewed version**, for example `0.5.0-beta.2`, and create its immutable Git tag only after its source, tests and release-preflight run agree. Do not move an existing tag or republish `0.5.0-beta.1` through OIDC. npm trusted publisher configurations may require first use within two days of setup; verify those details when authorizing the next release. The protected environment does not authorize unreviewed publishes.
+## Later beta releases
 
-After OIDC publishing, the gated release workflow also attaches that same checksum-verified package to a GitHub beta release. Verify the exact registry archive and the automatic provenance attestation, fresh Linux/macOS consumer installation, and `dist-tags.beta` from the public registry. A failed GitHub release step never authorizes replaying a completed npm publication. Do not automatically promote experimental versions to `latest`; formal stability and marketing remain separate decisions.
+A new `v<version>-beta.<number>` tag on reviewed main starts the full hosted CI
+and macOS gates. Preflight builds and checks a single archive before approval.
+The protected publish job receives only that archive and checksum; it has no
+source checkout, dependency install or repository-script execution.
 
-**Sources:** [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/) and [npm CLI trusted-publisher prerequisites](https://github.com/npm/cli/blob/latest/docs/lib/content/commands/npm-trust.md). The initial registry bootstrap cannot be completed by an unauthenticated agent.
+After npm accepts it, a **separate read-only job** checks the registry identity,
+SHA-512 integrity, downloaded bytes, `beta` tag and provenance metadata. It
+installs the exact version in a clean consumer and verifies signatures with npm.
+Only that successful job permits the GitHub prerelease with matching bytes.
+The verifier distinguishes advertised provenance from cryptographic verification.
+No stable `latest` release is advanced by this beta workflow.
+
+## Recovery
+
+A failed verification does not undo an accepted publication. Do not re-publish,
+overwrite the version or change dist-tags to hide a failure. Inspect the registry
+and rerun only the read-only verifier/job against the original archive. A failed
+GitHub announcement can be recovered separately after the same bytes are verified.
+Network diagnostics never authorize a second irreversible write.
+
+Sources: [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/),
+[npm 2FA](https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification/),
+[signature verification](https://docs.npmjs.com/verifying-registry-signatures/).

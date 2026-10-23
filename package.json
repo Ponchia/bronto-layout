@@ -1,6 +1,6 @@
 {
   "name": "@ponchia/layout",
-  "version": "0.5.0-beta.1",
+  "version": "0.5.0-beta.2",
   "description": "Open-source layout contracts, responsive diagnostics, and agent-ready CLI",
   "type": "module",
   "license": "MIT",
@@ -104,7 +104,8 @@
     "schemas"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "beta"
   },
   "repository": {
     "type": "git",

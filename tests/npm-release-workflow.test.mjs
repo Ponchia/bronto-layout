@@ -22,7 +22,7 @@ test('npm release is behind validated bytes, human approval and OIDC rather than
   assert.match(workflow,/preflight:[\s\S]*?needs: \[verify-ci, verify-macos\]/);
   assert.match(ci,/workflow_call:/);
   assert.match(macos,/workflow_call:/);
-  assert.match(workflow,/github-release:\s*\n\s*needs: \[preflight, publish-npm\]/);
+  assert.match(workflow,/github-release:\s*\n\s*needs: \[preflight, verify-registry\]/);
   assert.match(workflow,/gh release create/);
   assert.match(workflow,/--verify-tag --prerelease --latest=false/);
   assert.match(workflow,/publish-npm:\s*\n\s*needs: preflight/);
@@ -41,12 +41,26 @@ test('npm release is behind validated bytes, human approval and OIDC rather than
 test('the first release requires an authenticated human and correct existing @ponchia scope',()=>{
   assert.equal(pkg.name,'@ponchia/layout');
   assert.equal(pkg.publishConfig.access,'public');
+  assert.equal(pkg.publishConfig.tag,'beta', 'Unqualified npm publish must not default to stable latest');
   assert.equal(pkg.repository.url,'https://github.com/Ponchia/bronto-layout.git');
   assert.match(docs,/npm whoami/);
-  assert.match(docs,/npm publish \.\/ponchia-layout-0\.5\.0-beta\.1\.tgz/);
+  assert.match(docs,/npm publish "\$TARBALL"/);
   assert.match(docs,/--access public --tag beta/);
   assert.match(docs,/--provenance=false/);
   assert.match(docs,/\bPonchia\b/);
   assert.match(docs,/\bnpm-release\.yml\b/);
-  assert.match(docs,/no longer|No usable npm credential|not authenticated|not been published/);
+  assert.match(docs,/not been published|first publication|first release/i);
+});
+
+test('registry observation fails closed and is isolated from publication authority',()=>{
+  assert.match(workflow,/verify-registry:\s*\n\s*needs: \[preflight, publish-npm\]/);
+  assert.match(workflow,/node scripts\/verify-registry-release\.mjs/);
+  assert.match(workflow,/--require-provenance/);
+  assert.match(workflow,/npm audit signatures/);
+  assert.match(workflow,/npm install --ignore-scripts --no-audit --no-fund --save-exact/);
+  assert.doesNotMatch(workflow,/if test -s .*npm-observed/);
+  const publish = workflow.slice(workflow.indexOf('  publish-npm:'), workflow.indexOf('  verify-registry:'));
+  assert.doesNotMatch(publish,/actions\/checkout|npm (?:ci|install) |node scripts\//);
+  const verification = workflow.slice(workflow.indexOf('  verify-registry:'), workflow.indexOf('  github-release:'));
+  assert.doesNotMatch(verification,/set \+e|id-token: write|contents: write|npm publish|environment: npm-publish/);
 });

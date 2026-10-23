@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.5.0-beta.2 (release candidate; registry publication not yet verified)
+
+- Preserve input contracts, action files, and explicitly named local pages when
+  report paths alias them, including symlink and hardlink identities.
+- Treat unavailable comparison measurements as unverified and reject comparisons
+  with no evaluated rules. Respect exact selector counts even when geometry is
+  truncated, and reject ambiguous DOM state mutations before acting.
+- Bound CDP connection setup, reject waits on disconnect, enforce the inspection
+  sample budget, and handle long temporary paths without changing sandbox defaults.
+- Verify registry package identity, downloaded archive equality, beta dist-tag,
+  isolated public consumer, and OIDC provenance before announcing a GitHub release.
+  Keep publication authority separate from repository-code execution.
+- Make in-house qualification the beta release gate. Preserve independent-field
+  evidence limitations without requiring outside developers to complete work.
+  Shorten first-run instructions, index the documentation, and archive stale gates.
+- Set the package's default publishing tag to `beta`; stable `latest` is not
+  advanced by the beta release workflow.
+
+
 - Classify clipped-root horizontal extent as measured review evidence rather than an automatic error; a visible scrolling defect is not established solely by `scrollWidth`.
 - Refuse all-out-of-range layout contracts with `NO_APPLICABLE_RULES` and exit 2; no successful zero-assertion outcome.
 - Bound both automatic audit and strict-contract overflow-candidate DOM traversal without spreading giant child arrays; disclose any truncated sibling walk as incomplete coverage. Refresh beta security-policy documentation.
@@ -16,7 +35,7 @@
 
 - Record verified GitHub beta.1 distribution and first-party pilot results, without making accuracy or external-adoption claims.
 
-## 0.5.0-beta.1 (source candidate — GitHub release pending CI; npm registry not published)
+## 0.5.0-beta.1 (14 October 2026 — GitHub prerelease; npm registry not published)
 
 - Fail closed on a verified top-level HTTP `Content-Security-Policy: sandbox` without `allow-scripts`, reporting `CSP_SANDBOX_UNINSPECTABLE` (exit 2) instead of a costly JavaScript geometry-probe timeout. This boundary surfaced during the first-party Spatial report-node pilot; browser and document sandbox policies are preserved.
 - Chromium integration tests cover an HTTP-served positive control, enforced sandbox, allowed scripts and Report-Only policy; offline CLI consumers verify the extra shipped module. No source-level CSS repair or script-disabled DOM inspection was introduced.
