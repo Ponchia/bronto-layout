@@ -87,3 +87,18 @@ test('network failure is reported without leaking upstream diagnostics or attemp
     fetchImpl: async () => { throw Error('secret-bearing upstream diagnostic'); },
   }), error => /transport failed/.test(error.message) && !error.message.includes('secret-bearing'));
 });
+
+test('invalid JSON and oversized registry metadata fail closed', async () => {
+  await assert.rejects(verifyPublishedRelease({ version, archive }, {
+    fetchImpl: async () => new Response('not JSON'),
+  }), /valid JSON/);
+  await assert.rejects(verifyPublishedRelease({ version, archive }, {
+    fetchImpl: async () => new Response('{}', { headers: { 'content-length': '999999999' } }),
+  }), /byte budget/);
+});
+
+test('registry response streaming is bounded even without content-length', async () => {
+  await assert.rejects(verifyPublishedRelease({ version, archive }, {
+    fetchImpl: async () => new Response(new Uint8Array(2 * 1024 * 1024 + 1)),
+  }), /byte budget/);
+});
