@@ -18,11 +18,22 @@ test('compares only like-for-like viewport and rule IDs',()=>{
  assert.throws(()=>compareReports('a','b',[a],[b]),/same unique viewport widths/);
  assert.throws(()=>compareReports('a','b',[a],[c]),/Different contract rule IDs/);
  assert.throws(()=>compareReports('a','b',[a,a],[a,a]),/same unique viewport widths/);
+ assert.throws(()=>compareReports('a','b',[],[]),/at least one viewport/);
 });
 test('minor errors under threshold do not become regressions',()=>{
  const a=report(375,[finding('old','fail',10)]),b=report(375,[finding('old','fail',10.5)]);
  assert.equal(compareReports('a','b',[a],[b]).summary.regressions,0);
  assert.equal(compareReports('a','b',[a],[b],0.25).summary.regressions,1);
+});
+test('two unavailable measurements remain unverified; two explicit width exclusions agree',()=>{
+ const skipped=(id,code)=>({...finding(id,'skip'),code});
+ const unavailable=report(375,[skipped('image','measurement-unavailable'),skipped('desktop','outside-width-range')]);
+ const out=compareReports('a','b',[unavailable],[unavailable]);
+ assert.equal(out.summary.unverified,1);
+ assert.equal(out.summary.unchanged,1);
+ assert.deepEqual(out.changes.map(c=>[c.ruleId,c.kind]),[['image','unverified'],['desktop','unchanged']]);
+ const unknown=report(375,[finding('unknown','skip')]);
+ assert.equal(compareReports('a','b',[unknown],[unknown]).summary.unverified,1);
 });
 test('SARIF describes only concrete failures and preserves DOM paths as metadata',()=>{
  const a=report(375,[finding('a','fail',5),finding('b','pass',0)]);

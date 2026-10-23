@@ -9,6 +9,11 @@ Bronto Layout is a framework-independent, local CLI and TypeScript library for r
 
 **Status:** MIT-licensed, experimental **[v0.5.0-beta.1 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1)**. The published beta.1 tarball includes fail-closed CSP-sandbox diagnostics (beta.0 did not). The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
+The source tree is preparing `0.5.0-beta.2`; the release link above remains the
+last published GitHub archive until a new release is verified. Current beta
+qualification uses [in-house checks](docs/in-house-validation.md), not outside
+developer recruitment. Registry publication is a separate authenticated step.
+
 ## See it catch an actual layout relationship regression
 
 This local, self-contained example intentionally moves a portfolio image 18px below the first paragraph at desktop widths. Both pages can appear superficially healthy to a zero-config audit; only an **approved alignment contract** knows this is wrong.
@@ -86,6 +91,9 @@ You can:
 - [GitHub beta distribution](https://github.com/Ponchia/bronto-layout/releases) provides checksum-verified `.tgz` packages for released versions; **no npm registry publication, general-availability claim, or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation
+
+Use the [documentation index](docs/README.md) for current guides and historical evidence.
+
 
 | Start here | Details |
 | --- | --- |

@@ -51,9 +51,9 @@ export function compareReports(
   if (!(Number.isFinite(significantDelta) && significantDelta >= 0)) throw new Error('significantDelta must be nonnegative');
   const baselineByWidth = new Map(baseline.map(r => [r.viewport.width, r]));
   const candidateByWidth = new Map(candidate.map(r => [r.viewport.width, r]));
-  if (baselineByWidth.size !== baseline.length || candidateByWidth.size !== candidate.length ||
+  if (!baseline.length || baselineByWidth.size !== baseline.length || candidateByWidth.size !== candidate.length ||
       baselineByWidth.size !== candidateByWidth.size || [...baselineByWidth.keys()].some(width => !candidateByWidth.has(width))) {
-    throw new Error('Baseline and candidate must use the same unique viewport widths');
+    throw new Error('Baseline and candidate must use the same unique viewport widths (at least one viewport required)');
   }
   const summary: ComparisonSummary = {
     regressions: 0, improvements: 0, unchanged: 0, unverified: 0, baselineFailures: 0, candidateFailures: 0
@@ -78,7 +78,10 @@ export function compareReports(
       const errorDelta = errorBefore !== undefined && errorAfter !== undefined ? errorAfter - errorBefore : undefined;
       let kind: ChangeKind = 'unchanged';
       if (before.status === 'skip' || after.status === 'skip') {
-        kind = before.status === after.status ? 'unchanged' : 'unverified';
+        // Two intentional width exclusions agree; two missing measurements
+        // establish nothing about whether the relationship changed.
+        kind = before.status === after.status && before.code === 'outside-width-range' &&
+          after.code === 'outside-width-range' ? 'unchanged' : 'unverified';
       } else if (before.status === 'pass' && after.status === 'fail') {
         kind = 'regression';
       } else if (before.status === 'fail' && after.status === 'pass') {

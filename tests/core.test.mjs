@@ -83,3 +83,20 @@ test('object-fit none preserves intrinsic image aspect even in differently shape
   assert.equal(failed.status,'fail');
   assert.equal(failed.deviation,50);
 });
+
+test('exact selector counts prevent certification from partial single-element geometry',()=>{
+  const s=sample();
+  const rule=[{id:'bounded',type:'size-range',element:'a',axis:'width',max:20}];
+  s.selectorCounts={a:3};
+  const ambiguous=evaluateLayout(s,rule).findings[0];
+  assert.equal(ambiguous.status,'fail');
+  assert.equal(ambiguous.code,'ambiguous-selector');
+  assert.match(ambiguous.message,/a \(3\)/);
+  s.selectorCounts.a=1;
+  s.selectors.a=[];
+  const unavailable=evaluateLayout(s,rule).findings[0];
+  assert.equal(unavailable.status,'skip');
+  assert.equal(unavailable.code,'measurement-unavailable');
+  s.selectorCounts.a=0;
+  assert.equal(evaluateLayout(s,rule).findings[0].code,'missing-selector');
+});

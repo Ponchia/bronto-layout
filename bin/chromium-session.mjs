@@ -39,14 +39,24 @@ export async function startBrowser(chrome, timeout, noSandbox = false) {
   return retryChromiumPortStartup(() => startBrowserAttempt(chrome, timeout, noSandbox));
 }
 
+/** Chromium creates a Unix singleton socket below TMPDIR. Deep session scratch
+ * paths can exceed the OS socket-path limit before CDP even starts. Keep the
+ * browser's owned temporary directory short, without changing the caller's env.
+ */
+export function chromiumTempBase(directory = os.tmpdir(), platform = process.platform) {
+  const socketPath = path.join(directory, 'bronto-layout-XXXXXX',
+    'org.chromium.Chromium.XXXXXX', 'SingletonSocket');
+  return platform !== 'win32' && Buffer.byteLength(socketPath) >= 100 ? '/tmp' : directory;
+}
+
 async function startBrowserAttempt(chrome, timeout, noSandbox = false) {
-  const profile = await mkdtemp(path.join(os.tmpdir(), 'bronto-layout-'));
+  const profile = await mkdtemp(path.join(chromiumTempBase(), 'bronto-layout-'));
   const child = spawn(chrome, [
     '--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-extensions',
     '--disable-background-networking', '--disable-dev-shm-usage',
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
     ...(noSandbox ? ['--no-sandbox'] : []),
-  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  ], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, TMPDIR: profile } });
   let startupDiagnostics = '';
   child.stderr?.on('data', data => { startupDiagnostics = (startupDiagnostics + data.toString()).slice(-8192); });
   let closed = false;

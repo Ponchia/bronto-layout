@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { serveTarget } from './local-fixture-server.mjs';
 import { chromeExecutable } from './chrome-detect.mjs';
 import { startBrowser } from './chromium-session.mjs';
@@ -176,11 +176,16 @@ async function runAction(cdp, action, timeout) {
     const find = (${resolveSelector});
     if (action.type === 'pause') { await new Promise(r => setTimeout(r, action.milliseconds)); return; }
     const deadline = performance.now() + ${timeout};
-    let element;
-    while (!(element = find(action.selector)[0])) {
+    let matches;
+    while (!(matches = find(action.selector)).length) {
       if (performance.now() >= deadline) throw new Error('Action element not found: ' + action.selector);
       await new Promise(r => setTimeout(r, 50));
     }
+    // Existence-only waits may intentionally match a collection. Mutating an
+    // arbitrary first match would make declared state depend on DOM order.
+    if (action.type !== 'wait-for' && matches.length !== 1)
+      throw new Error('Ambiguous action selector: ' + action.selector + ' matched ' + matches.length + ' elements; use a unique selector');
+    const element = matches[0];
     if (action.type === 'click') element.click();
     else if (action.type === 'fill') {
       if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement))
@@ -394,6 +399,9 @@ async function check(a) {
 async function inspect(a) {
   const selectors = selectorsForInspect(a);
   const widths = getWidths(a);
+  const maxSamples = configFromArgs(a).maxSamples;
+  if (widths.length > maxSamples)
+    throw new Error(`Inspection selected ${widths.length} viewport widths, exceeding --max-samples ${maxSamples}`);
   if (a.refine) throw new Error('--refine applies only to check or scan with a contract');
   const result = await withBrowser(resolveURL(a), a, async (cdp, url, config, fixture, publicURL) => {
     const snapshots = [];
@@ -536,6 +544,12 @@ async function compare(a) {
       const selectedWidths = sweep.reports.map(r => r.viewport.width);
       const comparison = compareReports(baselineTarget.sourcePath ? pathToFileURL(baselineTarget.sourcePath).href : baselineTarget.url, publicURL,
         selectedWidths.map(width => baseSnapshots.get(width)), selectedWidths.map(width => candidateSnapshots.get(width)));
+      if ([comparison.baseline, comparison.candidate].some(reports =>
+        reports.every(report => report.summary.passed + report.summary.failed === 0))) {
+        const error = new Error('No applicable layout rules were evaluated for at least one comparison version; all rules were outside their declared width ranges or otherwise unmeasured. Choose appropriate widths or review the contract.');
+        error.code = 'NO_APPLICABLE_RULES';
+        throw error;
+      }
       return { ...comparison, sampling: sweep.sampling, ...(cssBreakpoints ? { cssBreakpointScan: cssBreakpoints } : {}),
         ...(a['evidence-dir'] ? { evidence } : {}) };
     } finally { baselineTarget.close(); }
@@ -740,11 +754,48 @@ async function validate(a) {
     rules: spec.rules.map(({ id, type }) => ({ id, type })) };
   await output(a, data, `Valid layout contract: ${data.selectors.length} selectors, ${data.rules.length} rules${data.widths.length ? `, ${data.widths.length} widths` : ''}`);
 }
+/** Protect source JSON and local targets on both successful output and error
+ * paths, including contract-relative URLs. Identity includes symlinks/hardlinks.
+ */
+async function reportInputConflict(a) {
+  if (!a?.report) return undefined;
+  const files = ['spec', 'manifest', 'draft', 'actions', 'comparison']
+    .filter(flag => a[flag]).map(flag => [flag, a[flag]]);
+  if (['init', 'approve', 'suggest'].includes(a.command) && (a.out || a.command === 'init'))
+    files.push(['out', a.out ?? 'bronto-layout.json']);
+  for (const flag of ['url', 'baseline']) {
+    if (a[flag] && !/^https?:\/\//.test(a[flag]))
+      files.push([flag, a[flag].startsWith('file://') ? fileURLToPath(a[flag]) : a[flag]]);
+  }
+  for (const [flag, file] of files)
+    if (await sameEvidenceFile(file, a.report)) return flag;
+  if (a.spec && ['check', 'scan', 'compare', 'validate'].includes(a.command)) {
+    let spec;
+    try { spec = parseContract(JSON.parse(await readFile(a.spec, 'utf8'))); }
+    catch (error) {
+      // A missing contract cannot have supplied a target. For malformed or
+      // unreadable existing input, the error handler must not guess that a
+      // report destination is unrelated to the contract's local resources.
+      if (['ENOENT', 'ENOTDIR'].includes(error?.code)) return undefined;
+      throw error;
+    }
+    if (!a.url && spec.url) {
+      const target = resolveURL(a, spec);
+      if (!/^https?:\/\//.test(target) && await sameEvidenceFile(
+        target.startsWith('file://') ? fileURLToPath(target) : target, a.report
+      )) return 'spec target (contract.url)';
+    }
+  }
+  return undefined;
+}
+let parsedCLIArgs;
 async function main() {
-  const a = argsFromCLI(process.argv.slice(2));
+  const a = parsedCLIArgs = argsFromCLI(process.argv.slice(2));
   if (a.help) { console.log(HELP); return; }
   if (a.version) { const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')); console.log('Bronto Layout ' + pkg.version); return; }
   validateCommandOptions(a);
+  const conflict = await reportInputConflict(a);
+  if (conflict) throw new Error(`Output --report must not overwrite --${conflict}; choose a separate report path`);
   if (a.command === 'verify-evidence') await verifyEvidence(a);
   else if (a.command === 'doctor') await doctor(a);
   else if (a.command === 'review-draft') await reviewDraft(a);
@@ -773,16 +824,12 @@ main().catch(async error => {
   };
   if (args.includes('--json')) console.log(JSON.stringify(report, null, 2));
   else console.error('Bronto Layout: ' + message);
-  const index = args.lastIndexOf('--report');
-  const pathValue = index >= 0 ? args[index + 1] : args.find(arg => arg.startsWith('--report='))?.slice(9);
-  // On ANY failure, never overwrite the source comparison metadata with a
-  // failure report. This includes input-parse errors before verifyEvidence().
-  const comparisonIndex = args.lastIndexOf('--comparison');
-  const comparisonInput = comparisonIndex >= 0 ? args[comparisonIndex + 1] :
-    args.find(arg => arg.startsWith('--comparison='))?.slice(13);
-  const overlapsInput = Boolean(args[0] === 'verify-evidence' && comparisonInput &&
-    !comparisonInput.startsWith('--') && pathValue &&
-    await sameEvidenceFile(comparisonInput,pathValue));
+  // An argument-parse failure has no trustworthy output path. Semantic/input
+  // errors still emit a file when the parsed destination is distinct.
+  const pathValue = parsedCLIArgs?.report;
+  let overlapsInput = true;
+  try { overlapsInput = Boolean(await reportInputConflict(parsedCLIArgs)); }
+  catch { /* An unresolved input identity must not permit destructive output. */ }
   if (pathValue && !pathValue.startsWith('--') && !overlapsInput) {
     try {
       await mkdir(path.dirname(path.resolve(pathValue)), { recursive: true });

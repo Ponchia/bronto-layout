@@ -12,3 +12,13 @@
 - When working on the CLI, keep `bin/cdp-client.mjs`, `bin/chrome-detect.mjs` and `bin/chromium-session.mjs` independent and dependency-free.
 - `npm run test:unit` is a fast, browser-free developer subset; it does not replace `npm run check`, controlled fixture benchmarks or package installation tests.
 - Discovery proposals must carry only observed evidence and explicitly configured state; never auto-approve a rule or synthesize independent human labels.
+
+## Documentation and releases
+
+- Start at `docs/README.md`; active beta gates are in `docs/release-checklist.md`.
+- Keep historical evidence in `docs/archive/`, distinct from current instructions.
+- Run `repo-instruction-audit --repo .` after instruction or documentation changes.
+- Use `docs/npm-publishing.md` for authorized npm operations. First publication,
+  registry verification and GitHub announcement are separate outcomes.
+- Qualify the beta with reproducible in-house checks. External-developer trials
+  are not release gates; do not claim independent adoption or human accuracy.

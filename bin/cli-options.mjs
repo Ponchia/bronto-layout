@@ -43,7 +43,7 @@ Options:
   --refine              Bisect observed state changes to one-pixel intervals
   --interior-probes N   Probe N evenly spaced widths per coarse interval (0..8; default 0)
   --css-breakpoints     Add CSS media-query boundary widths to --scan (including audit)
-  --max-samples N       Maximum samples, including refinement (default: 200)
+  --max-samples N       Maximum viewport samples, including inspect/refinement (default: 200)
   --dom-limit N         Audit: max visited DOM elements (1000..50000; default 18000; incomplete if exceeded)
   --selector name=CSS   Named selector for inspect or suggest; can be repeated
   --draft FILE          Candidate draft for review-draft or approve
@@ -62,7 +62,7 @@ Options:
   --json                Machine-readable JSON to stdout
   --compact             With --json: actionable findings, sampled widths, and totals
   --sarif               SARIF 2.1.0 output (failures in check; regressions in compare)
-  --report FILE         Write machine-readable JSON or SARIF report to disk
+  --report FILE         Write JSON or SARIF to a separate file; never overwrite an input
   --comparison FILE     Existing audit-compare JSON report to verify against local PNG evidence
   --evidence-dir DIR    Check images; audit viewport images; opt-in paired baseline/candidate PNG evidence
   --full-page-evidence  Audit with --evidence-dir: bounded CSS document screenshot (not a correctness check)
