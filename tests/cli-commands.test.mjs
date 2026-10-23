@@ -68,3 +68,9 @@ test('named CLI selectors are validated before entering the browser',()=>{
   assert.equal(r.status,2);
   assert.match(r.stderr,/reserved|Invalid or repeated selector alias/);
 });
+test('inspection enforces the sample budget before attempting browser startup',()=>{
+  const r=exec(['inspect','--url','examples/healthy.html','--widths','375,768',
+    '--max-samples','1','--chrome','/missing/chrome-for-negative-control','--json']);
+  assert.equal(r.status,2,r.stderr||r.stdout);
+  assert.match(JSON.parse(r.stdout).error.message,/Inspection selected 2 viewport widths, exceeding --max-samples 1/);
+});
