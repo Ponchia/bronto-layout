@@ -45,9 +45,10 @@ runs:
   using: composite
   steps:
     - name: Prepare Node 24
-      uses: actions/setup-node@v7.1.0
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: '24'
+        check-latest: true
     - name: Build local CLI from pinned source
       shell: bash
       env:

@@ -39,6 +39,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
+          check-latest: true
           cache: npm
       - name: Validate explicit prerelease tag, ancestry and npm identity
         id: meta
@@ -160,6 +161,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
+          check-latest: true
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Require trusted-publisher-capable npm and Node
