@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
@@ -85,4 +85,22 @@ test('doctor launch flag remains command-scoped and a sandbox override cannot be
  const override=run(['doctor','--no-sandbox','--json']);
  assert.equal(override.status,2);
  assert.match(JSON.parse(override.stdout).error.message,/requires --verify-launch/);
+});
+
+test('doctor can start isolated Chromium when the caller has a long TMPDIR', {timeout:90000}, t=>{
+ if(process.platform==='win32'){t.skip('Unix singleton socket boundary');return;}
+ const base=mkdtempSync(path.join(os.tmpdir(),'bronto-long-temp-'));
+ t.after(()=>rmSync(base,{recursive:true,force:true}));
+ const deep=path.join(base,'caller-scratch-'.repeat(8));
+ mkdirSync(deep);
+ const result=spawnSync(process.execPath,[cli,'doctor','--verify-launch','--no-sandbox','--json'],{
+  cwd:root,encoding:'utf8',timeout:85000,maxBuffer:4*1024*1024,
+  env:{...process.env,TMPDIR:deep}
+ });
+ if(/Cannot find Chrome\/Chromium/.test(result.stdout+result.stderr)){
+  if(process.env.BRONTO_REQUIRE_CHROME==='1')throw new Error('Chrome required by CI');
+  t.skip('Chrome unavailable');return;
+ }
+ assert.equal(result.status,0,result.stderr||result.stdout);
+ assert.equal(JSON.parse(result.stdout).status,'launch-verified');
 });

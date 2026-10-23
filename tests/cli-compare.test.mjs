@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import os from 'node:os';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 const cwd=path.resolve(import.meta.dirname,'..');
 const cli=path.join(cwd,'bin/bronto-layout.mjs');
 const run=(args)=>spawnSync(process.execPath,[cli,...args],{cwd,encoding:'utf8',timeout:40000,maxBuffer:8*1024*1024,env:{...process.env,BRONTO_TEST_INLINE_FIXTURE:'1',BRONTO_CHROME_NO_SANDBOX:'1'}});
@@ -48,4 +50,19 @@ test('comparison rejects missing baseline rather than defaulting to a green resu
  const r=run(['compare','--spec','examples/layout.json','--url','examples/healthy.html']);
  assert.equal(r.status,2);
  assert.match(r.stderr,/requires --baseline/);
+});
+test('comparison never succeeds when every rule is outside the sampled viewport range',t=>{
+ const temp=mkdtempSync(path.join(os.tmpdir(),'bronto-compare-inactive-'));
+ try {
+  const spec=path.join(temp,'contract.json');
+  const reportFile=path.join(temp,'report.json');
+  writeFileSync(spec,JSON.stringify({schemaVersion:1,widths:[375],selectors:{},
+   rules:[{id:'desktop-only',type:'document-overflow',minWidth:1000}]}));
+  const r=run(['compare','--spec',spec,'--baseline','examples/healthy.html',
+   '--url','examples/healthy.html','--json','--report',reportFile]);
+  if(skipChrome(t,r))return;
+  assert.equal(r.status,2,r.stderr||r.stdout);
+  const data=JSON.parse(r.stdout);
+  assert.equal(data.error.code,'NO_APPLICABLE_RULES');
+ } finally {rmSync(temp,{recursive:true,force:true});}
 });

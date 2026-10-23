@@ -55,3 +55,28 @@ test('invalid composed action selectors return an error rather than pretending a
     assert.match(JSON.parse(result.stdout).error.message, /Invalid deep selector/);
   } finally {rmSync(temp, {recursive:true,force:true});}
 });
+test('mutating DOM actions reject ambiguous selectors while existence waits accept collections', t => {
+  const temp=mkdtempSync(path.join(os.tmpdir(),'bronto-ambiguous-actions-'));
+  try {
+    const html=path.join(temp,'duplicate.html');
+    writeFileSync(html,'<!doctype html><button class="target">one</button><button class="target">two</button>'+
+      '<input class="input"><input class="input">');
+    const specPath=path.join(temp,'contract.json');
+    const spec={schemaVersion:1,url:html,widths:[375],selectors:{buttons:'.target'},
+      rules:[{id:'two-buttons',type:'selector-count',element:'buttons',exactly:2}]};
+    const actions=[{type:'click',selector:'.target'},
+      {type:'fill',selector:'.input',value:'example'},
+      {type:'scroll-into-view',selector:'.target'}];
+    for(const action of actions) {
+      writeFileSync(specPath,JSON.stringify({...spec,actions:[action]}));
+      const result=run(['check','--spec',specPath,'--json']);
+      if(chromeUnavailable(t,result))return;
+      assert.equal(result.status,2,result.stderr||result.stdout);
+      assert.match(JSON.parse(result.stdout).error.message,/Ambiguous action selector: .* matched 2 elements/);
+    }
+    writeFileSync(specPath,JSON.stringify({...spec,actions:[{type:'wait-for',selector:'.target'}]}));
+    const wait=run(['check','--spec',specPath,'--json']);
+    assert.equal(wait.status,0,wait.stderr||wait.stdout);
+    assert.equal(JSON.parse(wait.stdout).summary.passed,1);
+  } finally {rmSync(temp,{recursive:true,force:true});}
+});

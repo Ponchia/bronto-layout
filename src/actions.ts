@@ -3,11 +3,13 @@
  * Click/fill are intentionally allowed only when written in the user's contract.
  */
 export type LayoutAction =
-  /** Programmatic DOM click: does not prove the target is physically hittable. */
+  /** Programmatic DOM click on one unique target; does not prove physical hittability. */
   | { type: 'click'; selector: string }
   /** Real Chrome pointer events after a viewport hit-test; intentionally opt-in. */
   | { type: 'pointer-click'; selector: string }
+  /** Fill and scroll also require one unique target; ambiguity is an input error. */
   | { type: 'fill'; selector: string; value: string }
+  /** Existence-only wait: matching multiple elements is allowed. */
   | { type: 'wait-for'; selector: string }
   | { type: 'scroll-into-view'; selector: string }
   | { type: 'pause'; milliseconds: number };

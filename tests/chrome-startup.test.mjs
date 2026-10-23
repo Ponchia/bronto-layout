@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { retryChromiumPortStartup } from '../bin/chromium-session.mjs';
+import { retryChromiumPortStartup, chromiumTempBase } from '../bin/chromium-session.mjs';
 const notReady = () => Object.assign(new Error('Chrome debugging endpoint did not start within 15000ms'),
  { code: 'CHROME_DEBUG_PORT_TIMEOUT' });
 
@@ -49,4 +49,14 @@ test('caller can select just one attempt, and invalid retry limits reject early'
    await assert.rejects(() => retryChromiumPortStartup(() => null, attempts),/1\.\.2/);
  }
  await assert.rejects(() => retryChromiumPortStartup(null),/launch function/);
+});
+
+test('Chromium uses a short Unix socket directory for deep or multibyte TMPDIR paths',()=>{
+ assert.equal(chromiumTempBase('/tmp','linux'),'/tmp');
+ assert.equal(chromiumTempBase('/tmp/short','darwin'),'/tmp/short');
+ const deep='/tmp/session-'+ 'nested-'.repeat(20);
+ assert.equal(chromiumTempBase(deep,'linux'),'/tmp');
+ assert.equal(chromiumTempBase(deep,'darwin'),'/tmp');
+ assert.equal(chromiumTempBase('/tmp/'+ '界'.repeat(20),'linux'),'/tmp');
+ assert.equal(chromiumTempBase(deep,'win32'),deep);
 });

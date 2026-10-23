@@ -137,14 +137,23 @@ export function evaluateLayout(s: LayoutSnapshot, rules: readonly LayoutRule[]):
     const tolerance = rule.tolerance ?? 1;
     if (!finiteNonNegative(tolerance)) throw new Error(`Invalid tolerance in rule ${rule.id}`);
     const missingOrAmbiguous = (...aliases: string[]) => {
-      const absent = aliases.filter(alias => alias !== 'viewport' && !(s.selectors[alias]?.length));
+      const count = (alias: string) => Object.hasOwn(s.selectorCounts ?? {}, alias)
+        ? s.selectorCounts![alias] : Object.hasOwn(s.selectors, alias) ? s.selectors[alias].length : 0;
+      const absent = aliases.filter(alias => alias !== 'viewport' && count(alias) === 0);
       if (absent.length) {
         findings.push({ id: rule.id, type: rule.type, status: 'fail', code: 'missing-selector', description: rule.description, message: `Missing element(s): ${absent.join(', ')}` });
         return true;
       }
-      const ambiguous = aliases.filter(alias => alias !== 'viewport' && (s.selectors[alias]?.length ?? 0) > 1);
+      const ambiguous = aliases.filter(alias => alias !== 'viewport' && count(alias) > 1);
       if (ambiguous.length) {
-        findings.push({ id: rule.id, type: rule.type, status: 'fail', code: 'ambiguous-selector', description: rule.description, message: `Expected one element per alias; matched multiple: ${ambiguous.map(alias => `${alias} (${s.selectors[alias].length})`).join(', ')}. Use a unique selector or selector-count.` });
+        findings.push({ id: rule.id, type: rule.type, status: 'fail', code: 'ambiguous-selector', description: rule.description, message: `Expected one element per alias; matched multiple: ${ambiguous.map(alias => `${alias} (${count(alias)})`).join(', ')}. Use a unique selector or selector-count.` });
+        return true;
+      }
+      const unmeasured = aliases.filter(alias => alias !== 'viewport' &&
+        (!Object.hasOwn(s.selectors, alias) || !s.selectors[alias].length));
+      if (unmeasured.length) {
+        findings.push({ id: rule.id, type: rule.type, status: 'skip', code: 'measurement-unavailable', description: rule.description,
+          message: `Matched element geometry unavailable: ${unmeasured.join(', ')}` });
         return true;
       }
       return false;
