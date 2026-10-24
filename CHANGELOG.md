@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Hold npm publication before privileged jobs while the official publishing CLI
+  contains unresolved high-severity dependencies. Preserve all package and
+  browser qualification; require reviewed publisher remediation before release.
+
 - Avoid quadratic composed-selector splitting on long whitespace input. Load
   explicitly enabled inline test fixtures through CDP data parameters, never
   generated JavaScript, and strengthen URL/script-tag security assertions.

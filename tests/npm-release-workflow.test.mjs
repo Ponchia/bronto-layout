@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -28,7 +29,7 @@ test('npm release is behind validated bytes, human approval and OIDC rather than
   assert.match(workflow,/github-release:\s*\n\s*needs: \[preflight, verify-registry\]/);
   assert.match(workflow,/gh release create/);
   assert.match(workflow,/--verify-tag --prerelease --latest=false/);
-  assert.match(workflow,/publish-npm:\s*\n\s*needs: preflight/);
+  assert.match(workflow,/publish-npm:\s*\n\s*needs: \[preflight, publisher-safety\]/);
   assert.match(workflow,/environment: npm-publish/);
   assert.match(workflow,/id-token: write/);
   assert.match(workflow,/uses: actions\/download-artifact@[a-f0-9]{40}/);
@@ -88,4 +89,28 @@ test('release checksum entries survive artifact relocation and reject changed by
     writeFileSync(path.join(consumer,name),'tampered archive');
     assert.notEqual(sha(readFileSync(path.join(consumer,relative))),expected);
   } finally {rmSync(root,{recursive:true,force:true});}
+});
+
+// Execute the real workflow block, not a test-only imitation of its refusal.
+const publisherHold = workflow.slice(workflow.indexOf('  publisher-safety:'), workflow.indexOf('  verify-ci:'));
+const holdScript = publisherHold.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/)?.[1]
+  ?.split('\n').map(line => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+
+test('unreviewed publisher is stopped before OIDC, even with approval-shaped environment values', () => {
+  assert.ok(holdScript, 'The workflow must retain an executable read-only publisher hold');
+  for (const enabled of ['true', 'false', '']) {
+    const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-e', '-c', holdScript], {
+      encoding: 'utf8', timeout: 5000,
+      env: { PATH: '/usr/bin:/bin', ENABLE_NPM_PUBLISH: enabled, PUBLISHER_REVIEWED: enabled },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1, 'No variable or environment approval releases the source-controlled hold');
+    assert.match(result.stdout, /publication is on hold/);
+  }
+  assert.match(publisherHold, /permissions:\s*\n\s*contents: read/);
+  assert.doesNotMatch(publisherHold, /id-token:|contents: write|environment:|continue-on-error:|if:|uses:|secrets\.|vars\.|\bnpm (?:install|ci|publish)\b/);
+  const publish = workflow.slice(workflow.indexOf('  publish-npm:'), workflow.indexOf('  verify-registry:'));
+  assert.match(publish, /needs: \[preflight, publisher-safety\]/);
+  assert.doesNotMatch(publish, /if:|continue-on-error:|always\(\)/);
+  assert.match(docs, /manual bootstrap.*also on hold/s);
 });

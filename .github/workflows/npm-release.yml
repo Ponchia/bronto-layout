@@ -13,6 +13,23 @@ concurrency:
   group: bronto-layout-npm-publish
   cancel-in-progress: false
 jobs:
+  # The Node image's npm version is not a reviewed publishing dependency.
+  # Keep this source-controlled hold until an official, integrity-verified
+  # distribution passes a complete installed-bundle audit. Environment approval
+  # or a repository variable must not turn the unresolved advisory into a pass.
+  publisher-safety:
+    name: Reviewed npm publisher required
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Refuse publication with the unresolved upstream npm bundle
+        shell: bash
+        run: |
+          echo '::error::npm publication is on hold: no reviewed official publisher bundle is free of high/critical advisories.'
+          echo 'Follow docs/npm-publishing.md and Ponchia/bronto-ui#234. Do not bypass this gate or use an unreviewed runner npm.'
+          exit 1
   # Reuse the exact same CI and hosted macOS gates that protect main. Do not
   # independently weaken browser/benchmark coverage for npm releases.
   verify-ci:
@@ -150,7 +167,7 @@ jobs:
           if-no-files-found: error
           retention-days: 2
   publish-npm:
-    needs: preflight
+    needs: [preflight, publisher-safety]
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     environment: npm-publish

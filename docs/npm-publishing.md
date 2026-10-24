@@ -8,6 +8,33 @@ identity and permission before the first write. First publication and subsequent
 trusted-publisher releases have different authentication paths. The current
 registry state must be checked live; a GitHub tag or release is not npm availability.
 
+## Publishing hold — 24 October 2026
+
+npm publication is currently blocked, including the manual bootstrap described
+below. Both npm 11.21.1 and 12.2.1 were found to contain Undici 6.29.0 with a
+high-severity advisory. The tracked publisher inventory and remediation evidence
+are in [Bronto UI issue 234](https://github.com/Ponchia/bronto-ui/issues/234).
+The library's dependency graph is separate from this publishing toolchain.
+
+The tag workflow keeps all existing qualification jobs, but its read-only
+`publisher-safety` job refuses the privileged `publish-npm` job before environment
+approval or OIDC authority. This is a source-controlled hold, not a repository
+variable or an advisory exception. A newer Node runner image is not evidence of
+a reviewed npm bundle. The manual bootstrap is also on hold; the commands below
+remain the procedure to use only after the hold is resolved.
+
+Lift the hold in a reviewed PR only after selecting an official npm distribution,
+verifying its registry integrity and auditing every actual installed bundled
+dependency with no high/critical findings. Pin that exact verified publisher in
+the isolated release path, retain a fresh fail-closed inventory/audit gate, and
+exercise its version, archive and OIDC readiness checks. Update these workflow
+regressions and this dated status together. Preserve environment review, disabled
+lifecycle scripts, full CI/macOS qualification and exact-archive verification.
+Do not repackage npm, edit dependency version metadata, waive the advisory, or
+publish with the floating CLI bundled into a runner image.
+
+No release tag, registry publication or account change is made by this hold.
+
 ## First publication
 
 Qualify a new beta from reviewed main using the [release gates](release-checklist.md).
