@@ -14,6 +14,9 @@ import { serveTarget } from '../bin/local-fixture-server.mjs';
 const root=path.resolve(import.meta.dirname,'..');
 const script=path.join(root,'scripts/field-benchmark.mjs');
 const sha=data=>createHash('sha256').update(data).digest('hex');
+// Extract the one authored fixture script for its CSP-hash assertion. This is
+// a test helper, not an HTML sanitizer; tolerate HTML case and end-tag syntax.
+const authoredScript = html => html.match(/<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/i)?.[1];
 const run=args=>spawnSync(process.execPath,[script,...args],{
   cwd:root,encoding:'utf8',timeout:25000,maxBuffer:5*1024*1024
 });
@@ -54,6 +57,14 @@ function generate(dir) {
   return {output,result:JSON.parse(r.stdout),html:readFileSync(output,'utf8')};
 }
 
+test('CSP script assertion recognizes mixed-case tags, attributes and HTML end-tag whitespace', () => {
+  const body = 'globalThis.fixture = 1;';
+  for (const close of ['</script>', '</SCRIPT>', '</script\t\n bar>', '</sCrIpT data-test=x>']) {
+    assert.equal(authoredScript(`<ScRiPt type="text/javascript">${body}${close}`), body);
+  }
+  assert.equal(authoredScript('<scripture>text</scripture>'), undefined);
+});
+
 test('offline console uses hash-locked JavaScript, local screenshot paths and no audit predictions',t=>{
   const {dir}=fixture(t);
   const {output,result,html}=generate(dir);
@@ -69,9 +80,9 @@ test('offline console uses hash-locked JavaScript, local screenshot paths and no
   assert.match(html,/frame-src 'none'/);
   assert.doesNotMatch(html,/fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|eval\s*\(/);
   const match=html.match(/script-src 'sha256-([^']+)'/);
-  const contents=html.match(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/i);
+  const contents=authoredScript(html);
   assert.ok(match && contents);
-  assert.equal(createHash('sha256').update(contents[1]).digest('base64'),match[1],
+  assert.equal(createHash('sha256').update(contents).digest('base64'),match[1],
     'CSP should permit precisely this hashed inline script, not arbitrary injected code');
   assert.equal(run(['review-console','--captures',dir,'--out',output]).status,2,
     'never overwrite an existing reviewer file');
