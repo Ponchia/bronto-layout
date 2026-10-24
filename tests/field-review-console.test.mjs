@@ -69,7 +69,7 @@ test('offline console uses hash-locked JavaScript, local screenshot paths and no
   assert.match(html,/frame-src 'none'/);
   assert.doesNotMatch(html,/fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|eval\s*\(/);
   const match=html.match(/script-src 'sha256-([^']+)'/);
-  const contents=html.match(/<script>([\s\S]*?)<\/script>/);
+  const contents=html.match(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/i);
   assert.ok(match && contents);
   assert.equal(createHash('sha256').update(contents[1]).digest('base64'),match[1],
     'CSP should permit precisely this hashed inline script, not arbitrary injected code');
@@ -115,7 +115,7 @@ test('renderer escapes malicious metadata instead of making executable markup or
   assert.match(html,/&lt;svg onload=alert\(1\)&gt;/);
   assert.match(html,/&lt;script&gt;alert\(2\)&lt;\/script&gt;/);
   assert.doesNotMatch(html,/<svg\b|href="javascript:/i);
-  assert.equal((html.match(/<script>/g)||[]).length,1);
+  assert.equal((html.match(/<script\b[^>]*>/gi)||[]).length,1);
   assert.match(html,/\\u003csvg/);
   assert.throws(()=>renderFieldReviewConsole({schemaVersion:1,datasetId:'bad'},[
     {id:'duplicate',readyForReview:false},{id:'duplicate',readyForReview:false}

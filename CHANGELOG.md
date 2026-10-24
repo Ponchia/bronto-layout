@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Avoid quadratic composed-selector splitting on long whitespace input. Load
+  explicitly enabled inline test fixtures through CDP data parameters, never
+  generated JavaScript, and strengthen URL/script-tag security assertions.
+
 ## 0.5.0-beta.2 (release candidate; registry publication not yet verified)
 
 - Preserve input contracts, action files, and explicitly named local pages when
