@@ -9,6 +9,7 @@ import { serveTarget } from './local-fixture-server.mjs';
 import { chromeExecutable } from './chrome-detect.mjs';
 import { startBrowser } from './chromium-session.mjs';
 import { rejectUninspectableCspSandbox } from './csp-navigation.mjs';
+import { setInlineFixtureContent } from './inline-fixture.mjs';
 import { captureDOMGeometry } from '../dist/browser.js';
 import { queryComposedElements } from '../dist/composed-selector.js';
 import { discoverPageSelectors } from '../dist/selector-discovery.js';
@@ -123,7 +124,7 @@ async function measure(cdp, url, width, selectors, config, fixtureHTML, actions 
         // ONLY for intentionally self-contained test HTML in restricted CI sandboxes.
         // Production navigation must never silently fall back to incomplete DOM/styles.
         loaded.cancel(); loaded.promise.catch(() => {});
-        await cdp.eval(`(() => { document.open(); document.write(${JSON.stringify(fixtureHTML)}); document.close(); return true; })()`);
+        await setInlineFixtureContent(cdp, navigated.frameId, fixtureHTML);
       } else throw new Error(`Could not navigate: ${navigated.errorText}`);
     } else {
       await loaded.promise;

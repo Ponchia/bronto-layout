@@ -61,7 +61,7 @@ test('manual live smoke audits both BrontoUI sites and preserves their distinct 
   assert.equal(batch.jobs.length, 6);
   for (const [slug, url] of sites) {
     assert.ok(batch.jobs.some(({ id, spec }) => id === slug && spec === slug + '.json'));
-    assert.match(smokeWorkflow, new RegExp(slug + '\\) url="https://ponchia\\.github\\.io'));
+    assert.ok(smokeWorkflow.includes(`${slug}) url="${url}"`));
     assert.ok(smokeWorkflow.includes(url));
   }
   assert.match(smokeWorkflow, /Sites with measured issues or incomplete audits: \$failures\/6/);
