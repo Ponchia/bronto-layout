@@ -19,3 +19,19 @@ Include affected version/commit, OS/Node/Chrome versions, the smallest safe repr
 - Audit reports, full-page captures and paired screenshots may reveal sensitive DOM text, authenticated pages, pasted inputs or asset URLs. Treat reports as private until inspected and redact before sharing.
 - The repository does not use telemetry or hosted services. Adding third-party calls, external uploads, executable scenario scripts or broad arbitrary network targets requires separate security review.
 - Layout evidence is not a guarantee of accessibility, user data security or visual correctness.
+
+## Repository security checks
+
+The CodeQL workflow analyzes JavaScript/TypeScript and GitHub Actions on pull
+requests, pushes to `main`, and a weekly schedule. It does not install project
+dependencies or run package lifecycle scripts. Dependency Review examines every
+pull request, including development and workflow-tooling dependencies, and fails
+when a change introduces a known high- or critical-severity advisory. These
+checks supplement the complete Node/browser matrix; they do not replace it.
+
+The security workflows use standard GitHub-hosted runners, full commit-SHA action
+pins and read-only repository access. Only the CodeQL analysis job can upload
+source-scanning results. Neither workflow receives deployment or publishing
+credentials. Update action pins through reviewed dependency changes. Scanner
+findings and scanner execution failures must remain visible; do not suppress an
+advisory merely to make an update mergeable.
