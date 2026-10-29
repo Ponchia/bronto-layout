@@ -73,6 +73,11 @@ Mixed coordinate spaces, incomplete inventories and browser-only rules fail
 closed. Unavailable measurements produce **unverified** results, not false
 passes. The library never moves nodes or inspects canvas paint.
 
+The [optional SVG geometry capture adapter](docs/svg-geometry.md) turns stable
+renderer-owned SVG/foreignObject elements into one bounded user-coordinate
+snapshot, including explicit unavailable results. It measures geometric boxes
+and HTML border rectangles; it does not certify glyph ink or clipped paint.
+
 ## Run it inside an owned project or AI workflow
 
 The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
