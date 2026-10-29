@@ -115,8 +115,11 @@ export function evaluateHostLayout(
     elements.set(element.id, element);
   }
 
-  const selectors: LayoutSnapshot['selectors'] = {};
-  const selectorCounts: Record<string, number> = {};
+  // User-defined aliases can include keys inherited from Object.prototype.
+  // Use null-prototype maps so an alias never becomes a prototype setter or
+  // accidentally resolves to a built-in property instead of a measurement.
+  const selectors: LayoutSnapshot['selectors'] = Object.create(null);
+  const selectorCounts: Record<string, number> = Object.create(null);
   const absentTargets: Array<{ alias: string; ids: string[] }> = [];
   let targets = 0;
   let measured = 0;
@@ -177,7 +180,7 @@ export function evaluateHostLayout(
     space: snapshot.space,
     ...(snapshot.revision !== undefined ? { revision: snapshot.revision } : {}),
     assessment: report.summary.failed > 0 ? 'fail'
-      : report.summary.passed === 0 || unmeasuredSkips ? 'unverified' : 'pass',
+      : report.summary.passed === 0 || unmeasuredSkips || unavailable > 0 ? 'unverified' : 'pass',
     coverage: { targets, measured, unavailable, missing },
   };
 }
