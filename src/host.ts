@@ -117,6 +117,7 @@ export function evaluateHostLayout(
 
   const selectors: LayoutSnapshot['selectors'] = {};
   const selectorCounts: Record<string, number> = {};
+  const absentTargets: Array<{ alias: string; ids: string[] }> = [];
   let targets = 0;
   let measured = 0;
   let unavailable = 0;
@@ -125,7 +126,9 @@ export function evaluateHostLayout(
     const ids = typeof target === 'string' ? [target] : target;
     const found = ids.map(id => elements.get(id)).filter((el): el is HostGeometryElement => el !== undefined);
     targets += ids.length;
-    missing += ids.length - found.length;
+    const missingIds = ids.filter(id => !elements.has(id));
+    if (missingIds.length) absentTargets.push({ alias, ids: missingIds });
+    missing += missingIds.length;
     const measuredElements = found.filter(el => el.measurement === 'measured');
     measured += measuredElements.length;
     unavailable += found.length - measuredElements.length;
@@ -152,6 +155,20 @@ export function evaluateHostLayout(
     document: { width: snapshot.root.width, height: snapshot.root.height },
     selectors, selectorCounts,
   }, contract.rules);
+  // A requested set is explicit intent. If one of its identities disappears,
+  // even uniform-gaps on the remaining measured elements cannot certify it.
+  // Keep a separate, actionable finding rather than fabricating a rectangle or
+  // changing an approved rule's measured result.
+  for (const absent of absentTargets) {
+    report.findings.push({
+      id: `host-target-missing:${absent.alias}`,
+      type: 'selector-count',
+      status: 'fail',
+      code: 'missing-selector',
+      message: `Host target ${absent.alias} has missing identities: ${absent.ids.join(', ')}`,
+    });
+    report.summary.failed++;
+  }
   const unmeasuredSkips = report.findings.some(f =>
     f.status === 'skip' && f.code !== 'outside-width-range');
   return {

@@ -44,7 +44,8 @@ stable at the provided revision. A bounded/truncated collection must instead
 fail closed. A known object that has not been measured uses
 `measurement: 'unavailable'` **without a rectangle**, producing a
 measurement-unavailable skip, never an invented zero. An absent identity fails
-as a missing element. Mixed world/screen/SVG spaces, duplicate IDs, invalid
+as a missing element, even when the remainder of a repeated alias happens to
+satisfy a gap or count rule. Mixed world/screen/SVG spaces, duplicate IDs, invalid
 rectangles and unsupported browser-only contracts are rejected.
 
 The host adapter supports constraints backed by geometry: edges, containment,

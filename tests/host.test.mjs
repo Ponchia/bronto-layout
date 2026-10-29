@@ -52,6 +52,20 @@ test('unmeasured elements and absence never become a passing relation', () => {
   assert.equal(missing.assessment, 'fail');
   assert.equal(missing.findings.find(f => f.id === 'edge').code, 'missing-selector');
 });
+test('a partially absent target set cannot pass uniform gaps on only the remaining elements', () => {
+  const snapshot = fixture();
+  // Three known aligned items with exactly equal gaps, one declared ID absent.
+  snapshot.elements.push({ id: 'node-c', space: 'world', measurement: 'measured',
+    rect: { x: 1240, y: 2050, width: 80, height: 50 } });
+  const report = evaluateHostLayout(snapshot, {
+    targets: { row: ['node-a', 'node-b', 'node-c', 'node-missing'] },
+    rules: [{ id: 'uniform', type: 'uniform-gaps', element: 'row', axis: 'x', tolerance: 0 }],
+  });
+  assert.equal(report.findings.find(f => f.id === 'uniform').status, 'pass');
+  assert.equal(report.assessment, 'fail');
+  assert.equal(report.coverage.missing, 1);
+  assert.equal(report.findings.find(f => f.id === 'host-target-missing:row').code, 'missing-selector');
+});
 test('world and screen geometry cannot silently mix', () => {
   const snapshot = fixture();
   snapshot.elements[1].space = 'screen';
