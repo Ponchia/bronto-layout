@@ -2,7 +2,7 @@
 /** Verifies that the npm tarball actually works without the source checkout. */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,6 +34,12 @@ try {
   const archive = path.join(temp, packed.filename);
   assert.ok(existsSync(archive), 'npm did not write its tarball');
   const packedFiles = new Set(packed.files.map(file => file.path));
+  if (process.platform !== 'win32') {
+    // npm's install-time umask may restrict the EXTRACTED mode. The archive
+    // itself must carry standard executable bits for guarded consumers.
+    const binMode = packed.files.find(file => file.path === 'bin/bronto-layout.mjs')?.mode;
+    assert.equal(binMode, 0o755, 'Packed CLI must carry a reviewed executable mode');
+  }
   const required = [
     'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/host.js', 'dist/host.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
@@ -88,6 +94,10 @@ try {
     ? path.join(consumer, 'node_modules', '.bin', 'bronto-layout.cmd')
     : path.join(consumer, 'node_modules', '.bin', 'bronto-layout');
   assert.ok(existsSync(binary), 'npm did not install the CLI executable');
+  if (process.platform !== 'win32') {
+    const mode = statSync(path.join(installed, 'bin', 'bronto-layout.mjs')).mode & 0o777;
+    assert.ok((mode & 0o100) !== 0, 'Installed CLI must be owner-executable even under private umask');
+  }
   const version = run(binary, ['--version'], { cwd: consumer }).trim();
   const help = run(binary, ['--help'], { cwd: consumer });
   assert.match(help, /doctor/);
