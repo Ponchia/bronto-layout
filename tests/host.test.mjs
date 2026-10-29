@@ -66,6 +66,29 @@ test('a partially absent target set cannot pass uniform gaps on only the remaini
   assert.equal(report.coverage.missing, 1);
   assert.equal(report.findings.find(f => f.id === 'host-target-missing:row').code, 'missing-selector');
 });
+test('unused but approved unmeasured target never makes the whole inspection green', () => {
+  const snapshot = fixture();
+  snapshot.elements[2] = { id: 'node-b', space: 'world', measurement: 'unavailable' };
+  const result = evaluateHostLayout(snapshot, {
+    targets: { observed: 'node-a', pending: 'node-b' },
+    rules: [{ id: 'observed-size', type: 'size-range', element: 'observed', axis: 'width', min: 10 }],
+  });
+  assert.deepEqual(result.summary, { passed: 1, failed: 0, skipped: 0 });
+  assert.equal(result.coverage.unavailable, 1);
+  assert.equal(result.assessment, 'unverified');
+});
+test('special own alias keys cannot borrow Object.prototype geometry', () => {
+  const targets = JSON.parse('{"__proto__":"node-a","constructor":"node-b"}');
+  const result = evaluateHostLayout(fixture(), {
+    targets,
+    rules: [
+      { id: 'first-size', type: 'size-range', element: '__proto__', axis: 'width', min: 80 },
+      { id: 'second-size', type: 'size-range', element: 'constructor', axis: 'height', min: 50 },
+    ],
+  });
+  assert.equal(result.assessment, 'pass');
+  assert.deepEqual(result.summary, { passed: 2, failed: 0, skipped: 0 });
+});
 test('world and screen geometry cannot silently mix', () => {
   const snapshot = fixture();
   snapshot.elements[1].space = 'screen';

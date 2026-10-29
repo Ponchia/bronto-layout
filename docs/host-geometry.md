@@ -43,7 +43,9 @@ screen-visible font sizes, canvas paint, connector routing, or clipped DOM.
 stable at the provided revision. A bounded/truncated collection must instead
 fail closed. A known object that has not been measured uses
 `measurement: 'unavailable'` **without a rectangle**, producing a
-measurement-unavailable skip, never an invented zero. An absent identity fails
+measurement-unavailable skip, never an invented zero. Any approved target
+left unmeasured makes the entire assessment **unverified**, even when an
+applicable rule happens to use only another, fully measured target. An absent identity fails
 as a missing element, even when the remainder of a repeated alias happens to
 satisfy a gap or count rule. Mixed world/screen/SVG spaces, duplicate IDs, invalid
 rectangles and unsupported browser-only contracts are rejected.
