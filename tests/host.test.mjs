@@ -107,3 +107,31 @@ test('an all-unavailable or all-outside-width result is unverified', () => {
   input.rules[0].minWidth = 800;
   assert.equal(evaluateHostLayout(snapshot, input).assessment, 'unverified');
 });
+
+test('a repeated host target cannot pass uniform spacing after one approved identity disappears', () => {
+  const snapshot = fixture();
+  const result = evaluateHostLayout(snapshot, {
+    targets: { cards: ['node-a', 'node-b', 'ghost'] },
+    rules: [
+      { id: 'two-nodes', type: 'selector-count', element: 'cards', min: 2 },
+      { id: 'equal', type: 'uniform-gaps', element: 'cards', axis: 'x' },
+    ],
+  });
+  assert.equal(result.assessment, 'fail');
+  assert.equal(result.summary.failed, 1);
+  assert.equal(result.findings.find(f => f.id === 'host-target-missing:cards')?.code, 'missing-selector');
+  assert.equal(result.coverage.missing, 1);
+});
+
+test('SVG host geometry preserves its own axis and actionable stable identities', () => {
+  const snapshot = fixture();
+  snapshot.space = 'svg';
+  snapshot.elements.forEach(item => { item.space = 'svg'; });
+  const report = evaluateHostLayout(snapshot, contract);
+  assert.equal(report.assessment, 'pass');
+  assert.equal(report.space, 'svg');
+  snapshot.elements[2].rect.y += 7;
+  const violated = evaluateHostLayout(snapshot, contract);
+  assert.equal(violated.findings[1].status, 'fail');
+  assert.deepEqual(violated.findings[1].paths, ['host://svg/node-a', 'host://svg/node-b']);
+});
