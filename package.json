@@ -52,6 +52,10 @@
       "types": "./dist/host.d.ts",
       "default": "./dist/host.js"
     },
+    "./svg": {
+      "types": "./dist/svg.d.ts",
+      "default": "./dist/svg.js"
+    },
     "./browser": {
       "types": "./dist/browser.d.ts",
       "default": "./dist/browser.js"

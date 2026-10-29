@@ -41,7 +41,7 @@ try {
     assert.equal(binMode, 0o755, 'Packed CLI must carry a reviewed executable mode');
   }
   const required = [
-    'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/host.js', 'dist/host.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
+    'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/host.js', 'dist/host.d.ts', 'dist/svg.js', 'dist/svg.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html',
     'examples/pointer-click-visible.html', 'examples/pointer-click-visible.json', 'examples/pointer-click-hover-cover.html', 'examples/pointer-click-hover-cover.json',
@@ -55,7 +55,7 @@ try {
     'examples/deferred-probe.svg', 'examples/audit-offscreen-lazy-actions.json',
     'examples/layout.json', 'examples/responsive-island.json', 'examples/responsive-island.html', 'examples/responsive-island-healthy.html', 'examples/batch-interior.json',
     'examples/healthy.html', 'examples/portfolio-alignment.json', 'examples/portfolio-alignment-healthy.html', 'examples/portfolio-alignment-broken.html',
-    'docs/beta-integration.md', 'docs/beta-trial-template.md',
+    'docs/beta-integration.md', 'docs/svg-geometry.md', 'docs/beta-trial-template.md',
     'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'package.json', 'docs/quickstart.md', 'docs/cli-reference.md', 'docs/portfolio-regression-case-study.md', 'docs/assets/portfolio-alignment-768.png', 'docs/release-checklist.md',
     'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json', 'schemas/layout-actions.schema.json'
   ];
@@ -130,6 +130,10 @@ try {
   assert.equal(typeof api.evaluateLayout, 'function');
   assert.equal(typeof api.evaluateHostLayout, 'function');
   assert.equal(installedPkg.exports['./host'].default, './dist/host.js');
+  assert.equal(installedPkg.exports['./svg'].default, './dist/svg.js');
+  const svgAPI = await import(pathToFileURL(path.join(installed, 'dist', 'svg.js')).href);
+  assert.equal(typeof svgAPI.captureSvgHostGeometry, 'function',
+    'Installed optional SVG module must load without a DOM or runtime dependencies');
   const hostReport = api.evaluateHostLayout({
     space: 'screen', root: { x: 20, y: 30, width: 300, height: 400 },
     inventoryComplete: true, viewport: { width: 390, height: 844 },
