@@ -1,4 +1,5 @@
 export * from './core.js';
+export * from './host.js';
 export * from './actions.js';
 export * from './browser.js';
 export { checkPlaywrightPage } from './playwright.js';

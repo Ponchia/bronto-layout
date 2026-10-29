@@ -63,6 +63,16 @@ node bin/bronto-layout.mjs suggest --url http://localhost:5173 \
 
 The tool does **not** repair CSS automatically. The suggestion workflow produces reviewable drafts; it does not turn observed relationships into blocking assertions without your explicit approval.
 
+## Canvas and non-DOM layout contracts
+
+The optional [host geometry adapter](docs/host-geometry.md) evaluates explicit
+alignment, spacing, containment and size intent against a **complete**, typed
+world/screen/SVG rectangle snapshot supplied by the owning application.
+Measurements are associated with stable host identities and a source revision.
+Mixed coordinate spaces, incomplete inventories and browser-only rules fail
+closed. Unavailable measurements produce **unverified** results, not false
+passes. The library never moves nodes or inspects canvas paint.
+
 ## Run it inside an owned project or AI workflow
 
 The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
