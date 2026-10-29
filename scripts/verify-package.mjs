@@ -35,7 +35,7 @@ try {
   assert.ok(existsSync(archive), 'npm did not write its tarball');
   const packedFiles = new Set(packed.files.map(file => file.path));
   const required = [
-    'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
+    'bin/bronto-layout.mjs', 'bin/pointer-click.mjs', 'bin/audit-command.mjs', 'bin/batch-command.mjs', 'bin/audit-comparison-gallery.mjs', 'bin/audit-evidence-verify.mjs', 'bin/cli-options.mjs', 'bin/chromium-target.mjs', 'bin/local-fixture-server.mjs', 'bin/chrome-detect.mjs', 'bin/cdp-client.mjs', 'bin/csp-navigation.mjs', 'bin/chromium-session.mjs', 'dist/index.js', 'dist/index.d.ts', 'dist/host.js', 'dist/host.d.ts', 'dist/playwright.js', 'dist/playwright.d.ts', 'dist/core.js',
     'dist/browser.js', 'dist/workflow-guidance.js', 'dist/bounded-screenshot.js', 'dist/contract.js', 'dist/proposal-review.js', 'dist/audit.js', 'dist/audit-browser.js', 'dist/composed-selector.js', 'dist/scenario.js', 'dist/frame-inventory.js', 'dist/frame-inspector.js',
     'examples/audit-healthy.html', 'examples/audit-broken.html',
     'examples/pointer-click-visible.html', 'examples/pointer-click-visible.json', 'examples/pointer-click-hover-cover.html', 'examples/pointer-click-hover-cover.json',
@@ -118,6 +118,19 @@ try {
   assert.equal(installedPkg.exports['./playwright'].default, './dist/playwright.js');
   assert.equal(installedPkg.exports['./playwright'].types, './dist/playwright.d.ts');
   assert.equal(typeof api.evaluateLayout, 'function');
+  assert.equal(typeof api.evaluateHostLayout, 'function');
+  assert.equal(installedPkg.exports['./host'].default, './dist/host.js');
+  const hostReport = api.evaluateHostLayout({
+    space: 'screen', root: { x: 20, y: 30, width: 300, height: 400 },
+    inventoryComplete: true, viewport: { width: 390, height: 844 },
+    elements: [{ id: 'one', space: 'screen', measurement: 'measured',
+      rect: { x: 50, y: 60, width: 70, height: 80 } }]
+  }, {
+    targets: { one: 'one' },
+    rules: [{ id: 'in-root', type: 'contained', element: 'one',
+      in: 'viewport', tolerance: 0 }]
+  });
+  assert.equal(hostReport.assessment, 'pass');
   assert.equal(typeof api.parseContract, 'function');
   assert.equal(api.parseContract({
     selectors: { element: '#element' },
