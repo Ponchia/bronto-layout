@@ -60,8 +60,10 @@ The results are axis-aligned rectangles in the SVG coordinate plane.
 - These boxes describe SVG geometry and `foreignObject` HTML border boxes,
   **not actual glyph ink**, rendered stroke extents, rasterized paint or
   clipping. A separate browser-rendering check is still required for these.
-- Hidden, detached, unrendered, zero-area, out-of-root, cross-document and
-  unsupported elements are explicitly **unavailable**. Content inside
+- Detached, unrendered, zero-area, out-of-root, cross-document and
+  unsupported elements are explicitly **unavailable**. A display/opacity-hidden
+  HTML ancestor of the root makes capture unavailable; a descendant overriding
+  inherited `visibility:hidden` may still be measured when it actually renders. Content inside
   `defs`, `symbol`, `clipPath`, `mask`, `marker`, `pattern` and `filter`
   is not proof of directly painted geometry.
 - A root with missing user bounds or a singular screen transform throws.

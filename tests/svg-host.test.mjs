@@ -123,6 +123,22 @@ test('hidden, zero-size and throwing geometry sources remain explicitly unverifi
     rules: [{ id: 'size', type: 'size-range', element: 'a', axis: 'width', min: 10 }],
   }).assessment, 'unverified');
 });
+test('an opaque HTML ancestor of the SVG root refuses painting, while visibility overrides can measure', () => {
+  const root = rootFixture();
+  const ancestor = { namespaceURI: HTML, localName: 'div', parentElement: null,
+    styleMock: { opacity: '0' } };
+  root.parentElement = ancestor;
+  assert.throws(() => capture(root, [{ id: 'element', element: graphic(root) }]), /hidden/);
+  ancestor.styleMock.opacity = '1';
+  const hiddenGroup = { namespaceURI: SVG, localName: 'g', parentElement: root,
+    ownerDocument: root.ownerDocument, styleMock: { visibility: 'hidden' } };
+  const explicit = graphic(root);
+  explicit.parentElement = hiddenGroup;
+  explicit.styleMock = { visibility: 'visible' };
+  assert.equal(capture(root, [{ id: 'child', element: explicit }])
+    .elements[0].measurement, 'measured');
+});
+
 test('unlisted identities fail; they never pass as an empty selector collection', () => {
   const root = rootFixture();
   const result = capture(root, [{ id: 'a', element: graphic(root) }]);
@@ -163,6 +179,10 @@ test('invalid root, singular CTM, missing user bounds and incomplete inventories
   assert.throws(() => capture(root, [], {
     rootBounds: { x: 0, y: 0, width: 100, height: 100 },
     viewport: { width: 10, height: 20 },
+  }), /CSS-pixel/);
+  assert.throws(() => capture(root, [], {
+    rootBounds: { x: 0, y: 0, width: 100, height: 100 },
+    viewport: { width: 390, height: 10001 },
   }), /CSS-pixel/);
 });
 test('duplicate IDs and over-budget collections are refused without partial success', () => {
