@@ -105,20 +105,48 @@ function underNonRenderedContainer(element: Element, root: SVGSVGElement): boole
   return false;
 }
 
+/**
+ * Display and opacity on ANY ancestor suppress paint. Visibility differs:
+ * it is inherited and a descendant may explicitly override hidden.
+ * Accordingly only the target's computed visibility is decisive, not an
+ * ancestor's computed visibility.
+ */
 function visible(element: Element, root: SVGSVGElement): boolean {
   const view = root.ownerDocument?.defaultView;
   if (!view?.getComputedStyle) return false;
-  let node: Element | null = element;
-  while (node) {
-    let style: CSSStyleDeclaration;
-    try { style = view.getComputedStyle(node); } catch { return false; }
-    if (style.display === 'none' || style.visibility === 'hidden' ||
-        style.visibility === 'collapse' || (style.opacity !== '' && Number(style.opacity) === 0))
+  try {
+    const targetStyle = view.getComputedStyle(element);
+    if (targetStyle.visibility === 'hidden' || targetStyle.visibility === 'collapse')
       return false;
-    if (node === root) return true;
-    node = node.parentElement;
+    let current: Element | null = element;
+    while (current) {
+      const style = view.getComputedStyle(current);
+      if (style.display === 'none' ||
+          (style.opacity !== '' && Number(style.opacity) === 0))
+        return false;
+      // Keep examining HTML ancestors ABOVE the SVG root: a hidden web
+      // container must never make a painted-geometry contract pass.
+      current = current.parentElement as Element | null;
+    }
+  } catch { return false; }
+  return true;
+}
+
+function rootCanPaint(root: SVGSVGElement): boolean {
+  const view = root.ownerDocument?.defaultView;
+  if (!view?.getComputedStyle) return false;
+  // A root with visibility:hidden may still contain explicitly visible
+  // descendants. Do not reject it preemptively; evaluate each target.
+  let current: Element | null = root;
+  while (current) {
+    let style: CSSStyleDeclaration;
+    try { style = view.getComputedStyle(current); } catch { return false; }
+    if (style.display === 'none' ||
+        (style.opacity !== '' && Number(style.opacity) === 0))
+      return false;
+    current = current.parentElement as Element | null;
   }
-  return false;
+  return true;
 }
 
 function svgRect(
@@ -174,8 +202,8 @@ export function captureSvgHostGeometry(input: SvgHostCaptureInput): HostGeometry
   if (!root.isConnected || typeof root.getScreenCTM !== 'function' ||
       typeof root.contains !== 'function')
     throw new Error('SVG root is detached or unmeasurable');
-  if (!visible(root, root))
-    throw new Error('SVG root is hidden or lacks a measurable document');
+  if (!rootCanPaint(root))
+    throw new Error('SVG root or ancestor is hidden or lacks a measurable document');
   const m = root.getScreenCTM();
   if (!matrix(m) || Math.abs(m.a * m.d - m.b * m.c) < 1e-12)
     throw new Error('SVG root requires an invertible screen CTM');
@@ -186,6 +214,7 @@ export function captureSvgHostGeometry(input: SvgHostCaptureInput): HostGeometry
   if (!viewport || !Number.isInteger(viewport.width) ||
       viewport.width < 200 || viewport.width > 10000 ||
       !Number.isInteger(viewport.height) || viewport.height <= 0 ||
+      viewport.height > 10000 ||
       (viewport.direction !== undefined && !['ltr', 'rtl'].includes(viewport.direction)))
     throw new Error('SVG host requires an actual CSS-pixel viewport');
   if (!Array.isArray(input.targets) || input.targets.length > MAX_TARGETS)

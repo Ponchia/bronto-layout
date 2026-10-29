@@ -71,7 +71,7 @@ test('real Chromium captures root-space geometry, foreignObject labels and delib
     assert.deepEqual(byId('left-model').rect, { x: 20, y: 30, width: 80, height: 40 });
     assert.deepEqual(byId('right-model').rect, { x: 120, y: 30, width: 80, height: 40 });
     assert.equal(byId('label-model').measurement, 'measured');
-    assert.ok(byId('label-model').rect.width > 0);
+    assert.deepEqual(byId('label-model').rect, { x: 220, y: 30, width: 60, height: 24 });
     await page.locator('#right').evaluate(element =>
       element.setAttribute('transform', 'translate(0 12)'));
     const moved = await readGeometry();
@@ -80,6 +80,26 @@ test('real Chromium captures root-space geometry, foreignObject labels and delib
       element.setAttribute('display', 'none'));
     const hidden = await readGeometry();
     assert.equal(hidden.elements.find(e => e.id === 'right-model').measurement, 'unavailable');
+    // Opacity on HTML ABOVE the root prevents painting too.
+    await page.evaluate(() => { document.body.style.opacity = '0'; });
+    await assert.rejects(readGeometry(), /SVG root or ancestor is hidden/);
+    await page.evaluate(() => { document.body.style.opacity = ''; });
+
+    // visibility is inherited, but a child may explicitly override a hidden
+    // SVG group and still paint; the measurement must not be discarded.
+    await page.evaluate(() => {
+      const svg = document.querySelector('#diagram');
+      const group = document.createElementNS(svg.namespaceURI, 'g');
+      group.setAttribute('visibility', 'hidden');
+      const left = document.querySelector('#left');
+      left.remove();
+      group.append(left);
+      left.setAttribute('visibility', 'visible');
+      svg.append(group);
+    });
+    const override = await readGeometry();
+    assert.deepEqual(override.elements.find(e => e.id === 'left-model').rect,
+      { x: 20, y: 30, width: 80, height: 40 });
     await page.close();
   } finally {
     await browser?.close();
