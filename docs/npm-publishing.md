@@ -8,44 +8,59 @@ identity and permission before the first write. First publication and subsequent
 trusted-publisher releases have different authentication paths. The current
 registry state must be checked live; a GitHub tag or release is not npm availability.
 
-## Publishing hold — 24 October 2026
+## Publisher — source-locked since 30 October 2026
 
-npm publication is currently blocked, including the manual bootstrap described
-below. Both npm 11.21.1 and 12.2.1 were found to contain Undici 6.29.0 with a
-high-severity advisory. The tracked publisher inventory and remediation evidence
-are in [Bronto UI issue 234](https://github.com/Ponchia/bronto-ui/issues/234).
+The 24 October hold is lifted by the same publisher `@ponchia/ui` and
+`@ponchia/annotations` already release with. Every OIDC-capable registry npm
+(11.21.1 and 12.2.1) bundles Undici 6.29.0 with a high-severity advisory, and a
+bundled dependency cannot be overridden, so the runner's npm never publishes.
+The inventory and remediation evidence are in
+[Bronto UI issue 234](https://github.com/Ponchia/bronto-ui/issues/234).
+
+- `scripts/source-publisher.mjs` and `scripts/extract-publisher-source.py`
+  download the **unchanged** npm 11.21.1 source, pinned by commit, byte count,
+  SHA-512 and file inventory in `tooling/publisher/source.json`.
+- Its production dependencies install from `tooling/publisher/package-lock.json`,
+  which overrides only `undici` 6.29.1 and `ip-address` 10.7.4.
+- `scripts/audit-publishing-tooling.mjs` audits the complete installed graph and
+  fails on any high/critical finding. Nothing is repacked, no bundled metadata is
+  edited and no advisory is waived.
+
+The tag workflow's read-only `publisher-readiness` job prepares and audits it
+before the privileged `publish-npm` job can start. That job sparse-checks out
+only those publisher files (never package source), prepares and audits them
+again, and publishes with their `npm-cli.js`. `npm run publisher:readiness` runs
+the same preparation locally and packs `@ponchia/layout` with it. The files are
+copied unchanged from Bronto Annotations; update all three repositories together
+when npm ships a release whose bundle passes the audit.
+
 The library's dependency graph is separate from this publishing toolchain.
-
-The tag workflow keeps all existing qualification jobs, but its read-only
-`publisher-safety` job refuses the privileged `publish-npm` job before environment
-approval or OIDC authority. This is a source-controlled hold, not a repository
-variable or an advisory exception. A newer Node runner image is not evidence of
-a reviewed npm bundle. The manual bootstrap is also on hold; the commands below
-remain the procedure to use only after the hold is resolved.
-
-Lift the hold in a reviewed PR only after selecting an official npm distribution,
-verifying its registry integrity and auditing every actual installed bundled
-dependency with no high/critical findings. Pin that exact verified publisher in
-the isolated release path, retain a fresh fail-closed inventory/audit gate, and
-exercise its version, archive and OIDC readiness checks. Update these workflow
-regressions and this dated status together. Preserve environment review, disabled
-lifecycle scripts, full CI/macOS qualification and exact-archive verification.
-Do not repackage npm, edit dependency version metadata, waive the advisory, or
-publish with the floating CLI bundled into a runner image.
-
-No release tag, registry publication or account change is made by this hold.
 
 ## First publication
 
-Qualify a new beta from reviewed main using the [release gates](release-checklist.md).
-Use its exact built archive, not an old tarball merely because it already exists.
+The package has not been published yet, and the registry does not authorize a
+first release through OIDC. Qualify a new beta from reviewed main using the
+[release gates](release-checklist.md). Use its exact built archive, not an old
+tarball merely because it already exists. Publish it with the source-locked
+publisher, not a locally installed npm, which bundles the same advisory. Keep its
+login in a private throwaway config on a shared machine:
+
+```sh
+PUBLISHER="$(mktemp -d)"
+node scripts/source-publisher.mjs prepare "$PUBLISHER/npm"
+node scripts/source-publisher.mjs audit "$PUBLISHER/npm" "$PUBLISHER/audit.json"
+NPM_CLI="$PUBLISHER/npm/source/bin/npm-cli.js"
+export npm_config_userconfig="$PUBLISHER/npmrc"
+node "$NPM_CLI" login --auth-type=web --registry=https://registry.npmjs.org
+```
+
 The following placeholders must come from that qualified candidate:
 
 ```sh
 VERSION=0.5.0-beta.2
 TARBALL="/absolute/path/ponchia-layout-$VERSION.tgz"
-npm whoami --registry=https://registry.npmjs.org
-npm view "@ponchia/layout@$VERSION" version --registry=https://registry.npmjs.org
+node "$NPM_CLI" whoami --registry=https://registry.npmjs.org
+node "$NPM_CLI" view "@ponchia/layout@$VERSION" version --registry=https://registry.npmjs.org
 sha256sum "$TARBALL"
 ```
 
@@ -54,12 +69,15 @@ is not proof of availability. Verify the expected SHA-256 and package identity,
 then perform the separately authorized first release:
 
 ```sh
-npm publish "$TARBALL" --ignore-scripts --access public --tag beta \
+node "$NPM_CLI" publish "$TARBALL" --ignore-scripts --access public --tag beta \
   --provenance=false --registry=https://registry.npmjs.org
+node "$NPM_CLI" logout --registry=https://registry.npmjs.org
+rm -rf "$PUBLISHER"
 ```
 
 Use normal npm login and 2FA. Complete browser/passkey challenges interactively;
-never paste a password or token into an issue, transcript or repository. Local
+never paste a password or token into an issue, transcript or repository.
+`logout` revokes the session token before the throwaway config is deleted. Local
 bootstrap cannot establish hosted OIDC provenance. Do not claim it does.
 
 Immediately verify the exact public archive using the checked source tree:
@@ -95,8 +113,9 @@ package; its identity is separate from GitHub authentication.
 
 A new `v<version>-beta.<number>` tag on reviewed main starts the full hosted CI
 and macOS gates. Preflight builds and checks a single archive before approval.
-The protected publish job receives only that archive and checksum; it has no
-source checkout, dependency install or repository-script execution.
+The protected publish job receives only that archive and checksum. Apart from the
+audited publisher files it has no source checkout, dependency install or
+repository-script execution.
 
 After npm accepts it, a **separate read-only job** checks the registry identity,
 SHA-512 integrity, downloaded bytes, `beta` tag and provenance metadata. It

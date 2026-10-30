@@ -13,23 +13,43 @@ concurrency:
   group: bronto-layout-npm-publish
   cancel-in-progress: false
 jobs:
-  # The Node image's npm version is not a reviewed publishing dependency.
-  # Keep this source-controlled hold until an official, integrity-verified
-  # distribution passes a complete installed-bundle audit. Environment approval
-  # or a repository variable must not turn the unresolved advisory into a pass.
-  publisher-safety:
-    name: Reviewed npm publisher required
+  # The runner's npm is never a publishing dependency: npm 11.21.1 and 12.2.1
+  # bundle Undici 6.29.0 (Ponchia/bronto-ui#234), and a bundled dependency
+  # cannot be overridden. The publisher is the unchanged npm source pinned in
+  # tooling/publisher/source.json with its separately locked dependencies, the
+  # same source-locked publisher @ponchia/ui and @ponchia/annotations release
+  # with. This read-only job prepares it and audits the complete installed graph;
+  # any finding stops the privileged job before environment approval or OIDC.
+  publisher-readiness:
+    name: Source-locked npm publisher audit
     runs-on: ubuntu-24.04
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - name: Refuse publication with the unresolved upstream npm bundle
+      - name: Check out only the reviewed publisher tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/source-publisher.mjs
+            /scripts/extract-publisher-source.py
+            /scripts/audit-publishing-tooling.mjs
+            /tooling/publisher/
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          check-latest: true
+          package-manager-cache: false
+      - name: Prepare and audit the source-locked publisher
         shell: bash
+        env:
+          npm_config_cache: ${{ runner.temp }}/publisher-audit-cache
         run: |
-          echo '::error::npm publication is on hold: no reviewed official publisher bundle is free of high/critical advisories.'
-          echo 'Follow docs/npm-publishing.md and Ponchia/bronto-ui#234. Do not bypass this gate or use an unreviewed runner npm.'
-          exit 1
+          set -euo pipefail
+          node scripts/source-publisher.mjs prepare "$RUNNER_TEMP/layout-publisher"
+          node scripts/source-publisher.mjs audit "$RUNNER_TEMP/layout-publisher" "$RUNNER_TEMP/publisher-audit.json"
   # Reuse the exact same CI and hosted macOS gates that protect main. Do not
   # independently weaken browser/benchmark coverage for npm releases.
   verify-ci:
@@ -167,7 +187,7 @@ jobs:
           if-no-files-found: error
           retention-days: 2
   publish-npm:
-    needs: [preflight, publisher-safety]
+    needs: [preflight, publisher-readiness]
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     environment: npm-publish
@@ -181,13 +201,35 @@ jobs:
           check-latest: true
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      # Package source is never checked out here: only the publisher tooling,
+      # which is prepared and audited again because this job runs it.
+      - name: Check out only the reviewed publisher tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: publisher
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/source-publisher.mjs
+            /scripts/extract-publisher-source.py
+            /scripts/audit-publishing-tooling.mjs
+            /tooling/publisher/
+      - name: Prepare and audit the source-locked publisher
+        shell: bash
+        env:
+          npm_config_cache: ${{ runner.temp }}/publisher-audit-cache
+        run: |
+          set -euo pipefail
+          node publisher/scripts/source-publisher.mjs prepare "$RUNNER_TEMP/layout-publisher"
+          node publisher/scripts/source-publisher.mjs audit "$RUNNER_TEMP/layout-publisher" "$RUNNER_TEMP/publisher-audit.json"
       - name: Require trusted-publisher-capable npm and Node
         shell: bash
         run: |
           set -euo pipefail
           node -e 'const v=process.versions.node.split(".").map(Number);if(v[0]<24)process.exit(1)'
-          npm --version
-          node -e 'const {execFileSync}=require("node:child_process");const v=execFileSync("npm",["--version"],{encoding:"utf8"}).trim().split(".").map(Number);if(v[0]<11||(v[0]===11&&(v[1]<5||(v[1]===5&&v[2]<1))))process.exit(1)'
+          version="$(node "$RUNNER_TEMP/layout-publisher/source/bin/npm-cli.js" --version)"
+          echo "Source-locked npm $version"
+          node -e 'const v=process.argv[1].split(".").map(Number);if(v[0]<11||(v[0]===11&&(v[1]<5||(v[1]===5&&v[2]<1))))process.exit(1)' "$version"
       - name: Download checked build bytes without checking out executable source
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -218,10 +260,10 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/checked-package"
-          # No checkout, dependencies or lifecycle scripts in OIDC job. Trusted
-          # issuer must exactly match Ponchia/bronto-layout, npm-release.yml
-          # and the protected npm-publish GitHub Environment.
-          npm publish "./$TARBALL" --ignore-scripts --provenance --access public --tag beta --registry https://registry.npmjs.org
+          # No package source, dependencies or lifecycle scripts in the OIDC job.
+          # Trusted issuer must exactly match Ponchia/bronto-layout,
+          # npm-release.yml and the protected npm-publish GitHub Environment.
+          node "$RUNNER_TEMP/layout-publisher/source/bin/npm-cli.js" publish "./$TARBALL" --ignore-scripts --provenance --access public --tag beta --registry https://registry.npmjs.org
       - name: Record accepted publication without claiming verification
         run: echo 'npm accepted publication. The separate read-only registry gate must still pass; do not repeat publication to recover verification.' >> "$GITHUB_STEP_SUMMARY"
 

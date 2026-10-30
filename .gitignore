@@ -2,3 +2,7 @@ node_modules/
 dist/
 reports/
 *.log
+
+# Source-locked npm publisher downloads (prepared outside the repo in CI)
+/tooling/publisher/source/
+/tooling/publisher/.source-*/
