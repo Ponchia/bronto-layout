@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -29,11 +28,11 @@ test('npm release is behind validated bytes, human approval and OIDC rather than
   assert.match(workflow,/github-release:\s*\n\s*needs: \[preflight, verify-registry\]/);
   assert.match(workflow,/gh release create/);
   assert.match(workflow,/--verify-tag --prerelease --latest=false/);
-  assert.match(workflow,/publish-npm:\s*\n\s*needs: \[preflight, publisher-safety\]/);
+  assert.match(workflow,/publish-npm:\s*\n\s*needs: \[preflight, publisher-readiness\]/);
   assert.match(workflow,/environment: npm-publish/);
   assert.match(workflow,/id-token: write/);
   assert.match(workflow,/uses: actions\/download-artifact@[a-f0-9]{40}/);
-  assert.match(workflow,/npm publish "\.\/\$TARBALL" --ignore-scripts --provenance --access public --tag beta/);
+  assert.match(workflow,/node "\$RUNNER_TEMP\/layout-publisher\/source\/bin\/npm-cli\.js" publish "\.\/\$TARBALL" --ignore-scripts --provenance --access public --tag beta/);
   assert.match(workflow,/sha256sum -c SHA256SUMS\.txt/);
   assert.match(workflow,/npm run test:unit/);
   assert.match(workflow,/npm run test:package/);
@@ -47,8 +46,8 @@ test('the first release requires an authenticated human and correct existing @po
   assert.equal(pkg.publishConfig.access,'public');
   assert.equal(pkg.publishConfig.tag,'beta', 'Unqualified npm publish must not default to stable latest');
   assert.equal(pkg.repository.url,'https://github.com/Ponchia/bronto-layout.git');
-  assert.match(docs,/npm whoami/);
-  assert.match(docs,/npm publish "\$TARBALL"/);
+  assert.match(docs,/"\$NPM_CLI" whoami/);
+  assert.match(docs,/"\$NPM_CLI" publish "\$TARBALL"/);
   assert.match(docs,/--access public --tag beta/);
   assert.match(docs,/--provenance=false/);
   assert.match(docs,/\bPonchia\b/);
@@ -64,7 +63,8 @@ test('registry observation fails closed and is isolated from publication authori
   assert.match(workflow,/npm install --ignore-scripts --no-audit --no-fund --save-exact/);
   assert.doesNotMatch(workflow,/if test -s .*npm-observed/);
   const publish = workflow.slice(workflow.indexOf('  publish-npm:'), workflow.indexOf('  verify-registry:'));
-  assert.doesNotMatch(publish,/actions\/checkout|npm (?:ci|install) |node scripts\//);
+  assert.equal(publish.match(/actions\/checkout@/g)?.length, 1, 'Only the publisher tooling is checked out');
+  assert.doesNotMatch(publish,/npm (?:ci|install) |node scripts\//);
   const verification = workflow.slice(workflow.indexOf('  verify-registry:'), workflow.indexOf('  github-release:'));
   assert.doesNotMatch(verification,/set \+e|id-token: write|contents: write|npm publish|environment: npm-publish/);
 });
@@ -91,26 +91,39 @@ test('release checksum entries survive artifact relocation and reject changed by
   } finally {rmSync(root,{recursive:true,force:true});}
 });
 
-// Execute the real workflow block, not a test-only imitation of its refusal.
-const publisherHold = workflow.slice(workflow.indexOf('  publisher-safety:'), workflow.indexOf('  verify-ci:'));
-const holdScript = publisherHold.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/)?.[1]
-  ?.split('\n').map(line => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+const job = (name, next) => workflow.slice(workflow.indexOf(`  ${name}:`), workflow.indexOf(`  ${next}:`));
+const sparse = (block) => [...block.matchAll(/sparse-checkout: \|\n((?: {12}\S[^\n]*\n)+)/g)].map(m => m[1].trim().split(/\s+/));
+const publisherFiles = ['/scripts/source-publisher.mjs', '/scripts/extract-publisher-source.py',
+  '/scripts/audit-publishing-tooling.mjs', '/tooling/publisher/'];
 
-test('unreviewed publisher is stopped before OIDC, even with approval-shaped environment values', () => {
-  assert.ok(holdScript, 'The workflow must retain an executable read-only publisher hold');
-  for (const enabled of ['true', 'false', '']) {
-    const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-e', '-c', holdScript], {
-      encoding: 'utf8', timeout: 5000,
-      env: { PATH: '/usr/bin:/bin', ENABLE_NPM_PUBLISH: enabled, PUBLISHER_REVIEWED: enabled },
-    });
-    assert.equal(result.error, undefined);
-    assert.equal(result.status, 1, 'No variable or environment approval releases the source-controlled hold');
-    assert.match(result.stdout, /publication is on hold/);
-  }
-  assert.match(publisherHold, /permissions:\s*\n\s*contents: read/);
-  assert.doesNotMatch(publisherHold, /id-token:|contents: write|environment:|continue-on-error:|if:|uses:|secrets\.|vars\.|\bnpm (?:install|ci|publish)\b/);
-  const publish = workflow.slice(workflow.indexOf('  publish-npm:'), workflow.indexOf('  verify-registry:'));
-  assert.match(publish, /needs: \[preflight, publisher-safety\]/);
+test('only the audited source-locked publisher reaches OIDC, never the runner npm', () => {
+  const readiness = job('publisher-readiness', 'verify-ci');
+  assert.match(readiness, /permissions:\s*\n\s*contents: read/);
+  assert.doesNotMatch(readiness, /id-token:|contents: write|environment:|continue-on-error:|if:|secrets\.|vars\.|\bnpm (?:install|ci|publish)\b/);
+  assert.match(readiness, /node scripts\/source-publisher\.mjs prepare "\$RUNNER_TEMP\/layout-publisher"/);
+  assert.match(readiness, /node scripts\/source-publisher\.mjs audit "\$RUNNER_TEMP\/layout-publisher"/);
+  assert.deepEqual(sparse(readiness), [publisherFiles]);
+  const publish = job('publish-npm', 'verify-registry');
+  assert.match(publish, /needs: \[preflight, publisher-readiness\]/);
   assert.doesNotMatch(publish, /if:|continue-on-error:|always\(\)/);
-  assert.match(docs, /manual bootstrap.*also on hold/s);
+  assert.deepEqual(sparse(publish), [publisherFiles], 'The OIDC job checks out publisher tooling only');
+  assert.match(publish, /path: publisher\n/);
+  assert.match(publish, /node publisher\/scripts\/source-publisher\.mjs prepare "\$RUNNER_TEMP\/layout-publisher"/);
+  assert.match(publish, /node publisher\/scripts\/source-publisher\.mjs audit "\$RUNNER_TEMP\/layout-publisher"/);
+  assert.ok(publish.indexOf('source-publisher.mjs audit') < publish.indexOf('npm-cli.js" publish'), 'audit before publish');
+  assert.doesNotMatch(publish, /^\s*npm (?:publish|--version)\b/m, 'The runner npm never publishes');
+  assert.doesNotMatch(workflow, /publisher-safety|publication is on hold/);
+  assert.equal(pkg.scripts['publisher:readiness'], 'node scripts/source-publisher.mjs readiness');
+  assert.match(docs, /source-locked/);
+  assert.doesNotMatch(docs, /manual bootstrap.*also on hold/s);
+});
+
+test('the publisher pins unchanged npm source and overrides only the audited dependencies', () => {
+  const source = JSON.parse(readFileSync(new URL('../tooling/publisher/source.json', import.meta.url), 'utf8'));
+  const tooling = JSON.parse(readFileSync(new URL('../tooling/publisher/package.json', import.meta.url), 'utf8'));
+  const lock = JSON.parse(readFileSync(new URL('../tooling/publisher/package-lock.json', import.meta.url), 'utf8'));
+  assert.equal(source.version, '11.21.1');
+  assert.equal(tooling.private, true);
+  assert.equal(lock.packages['node_modules/undici']?.version, '6.29.1');
+  assert.equal(lock.packages['node_modules/npm'], undefined, 'npm itself comes from pinned source, not the lock');
 });
