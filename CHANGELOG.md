@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Document npm installation of the published 0.5.0-beta.2 and its matching GitHub
+  release archive.
+
+## 0.5.0-beta.2 (30 October 2026 — first npm prerelease, bootstrapped without provenance)
+
 - Lift the npm publication hold with the source-locked publisher that Bronto UI
   and Bronto Annotations release with: unchanged npm 11.21.1 source, a locked
   dependency graph overriding only Undici and ip-address, and a full audit in a
@@ -15,8 +20,6 @@
 - Avoid quadratic composed-selector splitting on long whitespace input. Load
   explicitly enabled inline test fixtures through CDP data parameters, never
   generated JavaScript, and strengthen URL/script-tag security assertions.
-
-## 0.5.0-beta.2 (release candidate; registry publication not yet verified)
 
 - Preserve input contracts, action files, and explicitly named local pages when
   report paths alias them, including symlink and hardlink identities.

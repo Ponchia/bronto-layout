@@ -7,12 +7,19 @@
 
 Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
 
-**Status:** MIT-licensed, experimental **[v0.5.0-beta.1 GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1)**. The published beta.1 tarball includes fail-closed CSP-sandbox diagnostics (beta.0 did not). The GitHub tarball is available; **the package is not published to the npm registry**. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
+**Status:** MIT-licensed, experimental **[v0.5.0-beta.2](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.2)**, on npm as [`@ponchia/layout`](https://www.npmjs.com/package/@ponchia/layout) under the `beta` dist-tag. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
-The source tree is preparing `0.5.0-beta.2`; the release link above remains the
-last published GitHub archive until a new release is verified. Current beta
-qualification uses [in-house checks](docs/in-house-validation.md), not outside
-developer recruitment. Registry publication is a separate authenticated step.
+Install it into a project:
+
+```sh
+npm install --save-dev @ponchia/layout@beta
+npx bronto-layout doctor --verify-launch
+```
+
+Current beta qualification uses [in-house checks](docs/in-house-validation.md),
+not outside developer recruitment. Later betas publish from the protected release
+workflow with npm provenance; 0.5.0-beta.2, the first registry version, was
+bootstrapped by the maintainer and has none.
 
 ## See it catch an actual layout relationship regression
 
@@ -80,7 +87,7 @@ and HTML border rectangles; it does not certify glyph ink or clipped paint.
 
 ## Run it inside an owned project or AI workflow
 
-The [beta integration guide](docs/beta-integration.md) shows a verified GitHub-release package install, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
+The [beta integration guide](docs/beta-integration.md) shows npm and checksum-verified GitHub-release installs, a source checkout, a reusable commit-pinned GitHub Action, a strict CI contract check, and a sample `AGENTS.md` instruction. **No npm package, analytics service or hosted dashboard is required for the Action.** The Action stores JSON locally and does not upload private evidence automatically. An external workflow must pin a reviewed commit SHA and bring its own running site.
 
 Responsive checks can opt into `--interior-probes 3 --refine` to sample failures between passing endpoints; the report documents sampled and untested widths. This improves coverage without asserting correctness at widths that were never visited. A reusable batch manifest can also opt into `interiorProbes`, `refine` and `failOnSkip` per approved contract job.
 
@@ -103,7 +110,7 @@ You can:
 - Automated CI runs on Node 22/24 with Chromium, package-install smoke checks, a portable-core coverage threshold and maintained macOS hosted-runner checks.
 - Controlled fixture benchmarks provide reproducible regression protection; **they are not an estimate of real-world precision/recall**.
 - The original 30-state and expanded [42-state v0.2 cohort](https://github.com/Ponchia/bronto-layout/blob/main/benchmarks/field-sites.v0.2.json) have been captured. The expanded smoke caught a genuine 320px BrontoUI overflow, later fixed and [verified on the deployed site](https://github.com/Ponchia/bronto-layout/actions/runs/38353798145). **Independent field-review labels and accuracy estimates remain pending**.
-- [GitHub beta distribution](https://github.com/Ponchia/bronto-layout/releases) provides checksum-verified `.tgz` packages for released versions; **no npm registry publication, general-availability claim, or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
+- Betas are on npm as `@ponchia/layout@beta`, and each [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases) attaches the same checksum-verified `.tgz`; **no general-availability or real-world accuracy claim**. See the [release checklist](docs/release-checklist.md) and [field benchmark protocol](docs/field-benchmark.md).
 
 ## Documentation
 
