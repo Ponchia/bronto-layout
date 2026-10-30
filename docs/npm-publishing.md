@@ -38,8 +38,10 @@ The library's dependency graph is separate from this publishing toolchain.
 
 ## First publication
 
-The package has not been published yet, and the registry does not authorize a
-first release through OIDC. Qualify a new beta from reviewed main using the
+Done on 30 October 2026 for 0.5.0-beta.2. It has no provenance, and npm also
+pointed `latest` at it because a new package needs one; the beta workflow never
+moves `latest`. The procedure remains for a fork or a newly scoped package. The
+registry does not authorize a first release through OIDC. Qualify a new beta from reviewed main using the
 [release gates](release-checklist.md). Use its exact built archive, not an old
 tarball merely because it already exists. Publish it with the source-locked
 publisher, not a locally installed npm, which bundles the same advisory. Keep its

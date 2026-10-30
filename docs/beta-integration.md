@@ -1,26 +1,38 @@
 # Bronto Layout beta — integrating in real projects and agent workflows
 
-**Status:** [v0.5.0-beta.1 is published as a GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.1) with a checksum-verified tarball and pinned source. **It is not published to npm**: npm registry access and an authorized `beta` dist-tag remain separate. This is not an independent quality/accuracy certification.
+**Status:** v0.5.0-beta.2 is on npm as `@ponchia/layout@beta` and published as a [GitHub prerelease](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.2) with the same checksum-verified tarball and pinned source. This is not an independent quality/accuracy certification.
 
-**Script-disabled HTML boundary:** beta.1 includes the `CSP_SANDBOX_UNINSPECTABLE` diagnostic for enforced top-level CSP sandbox without `allow-scripts`, as verified in the [first-party Spatial pilot](first-party-beta-pilots.md). The historical beta.0 release predates it. Script-disabled documents remain **unverified**; never weaken browser or document sandbox policies to gain a passing result.
+**Script-disabled HTML boundary:** beta.1 and later include the `CSP_SANDBOX_UNINSPECTABLE` diagnostic for enforced top-level CSP sandbox without `allow-scripts`, as verified in the [first-party Spatial pilot](first-party-beta-pilots.md). The historical beta.0 release predates it. Script-disabled documents remain **unverified**; never weaken browser or document sandbox policies to gain a passing result.
 
 The intended workflow is: **observe → specify intentional relationships → check a change → inspect evidence → revise**. A zero-contract audit can detect some mechanical problems, but cannot infer the intended spacing, alignment, art direction, stacking or usability of a design.
 
-## Install the published GitHub beta (no npm registry package needed)
+## Install from npm
 
-This exact GitHub tarball was downloaded and checked against its release SHA-256 on 14 October 2026, then installed in an isolated consumer without source dependencies. To repeat that installation locally, with Node.js 22+ and an installed Chrome/Chromium:
+With Node.js 22+ and an installed Chrome/Chromium:
+
+```sh
+npm install --save-dev @ponchia/layout@beta
+npx bronto-layout --version
+npx bronto-layout doctor --verify-launch
+```
+
+`beta` moves with each prerelease; pin the exact version (`@ponchia/layout@0.5.0-beta.2`) in CI.
+
+## Install the GitHub release archive
+
+The npm package and the release archive are the same bytes. This exact GitHub tarball was downloaded and checked against its release SHA-256 and the npm `integrity` on 30 October 2026, then installed in an isolated consumer without source dependencies. To repeat that installation locally, with Node.js 22+ and an installed Chrome/Chromium:
 
 ```sh
 mkdir bronto-layout-beta && cd bronto-layout-beta
-curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.1/ponchia-layout-0.5.0-beta.1.tgz
-curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.1/SHA256SUMS.txt
+curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.2/ponchia-layout-0.5.0-beta.2.tgz
+curl -fL --retry 3 -O https://github.com/Ponchia/bronto-layout/releases/download/v0.5.0-beta.2/SHA256SUMS.txt
 shasum -a 256 -c SHA256SUMS.txt
-npm install --ignore-scripts --no-audit --no-fund --prefix ./consumer ./ponchia-layout-0.5.0-beta.1.tgz
+npm install --ignore-scripts --no-audit --no-fund --prefix ./consumer ./ponchia-layout-0.5.0-beta.2.tgz
 ./consumer/node_modules/.bin/bronto-layout --version
 ./consumer/node_modules/.bin/bronto-layout doctor --verify-launch
 ```
 
-The expected tarball SHA-256 is `f471a03498980d80ce304aa45a04e8b468736f51478822b7620ffc147a7b1de8` and the verified release source is commit `779709052378185bb4f7a0d1727fff7d7e91ac74`. `shasum -a 256` works on macOS and Linux when Perl's `shasum` is available; otherwise use your system's SHA-256 verification utility. A checksum protects against download corruption/tampering relative to the trusted release checksum—it does not establish an independent security audit. The npm **client** is used to install a local tarball; `npm install @ponchia/layout@0.5.0-beta.1` from the registry still does not work.
+The expected tarball SHA-256 is `fe732ad33dcea158baec10749818510fc3b8a8aac74269a578594588e564c35a` and the verified release source is commit `71bdc89941e71f24d2f3bb2aa77278e8acd7dba2`. `shasum -a 256` works on macOS and Linux when Perl's `shasum` is available; otherwise use your system's SHA-256 verification utility. A checksum protects against download corruption/tampering relative to the trusted release checksum—it does not establish an independent security audit. Here the npm client installs a local tarball; the same version is on the registry.
 
 For measured first-party integration outcomes and acknowledged coverage gaps, read the [beta pilot findings](first-party-beta-pilots.md).
 
