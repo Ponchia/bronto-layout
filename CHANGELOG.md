@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Lift the npm publication hold with the source-locked publisher that Bronto UI
+  and Bronto Annotations release with: unchanged npm 11.21.1 source, a locked
+  dependency graph overriding only Undici and ip-address, and a full audit in a
+  read-only job before the protected OIDC job. The runner's npm never publishes.
+  The first-release bootstrap uses the same publisher.
+
 - Hold npm publication before privileged jobs while the official publishing CLI
   contains unresolved high-severity dependencies. Preserve all package and
   browser qualification; require reviewed publisher remediation before release.
