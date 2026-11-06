@@ -39,8 +39,8 @@ The library's dependency graph is separate from this publishing toolchain.
 ## First publication
 
 Done on 30 October 2026 for 0.5.0-beta.2. It has no provenance, and npm also
-pointed `latest` at it because a new package needs one; the beta workflow never
-moves `latest`. The procedure remains for a fork or a newly scoped package. The
+pointed `latest` at it because a new package needs one; since 6 November 2026
+the release workflow owns `latest` (see [dist-tags](#dist-tags)). The procedure remains for a fork or a newly scoped package. The
 registry does not authorize a first release through OIDC. Qualify a new beta from reviewed main using the
 [release gates](release-checklist.md). Use its exact built archive, not an old
 tarball merely because it already exists. Publish it with the source-locked
@@ -104,12 +104,15 @@ interactive account authentication to set:
 | Repository | `bronto-layout` |
 | Workflow | `npm-release.yml` |
 | Environment | `npm-publish` |
-| Allowed action | Direct `npm publish` |
+| Allowed actions | Allow npm publish, Allow npm dist-tag |
 
-Do not widen the trust to other repositories, remove environment review, enable
-extra tag-management privileges or weaken npm account security. Keep the
-existing protected GitHub environment. The first publisher needs an existing
-package; its identity is separate from GitHub authentication.
+Do not widen the trust to other repositories, remove environment review or
+weaken npm account security. Keep the existing protected GitHub environment.
+The first publisher needs an existing package; its identity is separate from
+GitHub authentication. npm expires a new trusted publisher 48 hours after
+creation unless a publish succeeds through it, so recreate it only when a
+qualified beta can be tagged within that window. The Layout entry was recreated
+on 6 November 2026 after the 30 October one expired unused.
 
 ## Later beta releases
 
@@ -124,12 +127,33 @@ SHA-512 integrity, downloaded bytes, `beta` tag and provenance metadata. It
 installs the exact version in a clean consumer and verifies signatures with npm.
 Only that successful job permits the GitHub prerelease with matching bytes.
 The verifier distinguishes advertised provenance from cryptographic verification.
-No stable `latest` release is advanced by this beta workflow.
+
+## Dist-tags
+
+The maintainer decided on 6 November 2026 that the release workflow owns the
+dist-tags, so nobody moves them by hand. After registry verification, the
+separately approved `sync-dist-tags` job runs `scripts/sync-dist-tags.mjs` with
+the same audited publisher, authenticated by the trusted publisher's
+**Allow npm dist-tag** permission. It applies one policy:
+
+- While the package has no stable version, `latest` follows the newest beta, so
+  `npm install @ponchia/layout` receives it.
+- `latest` never moves backwards, and never to a prerelease once a stable
+  version exists.
+- A prerelease channel tag (`next`, `beta`, `rc`, `alpha`, `canary`) that points
+  below `latest` is removed. Other tags are never touched.
+
+The job refuses a registry read that does not yet include the released version,
+and confirms the resulting tags before it succeeds. It never publishes. Rerun it
+alone to reapply the policy; a rerun with nothing to change is a no-op.
+`--dry-run` prints the plan without changing anything.
 
 ## Recovery
 
 A failed verification does not undo an accepted publication. Do not re-publish,
-overwrite the version or change dist-tags to hide a failure. Inspect the registry
+overwrite the version or change dist-tags to hide a failure. A failed
+`sync-dist-tags` job leaves the publication intact; fix its cause and rerun that
+job alone. Inspect the registry
 and rerun only the read-only verifier/job against the original archive. A failed
 GitHub announcement can be recovered separately after the same bytes are verified.
 Network diagnostics never authorize a second irreversible write.

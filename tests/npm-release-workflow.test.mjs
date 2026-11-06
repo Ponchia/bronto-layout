@@ -118,6 +118,23 @@ test('only the audited source-locked publisher reaches OIDC, never the runner np
   assert.doesNotMatch(docs, /manual bootstrap.*also on hold/s);
 });
 
+test('dist-tags follow the policy in a separately approved OIDC job that never publishes', () => {
+  const sync = workflow.slice(workflow.indexOf('  sync-dist-tags:'));
+  assert.match(sync, /needs: \[preflight, verify-registry\]/);
+  assert.match(sync, /environment: npm-publish/);
+  assert.match(sync, /id-token: write/);
+  assert.deepEqual(sparse(sync), [[...publisherFiles, '/scripts/sync-dist-tags.mjs']], 'Publisher tooling and the tag policy only');
+  assert.equal(sync.match(/actions\/checkout@/g)?.length, 1);
+  assert.match(sync, /node publisher\/scripts\/source-publisher\.mjs prepare "\$RUNNER_TEMP\/layout-publisher"/);
+  assert.match(sync, /node publisher\/scripts\/source-publisher\.mjs audit "\$RUNNER_TEMP\/layout-publisher"/);
+  const audit = sync.indexOf('source-publisher.mjs audit');
+  assert.ok(audit >= 0 && audit < sync.indexOf('sync-dist-tags.mjs --package'), 'audit before OIDC');
+  assert.match(sync, /node publisher\/scripts\/sync-dist-tags\.mjs --package @ponchia\/layout --version "\$VERSION"/);
+  assert.match(sync, /--npm-cli "\$RUNNER_TEMP\/layout-publisher\/source\/bin\/npm-cli\.js"/);
+  assert.doesNotMatch(sync, /npm-cli\.js" publish|\bnpm (?:publish|install|ci)\b|if:|continue-on-error:|secrets\.|contents: write/);
+  assert.match(docs, /Allow npm dist-tag/);
+});
+
 test('the publisher pins unchanged npm source and overrides only the audited dependencies', () => {
   const source = JSON.parse(readFileSync(new URL('../tooling/publisher/source.json', import.meta.url), 'utf8'));
   const tooling = JSON.parse(readFileSync(new URL('../tooling/publisher/package.json', import.meta.url), 'utf8'));

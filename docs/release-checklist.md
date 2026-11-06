@@ -43,7 +43,11 @@ authorized operation, not a consequence of a green pull request.
    public exports and npm registry signatures. OIDC releases additionally
    require provenance; a local bootstrap must not claim OIDC provenance.
 6. Publish GitHub release assets only after registry verification succeeds.
-   Keep their bytes identical and leave stable `latest` unchanged.
+   Keep their bytes identical and do not mark the prerelease as GitHub's latest
+   release.
+7. Approve the `sync-dist-tags` job. It applies the
+   [dist-tag policy](npm-publishing.md#dist-tags) and reports the tags before
+   and after in the run summary.
 
 On a post-publication verification failure, publication state may already be
 committed. Retry **read-only verification**, not `npm publish`. Preserve the
