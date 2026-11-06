@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0-beta.3 (6 November 2026 — first npm release through trusted publishing, with provenance)
+
 - The release workflow now owns the npm dist-tags. A separately approved
   `sync-dist-tags` job runs after registry verification, through the trusted
   publisher's new "Allow npm dist-tag" permission and the same audited
@@ -10,6 +12,9 @@
   below `latest` is removed. Rerunning the job reapplies the policy.
 - Document npm installation of the published 0.5.0-beta.2 and its matching GitHub
   release archive.
+- Override the transitive development dependency `minimatch` to 11 for
+  GHSA-g3hv-75wg-m249. The package still ships no runtime dependencies, so
+  consumers are unaffected.
 
 ## 0.5.0-beta.2 (30 October 2026 — first npm prerelease, bootstrapped without provenance)
 
