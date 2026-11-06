@@ -365,7 +365,7 @@ jobs:
             exit 2
           fi
           cat > "$RUNNER_TEMP/npm-beta-release-notes.md" <<'NOTES'
-          Experimental public Bronto Layout beta for local layout contracts, responsive geometry and agent integrations. The exact vetted tarball attached here was first published to the npm registry under the `beta` dist-tag through protected trusted publishing. Consumers must explicitly opt into a prerelease; ordinary `latest` is not advanced by this workflow.
+          Experimental public Bronto Layout beta for local layout contracts, responsive geometry and agent integrations. The exact vetted tarball attached here was first published to the npm registry under the `beta` dist-tag through protected trusted publishing. While no stable version exists, `latest` follows the newest beta, so a plain install receives it.
 
           Requires Node.js 22+ and a separately installed Chrome/Chromium for browser-based CLI checks. Supports Chromium-family geometry, not guaranteed visual design, WCAG accessibility, closed shadow roots, frame interiors or unobserved browser states. A script-disabled CSP-sandboxed top-level document remains unverified rather than weakening the page policy.
 
@@ -376,3 +376,55 @@ jobs:
             --title "Bronto Layout $RELEASE_TAG — npm beta" \
             --notes-file "$RUNNER_TEMP/npm-beta-release-notes.md"
           echo "Published GitHub prerelease from validated npm archive: $RELEASE_TAG ($EXPECTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
+
+  # Owns the dist-tags once the registry serves the verified archive: while no
+  # stable version exists, `latest` follows the newest beta, and a prerelease
+  # channel tag below `latest` is removed (scripts/sync-dist-tags.mjs). The
+  # trusted publisher allows npm dist-tag for npm-release.yml and npm-publish.
+  # It is a separate approval so a tag failure never hides the publication;
+  # rerun this job alone to reapply the policy. It never publishes.
+  sync-dist-tags:
+    needs: [preflight, verify-registry]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          check-latest: true
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Check out only the reviewed publisher tooling and tag policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: publisher
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/source-publisher.mjs
+            /scripts/extract-publisher-source.py
+            /scripts/audit-publishing-tooling.mjs
+            /tooling/publisher/
+            /scripts/sync-dist-tags.mjs
+      - name: Prepare and audit the source-locked publisher
+        shell: bash
+        env:
+          npm_config_cache: ${{ runner.temp }}/publisher-audit-cache
+        run: |
+          set -euo pipefail
+          node publisher/scripts/source-publisher.mjs prepare "$RUNNER_TEMP/layout-publisher"
+          node publisher/scripts/source-publisher.mjs audit "$RUNNER_TEMP/layout-publisher" "$RUNNER_TEMP/publisher-audit.json"
+      - name: Apply the dist-tag policy (npm OIDC)
+        shell: bash
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          npm_config_cache: ${{ runner.temp }}/dist-tag-cache
+        run: |
+          set -euo pipefail
+          node publisher/scripts/sync-dist-tags.mjs --package @ponchia/layout --version "$VERSION" \
+            --npm-cli "$RUNNER_TEMP/layout-publisher/source/bin/npm-cli.js" | tee "$RUNNER_TEMP/dist-tags.txt"
+          { echo '### npm dist-tags'; echo '```'; cat "$RUNNER_TEMP/dist-tags.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
