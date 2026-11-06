@@ -2,7 +2,7 @@
 // Applies the Ponchia npm dist-tag policy after a verified release. It runs in
 // the protected npm-publish job with the source-locked npm, which authenticates
 // through npm OIDC trusted publishing ("Allow npm dist-tag"); no token exists.
-// The same file ships in every Ponchia package repository.
+// Every Ponchia package repository carries this script with the same policy.
 //
 // Policy (maintainer decision, 6 November 2026):
 // - While a package has no stable version, `latest` follows the newest
