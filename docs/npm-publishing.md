@@ -21,7 +21,10 @@ The inventory and remediation evidence are in
   download the **unchanged** npm 11.21.1 source, pinned by commit, byte count,
   SHA-512 and file inventory in `tooling/publisher/source.json`.
 - Its production dependencies install from `tooling/publisher/package-lock.json`,
-  which overrides only `undici` 6.29.1 and `ip-address` 10.7.4.
+  which overrides `undici` 6.29.1 and `ip-address` 10.7.4, plus security-fixed
+  `glob` 14.0.2 and `minimatch` 11.0.1. These major versions intentionally
+  replace the unchanged upstream ranges through exact, GHSA-referenced
+  `reviewedDirectReplacements` in `source.json` and graph-wide overrides.
 - `scripts/audit-publishing-tooling.mjs` audits the complete installed graph and
   fails on any high/critical finding. Nothing is repacked, no bundled metadata is
   edited and no advisory is waived.
