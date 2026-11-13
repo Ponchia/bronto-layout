@@ -23,26 +23,41 @@ bootstrapped by the maintainer and has none.
 
 ## See it catch an actual layout relationship regression
 
-This local, self-contained example intentionally moves a portfolio image 18px below the first paragraph at desktop widths. Both pages can appear superficially healthy to a zero-config audit; only an **approved alignment contract** knows this is wrong.
+The published npm beta includes both the approved layout contract and its
+self-contained HTML fixtures. You can reproduce the example from the project
+where you installed `@ponchia/layout@beta` **without cloning this repository,
+running a build or installing browser automation dependencies**.
+
+This example intentionally moves a portfolio image 18px below the first
+paragraph at desktop widths. Both pages can look healthy to a zero-contract
+audit; only an **approved alignment contract** identifies the regression.
 
 ```sh
-git clone https://github.com/Ponchia/bronto-layout.git
-cd bronto-layout
-npm ci
-npm run build
+# In the project where you ran npm install --save-dev @ponchia/layout@beta:
+npx --no-install bronto-layout doctor --verify-launch
 
-# Test your Chromium installation before navigating anywhere:
-node bin/bronto-layout.mjs doctor --verify-launch
+# Check the published contract itself, without launching a browser.
+npx --no-install bronto-layout validate \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json
 
-# Healthy portfolio layout: should exit 0.
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json
+# Healthy portfolio layout: exit 0.
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-healthy.html
 
-# Same page with intentional misalignment: should exit 1.
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json \
-  --url examples/portfolio-alignment-broken.html
+# Same contract, intentionally broken layout: expected exit 1.
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-broken.html
 ```
 
-The included contract checks 375, 768 and 1280 CSS-pixel viewports. The alignment applies only at desktop/tablet widths; mobile deliberately stacks its content. See [the complete walkthrough](docs/portfolio-regression-case-study.md).
+The verified npm beta includes all three files. The contract checks 375, 768
+and 1280 CSS-pixel viewports; mobile deliberately stacks its content.
+`doctor --verify-launch` first checks whether installed Chrome/Chromium can
+start with normal sandbox settings. If it fails, address the local browser
+environment rather than bypassing sandboxing for arbitrary websites.
+See [the complete walkthrough](docs/portfolio-regression-case-study.md)
+and [contributor setup](CONTRIBUTING.md) for source-built development.
 
 ![Chromium-generated Bronto Layout evidence highlighting the image and paragraph whose top edges differ by 18 pixels](docs/assets/portfolio-alignment-768.png)
 
@@ -52,17 +67,17 @@ The included contract checks 375, 768 and 1280 CSS-pixel viewports. The alignmen
 
 ```sh
 # No contract: measured overflow and visible broken images; other leads need review.
-node bin/bronto-layout.mjs audit --url http://localhost:5173 \
+npx --no-install bronto-layout audit --url http://localhost:5173 \
   --widths 320,375,768,1280 --json --compact
 
 # Create a versioned contract skeleton, then edit selectors and rules.
-node bin/bronto-layout.mjs init --url http://localhost:5173 \
+npx --no-install bronto-layout init --url http://localhost:5173 \
   --out bronto-layout.json
-node bin/bronto-layout.mjs validate --spec bronto-layout.json
-node bin/bronto-layout.mjs check --spec bronto-layout.json --json
+npx --no-install bronto-layout validate --spec bronto-layout.json
+npx --no-install bronto-layout check --spec bronto-layout.json --json
 
 # Optional: suggest relationships and approve only the ones you intend to keep.
-node bin/bronto-layout.mjs suggest --url http://localhost:5173 \
+npx --no-install bronto-layout suggest --url http://localhost:5173 \
   --widths 375,768,1280 --out proposals.json
 ```
 
