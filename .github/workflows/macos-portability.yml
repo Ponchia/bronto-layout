@@ -6,6 +6,13 @@ on:
   workflow_call:
 permissions:
   contents: read
+
+# Cancel only obsolete PR attempts of this workflow. On main and tag-triggered
+# workflow_call runs, give each run an independent group; never suppress a
+# release or a separate main verification attempt.
+concurrency:
+  group: layout-macos-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   macos:
     runs-on: macos-latest
