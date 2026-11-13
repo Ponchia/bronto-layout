@@ -7,30 +7,43 @@ image stays aligned with its text. Node.js 22+ and an installed Chrome or
 Chromium are required for browser checks. The tool does not need a hosted
 account, a component framework, or a bundled browser.
 
-## Start from a source checkout
+## Start with the published npm beta
 
-This path works before npm publication and changes no global npm links.
-The README records the current distribution status.
+You need a local Node.js 22+ project and Chrome/Chromium installed. Use the
+published package; a source checkout and build are not required for first use.
 
 ```sh
-git clone https://github.com/Ponchia/bronto-layout.git
-cd bronto-layout
-npm ci --ignore-scripts
-npm run build
-node bin/bronto-layout.mjs doctor --verify-launch --json
+mkdir bronto-layout-first-run
+cd bronto-layout-first-run
+npm init -y
+npm install --save-dev @ponchia/layout@beta
+npx --no-install bronto-layout doctor --verify-launch --json
 ```
 
 A successful preflight returns `launch-verified`. Finding a Chrome executable
-alone does not establish successful startup. Use `--chrome /path/to/chrome`
-when choosing another installed browser. Do not disable sandboxing to inspect
-public or authenticated pages.
+alone does not establish startup. Use `--chrome /path/to/chrome` if choosing a
+different installed browser. Do not disable sandboxing to inspect public or
+authenticated pages.
+
+The installed package includes the complete example contract and its healthy
+and broken HTML fixtures. The commands below only read those trusted examples
+from the npm package; they do not install extra browser automation tools.
+
+If you are changing Bronto Layout itself, use the
+[contributor instructions](../CONTRIBUTING.md) for the separate source
+checkout and build workflow.
 
 ## Observe a passing rule and a deliberate failure
 
 ```sh
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json \
-  --url examples/portfolio-alignment-broken.html
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-healthy.html
+
+# The next command deliberately fails (exit code 1).
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-broken.html
 ```
 
 The first command exits 0. The second exits 1: its image is intentionally
@@ -43,7 +56,7 @@ about the accuracy of a general visual detector.
 Start your application's usual development server, then run:
 
 ```sh
-node bin/bronto-layout.mjs audit --url http://localhost:5173 \
+npx --no-install bronto-layout audit --url http://localhost:5173 \
   --widths 320,375,768,1280 --json --compact
 ```
 
@@ -52,9 +65,9 @@ and unavailable surfaces. A clean audit does not establish that your visual
 design is correct. Define the relationships you intend to preserve:
 
 ```sh
-node bin/bronto-layout.mjs init --url http://localhost:5173 \
+npx --no-install bronto-layout init --url http://localhost:5173 \
   --out bronto-layout.json
-node bin/bronto-layout.mjs validate --spec bronto-layout.json --json
+npx --no-install bronto-layout validate --spec bronto-layout.json --json
 ```
 
 Edit the generated selectors and rules before enforcing them. Suggestions
