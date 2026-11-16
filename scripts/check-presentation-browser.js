@@ -78,11 +78,13 @@ async page => {
     await files.locator('summary').tap();
     require(await files.evaluate(element => element.open), 'Fixture links need a no-JS native disclosure');
     require(await files.getByRole('link', {name: 'Download healthy HTML', exact: true}).getAttribute('download') !== null, 'Fixture download must save the actual file');
+    // Static servers preserve .html; asset hosts can canonicalize it away.
+    const fixtureURL = /\/portfolio-alignment-broken(?:\.html|\/)?$/;
     await Promise.all([
-      mobile.waitForURL('**/portfolio-alignment-broken.html'),
+      mobile.waitForURL(fixtureURL),
       files.getByRole('link', {name: 'Open broken page', exact: true}).tap()
     ]);
-    require(mobile.url().endsWith('/portfolio-alignment-broken.html'), 'Broken fixture should open directly');
+    require(fixtureURL.test(mobile.url()), 'Broken fixture should open directly');
     const stacked = await mobile.evaluate(() => {
       const a = document.querySelector('.copy').getBoundingClientRect();
       const b = document.querySelector('.artwork').getBoundingClientRect();
