@@ -57,6 +57,8 @@ try {
     'examples/healthy.html', 'examples/portfolio-alignment.json', 'examples/portfolio-alignment-healthy.html', 'examples/portfolio-alignment-broken.html',
     'docs/beta-integration.md', 'docs/svg-geometry.md', 'docs/beta-trial-template.md',
     'README.md', 'LICENSE', 'SECURITY.md', 'CONTRIBUTING.md', 'package.json', 'docs/quickstart.md', 'docs/cli-reference.md', 'docs/portfolio-regression-case-study.md', 'docs/assets/portfolio-alignment-768.png', 'docs/release-checklist.md',
+    'docs/presentation.md', 'docs/assets/first-use/healthy-768.png', 'docs/assets/first-use/broken-768.png',
+    'docs/assets/first-use/healthy.txt', 'docs/assets/first-use/broken.txt', 'docs/assets/first-use/evidence.json',
     'schemas/layout-contract.schema.json', 'schemas/batch-manifest.schema.json', 'schemas/layout-actions.schema.json'
   ];
   for (const file of required) assert.ok(packedFiles.has(file), 'Missing packaged file: ' + file);

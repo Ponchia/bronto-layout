@@ -16,7 +16,7 @@ published package; a source checkout and build are not required for first use.
 mkdir bronto-layout-first-run
 cd bronto-layout-first-run
 npm init -y
-npm install --save-dev @ponchia/layout@beta
+npm install --save-dev @ponchia/layout@0.5.0-beta.2
 npx --no-install bronto-layout doctor --verify-launch --json
 ```
 
@@ -24,6 +24,16 @@ A successful preflight returns `launch-verified`. Finding a Chrome executable
 alone does not establish startup. Use `--chrome /path/to/chrome` if choosing a
 different installed browser. Do not disable sandboxing to inspect public or
 authenticated pages.
+
+This guide pins the qualified `0.5.0-beta.2` example. Use `@beta` instead when
+you intend to follow the registry's current beta tag. The source checkout can
+be ahead of the published package.
+
+If preflight fails, install Chrome/Chromium or select its executable with
+`--chrome /path/to/chrome` or `CHROME_PATH`. Read the reported launch error and
+resolve local permissions or sandbox support, then retry `doctor`. Exit 2 is
+an environment/input failure, not a layout verdict. Do not continue on the
+assumption that browser discovery proves a healthy launch.
 
 The installed package includes the complete example contract and its healthy
 and broken HTML fixtures. The commands below only read those trusted examples
@@ -50,6 +60,28 @@ The first command exits 0. The second exits 1: its image is intentionally
 18 pixels lower than its text at the desktop/tablet widths. The contract
 allows the stacked mobile layout. This is a controlled example, not a claim
 about the accuracy of a general visual detector.
+
+| Fixture | Expected output | Exit |
+| --- | --- | --- |
+| Healthy | 11 passed, 0 failed, 1 skipped | 0 |
+| Broken | 9 passed, 2 failed, 1 skipped | 1 |
+
+The skipped rule is desktop alignment at 375px. The two broken findings name
+`image-top-aligns-to-paragraph` at 768 and 1280px: 18px exceeds the approved
+2px tolerance. [Healthy output](assets/first-use/healthy.txt),
+[broken output](assets/first-use/broken.txt), and
+[capture metadata](assets/first-use/evidence.json) come from the installed npm
+beta.2, not a source build.
+
+![Healthy 768px fixture: the CLI selects the image and paragraph with matching top edges](assets/first-use/healthy-768.png)
+
+![Broken 768px fixture: the same CLI selection shows the image shifted 18px down](assets/first-use/broken-768.png)
+
+These are unmodified `inspect` screenshots. Red boxes identify selected
+elements in both states; the `check` output determines pass or failure.
+Capture used the documented fixture-only sandbox override on a restricted
+test host after normal startup failed. This does not qualify sandboxed browser
+startup on that host; your first-use commands keep the sandbox enabled.
 
 ## Inspect your own local page
 
