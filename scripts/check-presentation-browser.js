@@ -17,7 +17,14 @@ async page => {
     require(layout.content <= width, `${width}px horizontal overflow: ${layout.content}`);
     require(layout.images && layout.scripts === 0 && layout.headings.length === 1, `${width}px content failed`);
     require(layout.headings[0].includes('your layout'), 'Heading text joins words across a line break');
-    results.push({ width, ...layout });
+    const type = await page.evaluate(() => ({
+      code: parseFloat(getComputedStyle(document.querySelector('pre code')).fontSize),
+      caption: parseFloat(getComputedStyle(document.querySelector('.caption')).fontSize),
+      status: parseFloat(getComputedStyle(document.querySelector('.status')).fontSize)
+    }));
+    require(type.code >= 14 && type.caption >= 12 && type.status >= 12, `${width}px evidence text is too small`);
+    require(await page.locator('[data-alignment-rule]').textContent().then(text => JSON.parse(text).tolerance === 2), 'Rendered rule must be the actual contract excerpt');
+    results.push({ width, ...layout, type });
   }
   await page.setViewportSize({ width: 320, height: 740 });
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
@@ -42,7 +49,7 @@ async page => {
   require(page.url().endsWith('#start'), 'Primary action did not reach first use');
   require(await page.locator('a.image-link').count() === 3, 'Each capture needs a full-size link');
   require(await page.locator('a.image-link').evaluateAll(links => links.every(link => link.getAttribute('aria-label')?.includes('screenshot at full size'))), 'Capture links lack accessible names');
-  const disclosure = page.locator('.capture-details');
+  const disclosure = page.locator('.capture-details:not(.fixture-downloads)');
   require(await disclosure.evaluate(element => !element.open), 'Capture disclosure should start closed');
   await disclosure.locator('summary').press('Enter');
   require(await disclosure.evaluate(element => element.open), 'Keyboard cannot open native disclosure');
@@ -65,9 +72,24 @@ async page => {
     await action.tap();
     require(mobile.url().endsWith('#start'), 'Touch navigation failed without JS');
     require(await mobile.getByRole('heading', { name: 'Start with a known outcome.' }).isVisible(), 'First-use content unavailable without JS');
-    await mobile.locator('.capture-details summary').tap();
-    require(await mobile.locator('.capture-details').evaluate(element => element.open), 'Touch cannot open native disclosure without JS');
-    results.push({ noJavaScript: true, touchNavigation: true, profile, keyboardFocus: focused });
+    await mobile.locator('.capture-details:not(.fixture-downloads) summary').tap();
+    require(await mobile.locator('.capture-details:not(.fixture-downloads)').evaluate(element => element.open), 'Touch cannot open native disclosure without JS');
+    const files = mobile.locator('.fixture-downloads');
+    await files.locator('summary').tap();
+    require(await files.evaluate(element => element.open), 'Fixture links need a no-JS native disclosure');
+    require(await files.getByRole('link', {name: 'Download healthy HTML', exact: true}).getAttribute('download') !== null, 'Fixture download must save the actual file');
+    await Promise.all([
+      mobile.waitForURL('**/portfolio-alignment-broken.html'),
+      files.getByRole('link', {name: 'Open broken page', exact: true}).tap()
+    ]);
+    require(mobile.url().endsWith('/portfolio-alignment-broken.html'), 'Broken fixture should open directly');
+    const stacked = await mobile.evaluate(() => {
+      const a = document.querySelector('.copy').getBoundingClientRect();
+      const b = document.querySelector('.artwork').getBoundingClientRect();
+      return b.top >= a.bottom;
+    });
+    require(stacked, 'The downloaded mobile fixture must genuinely stack');
+    results.push({ noJavaScript: true, touchNavigation: true, fixtureViewing: true, profile, keyboardFocus: focused });
   } finally { await noJS.close(); }
   await page.goto(base);
   const resources = await page.locator('[href], [src]').evaluateAll(elements => [...new Set(elements.flatMap(element => [element.getAttribute('href'), element.getAttribute('src')]).filter(value => value && !value.startsWith('https:') && !value.startsWith('#')))]);

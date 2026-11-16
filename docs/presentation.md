@@ -76,3 +76,21 @@ External documentation links target maintained GitHub paths. Check them on the
 reviewed branch before merge; new documentation becomes available on `main`
 only after merge. Neither a static link check nor this controlled example
 establishes full accessibility, detector accuracy or real-world adoption.
+
+## Inspect the rule before installing
+
+The product page includes the exact alignment rule from the captured contract,
+not an independently maintained code sample. Its build verifies the contract,
+fixture and screenshot SHA-256 values before writing the downloadable files.
+A source change therefore requires matching evidence before the page can build.
+
+The complete contract and both self-contained HTML fixtures can be downloaded
+or opened directly. Opening an HTML file only shows its layout; it does not run
+CLI checks. Under 768 CSS pixels both fixtures deliberately stack and the
+alignment rule is skipped. The CLI quickstart retains normal browser sandboxing.
+
+The evidence captions and result badges remain at least 12 CSS pixels at the
+normal root size, and command text at least 14. The presentation checks cover
+320, 390, 768, 1280 and 1920 CSS-pixel widths, 200% root text at 320 pixels,
+keyboard focus, touch emulation and the no-JavaScript fixture links. These are
+bounded browser checks, not a full accessibility or physical-device review.

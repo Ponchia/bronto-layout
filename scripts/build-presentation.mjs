@@ -7,18 +7,41 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'reports/presentation'));
 assert.ok(out !== root && !root.startsWith(out + path.sep), 'Output must not contain the source checkout');
-await mkdir(out, { recursive: true });
-for (const file of ['index.html', 'styles.css']) await cp(path.join(root, 'site', file), path.join(out, file));
-await cp(path.join(root, 'docs/assets/first-use'), path.join(out, 'assets/first-use'), { recursive: true });
-const html = await readFile(path.join(out, 'index.html'), 'utf8');
-assert.ok(!/<script\b/i.test(html), 'The presentation must work without JavaScript');
-const evidence = JSON.parse(await readFile(path.join(out, 'assets/first-use/evidence.json'), 'utf8'));
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const escapeHtml = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const evidence = JSON.parse(await readFile(path.join(root, 'docs/assets/first-use/evidence.json'), 'utf8'));
 assert.equal(evidence.package.name, '@ponchia/layout');
-assert.ok(html.includes(`@ponchia/layout@${evidence.package.version}`), 'Install snippet must match the captured package version');
+
+// The displayed rule and downloadable files must be exactly the sources used
+// by the captured npm example. Source drift requires new evidence, not a relabel.
+const specBytes = await readFile(path.join(root, 'examples/portfolio-alignment.json'));
+assert.equal(digest(specBytes), evidence.contract.sha256, 'Contract changed since the recorded capture');
+const spec = JSON.parse(specBytes);
+const alignment = spec.rules.find(rule => rule.id === evidence.contract.ruleId);
+assert.ok(alignment, 'Captured alignment rule is missing');
+assert.equal(alignment.tolerance, evidence.contract.tolerance);
+assert.equal(alignment.minWidth, evidence.contract.minWidth);
+const fixtures = new Map();
 for (const state of ['healthy', 'broken']) {
-  const bytes = await readFile(path.join(out, `assets/first-use/${state}-768.png`));
-  assert.equal(createHash('sha256').update(bytes).digest('hex'), evidence.fixtures[state].screenshotSha256,
-    `${state} screenshot does not match capture evidence`);
+  const bytes = await readFile(path.join(root, `examples/portfolio-alignment-${state}.html`));
+  assert.equal(digest(bytes), evidence.fixtures[state].fixtureSha256, `${state} fixture changed since capture`);
+  const screenshot = await readFile(path.join(root, `docs/assets/first-use/${state}-768.png`));
+  assert.equal(digest(screenshot), evidence.fixtures[state].screenshotSha256, `${state} screenshot does not match capture evidence`);
+  fixtures.set(state, bytes);
+}
+
+let html = await readFile(path.join(root, 'site/index.html'), 'utf8');
+assert.equal(html.split('<!-- ALIGNMENT_RULE -->').length, 2, 'Exactly one generated rule excerpt is required');
+html = html.replace('<!-- ALIGNMENT_RULE -->', escapeHtml(JSON.stringify(alignment, null, 2)));
+assert.ok(!/<script\b/i.test(html), 'The presentation must work without JavaScript');
+assert.ok(html.includes(`@ponchia/layout@${evidence.package.version}`), 'Install snippet must match the captured package version');
+await mkdir(out, { recursive: true });
+await writeFile(path.join(out, 'index.html'), html);
+await cp(path.join(root, 'site/styles.css'), path.join(out, 'styles.css'));
+await cp(path.join(root, 'docs/assets/first-use'), path.join(out, 'assets/first-use'), { recursive: true });
+await writeFile(path.join(out, 'assets/first-use/portfolio-alignment.json'), specBytes);
+for (const [state, bytes] of fixtures) {
+  await writeFile(path.join(out, `assets/first-use/portfolio-alignment-${state}.html`), bytes);
 }
 const links = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map(match => match[1]);
 for (const link of links) {
@@ -31,4 +54,4 @@ for (const link of links) {
   }
 }
 await writeFile(path.join(out, 'links.json'), JSON.stringify([...new Set(links)], null, 2) + '\n');
-process.stdout.write(`Built static presentation: ${out}\nVerified ${links.length} link/image targets; no JavaScript required.\n`);
+process.stdout.write(`Built static presentation: ${out}\nVerified ${links.length} link/image targets, exact rule and captured fixture hashes; no JavaScript required.\n`);

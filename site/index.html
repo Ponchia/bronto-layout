@@ -22,7 +22,7 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Open source · Experimental beta</p>
         <h1 id="headline">Keep your<br> layout <span>in line.</span></h1>
-        <p class="intro">Give alignment, spacing and containment a rule to live by. Check those relationships across viewport widths with a local CLI or TypeScript library.</p>
+        <p class="intro">Preserve the alignment, spacing and containment your design depends on. Measure those relationships across viewport widths with a local CLI or TypeScript library.</p>
         <div class="actions"><a class="button" href="#start">Run your first check <span aria-hidden="true">↓</span></a><a class="text-link" href="#example">See what it catches</a></div>
         <p class="requirements">Node.js 22+ · Installed Chrome/Chromium<br>MIT · No account · No runtime dependencies</p>
       </div>
@@ -42,6 +42,26 @@
           <figure><figcaption><span class="status fail">FAIL · EXIT 1</span><strong>Broken fixture</strong><span>18px difference</span></figcaption><a class="image-link" href="assets/first-use/broken-768.png" aria-label="Open broken fixture screenshot at full size"><img src="assets/first-use/broken-768.png" alt="Broken portfolio fixture at 768 pixels: a CSS transform moves the selected image down 18 pixels." width="768" height="440" loading="lazy"><span class="image-open">Open broken capture at full size ↗</span></a></figure>
         </div>
         <div class="evidence-foot"><p>Controlled fixtures · published beta.2 · 375/768/1280px.<br>Mobile stacks intentionally; alignment is skipped at 375px.</p><a href="assets/first-use/evidence.json">Read capture data ↗</a><a href="https://github.com/Ponchia/bronto-layout/blob/main/docs/portfolio-regression-case-study.md">Reproduce the example ↗</a></div>
+        <section class="contract-explanation" aria-labelledby="contract-title">
+          <div>
+            <p class="eyebrow">The rule behind the result</p>
+            <h3 id="contract-title">Make the intention explicit.</h3>
+            <p><strong>Keep these two top edges within 2 CSS pixels, from 768px upwards.</strong> That is the alignment rule used for both captures—not a visual guess made after the check.</p>
+            <p>The names <code>paragraph</code> and <code>image</code> refer to selectors in the full contract. At smaller widths the content stacks, so this particular rule is skipped.</p>
+            <p><a href="assets/first-use/portfolio-alignment.json" download>Download the complete contract</a></p>
+          </div>
+          <div>
+            <p class="code-label" id="contract-code-label">Exact alignment rule · excerpt from the captured contract</p>
+            <pre tabindex="0" aria-labelledby="contract-code-label"><code data-alignment-rule><!-- ALIGNMENT_RULE --></code></pre>
+          </div>
+        </section>
+        <details class="capture-details fixture-downloads">
+          <summary>Try the same fixtures in your browser</summary>
+          <p>These are the self-contained HTML files from the captured example. They open without installing anything. Opening them shows the layout; the CLI commands below perform the actual checks.</p>
+          <p class="fixture-links"><a href="assets/first-use/portfolio-alignment-healthy.html">Open healthy page</a><a href="assets/first-use/portfolio-alignment-broken.html">Open broken page</a></p>
+          <p>On a screen narrower than 768 CSS pixels, both pages intentionally stack. Use the desktop layout to see the 18-pixel shift.</p>
+          <p class="fixture-links"><a href="assets/first-use/portfolio-alignment-healthy.html" download>Download healthy HTML</a><a href="assets/first-use/portfolio-alignment-broken.html" download>Download broken HTML</a></p>
+        </details>
         <details class="capture-details"><summary>Capture method and environment</summary><p>Unmodified CLI <code>inspect</code> captures from installed <code>@ponchia/layout@0.5.0-beta.2</code>. Red boxes select elements in both states; <code>check</code> supplies the verdict. Normal sandboxed startup failed on the restricted test host, so these trusted, self-contained fixtures used an explicit sandbox override. This does not qualify normal sandboxed startup there. The first-use commands below keep sandboxing enabled.</p></details>
       </div>
     </section>
