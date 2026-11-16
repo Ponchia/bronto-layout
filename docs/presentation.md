@@ -77,9 +77,23 @@ reviewed branch before merge; new documentation becomes available on `main`
 only after merge. Neither a static link check nor this controlled example
 establishes full accessibility, detector accuracy or real-world adoption.
 
+## Live rule illustration
+
+The optional `site/try-rule.mjs` measures two visible elements with
+`getBoundingClientRect` and passes their geometry to the real pure evaluator.
+The build compiles `src/core.ts` without runtime dependencies; its source hash
+and source version are retained in `assets/evaluator-source.json`. This is
+current-source browser evidence, distinct from the installed-beta CLI captures.
+The fixed tolerance is 2 CSS pixels: offsets 0 and 2 pass, 3 and 18 fail.
+No JavaScript or a failed evaluator load leaves controls hidden and the static
+tutorial available. An unavailable measurement reports unverified, never pass.
+
+`node --test tests/presentation.test.mjs` checks the built evaluator and threshold.
+The browser review script checks real geometry, keyboard adjustments and reflow.
+
 ## Inspect the rule before installing
 
-The product page includes the exact alignment rule from the captured contract,
+The captured-evidence section includes the exact alignment rule from the captured contract,
 not an independently maintained code sample. Its build verifies the contract,
 fixture and screenshot SHA-256 values before writing the downloadable files.
 A source change therefore requires matching evidence before the page can build.

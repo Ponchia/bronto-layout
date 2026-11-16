@@ -25,7 +25,9 @@ test('presentation reproduces the captured contract, rule and downloadable fixtu
     assert.ok(encoded, 'The exact rule must be visible in the generated HTML');
     const decoded = encoded.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
     assert.deepEqual(JSON.parse(decoded), spec.rules.find(rule => rule.id === evidence.contract.ruleId));
-    assert.doesNotMatch(html, /<script\b|\/home\//i);
+    assert.doesNotMatch(html, /\/home\//i);
+    assert.equal((html.match(/<script\b/g) ?? []).length, 1);
+    assert.match(html, /id="try-controls" hidden/);
     for (const state of ['healthy', 'broken']) {
       const file = `portfolio-alignment-${state}.html`;
       const fixture = await readFile(path.join(out, 'assets/first-use', file));

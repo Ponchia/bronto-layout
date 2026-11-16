@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'reports/presentation'));
@@ -33,13 +34,21 @@ for (const state of ['healthy', 'broken']) {
 let html = await readFile(path.join(root, 'site/index.html'), 'utf8');
 assert.equal(html.split('<!-- ALIGNMENT_RULE -->').length, 2, 'Exactly one generated rule excerpt is required');
 html = html.replace('<!-- ALIGNMENT_RULE -->', escapeHtml(JSON.stringify(alignment, null, 2)));
-assert.ok(!/<script\b/i.test(html), 'The presentation must work without JavaScript');
+assert.match(html, /id="try-controls" hidden/, 'Interactive controls must wait for the real evaluator');
+assert.equal((html.match(/<script\b/g) ?? []).length, 1, 'Only the progressive rule enhancement is expected');
 assert.ok(html.includes(`@ponchia/layout@${evidence.package.version}`), 'Install snippet must match the captured package version');
 await mkdir(out, { recursive: true });
 await writeFile(path.join(out, 'index.html'), html);
 await cp(path.join(root, 'site/styles.css'), path.join(out, 'styles.css'));
 await cp(path.join(root, 'docs/assets/first-use'), path.join(out, 'assets/first-use'), { recursive: true });
 await writeFile(path.join(out, 'assets/first-use/portfolio-alignment.json'), specBytes);
+await cp(path.join(root, 'site/try-rule.mjs'), path.join(out, 'try-rule.mjs'));
+const source = await readFile(path.join(root, 'src/core.ts'), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
+assert.ok(!/^import /m.test(compiled), 'The browser evaluator must remain dependency-free');
+await writeFile(path.join(out, 'assets/layout-core.js'), compiled);
+await writeFile(path.join(out, 'assets/evaluator-source.json'), JSON.stringify({ package: '@ponchia/layout', version: JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version, file: 'src/core.ts', sha256: digest(source), scope: 'Current source evaluator, host-measured DOM geometry; not the recorded npm CLI capture.' }, null, 2) + '\n');
+
 for (const [state, bytes] of fixtures) {
   await writeFile(path.join(out, `assets/first-use/portfolio-alignment-${state}.html`), bytes);
 }
@@ -54,4 +63,4 @@ for (const link of links) {
   }
 }
 await writeFile(path.join(out, 'links.json'), JSON.stringify([...new Set(links)], null, 2) + '\n');
-process.stdout.write(`Built static presentation: ${out}\nVerified ${links.length} link/image targets, exact rule and captured fixture hashes; no JavaScript required.\n`);
+process.stdout.write(`Built static presentation: ${out}\nVerified ${links.length} link/image targets, exact rule and captured fixture hashes; static evidence remains usable without JavaScript.\n`);

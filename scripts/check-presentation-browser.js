@@ -15,7 +15,7 @@ async page => {
       headings: [...document.querySelectorAll('h1')].map(heading => heading.textContent)
     }));
     require(layout.content <= width, `${width}px horizontal overflow: ${layout.content}`);
-    require(layout.images && layout.scripts === 0 && layout.headings.length === 1, `${width}px content failed`);
+    require(layout.images && layout.scripts === 1 && layout.headings.length === 1, `${width}px content failed`);
     require(layout.headings[0].includes('your layout'), 'Heading text joins words across a line break');
     const type = await page.evaluate(() => ({
       code: parseFloat(getComputedStyle(document.querySelector('pre code')).fontSize),
@@ -24,7 +24,17 @@ async page => {
     }));
     require(type.code >= 14 && type.caption >= 12 && type.status >= 12, `${width}px evidence text is too small`);
     require(await page.locator('[data-alignment-rule]').textContent().then(text => JSON.parse(text).tolerance === 2), 'Rendered rule must be the actual contract excerpt');
-    results.push({ width, ...layout, type });
+    await page.locator('#try-controls').waitFor({ state: 'visible' });
+    for (const [offset, status] of [[0, 'PASS'], [2, 'PASS'], [18, 'FAIL']]) {
+      await page.locator(`[data-offset="${offset}"]`).click();
+      require(await page.locator('#try-verdict').textContent() === status, `Offset ${offset} must give ${status}`);
+      require(await page.locator('#try-measured').textContent() === `${offset} CSS pixels`, 'Measured difference must match actual moved geometry');
+    }
+    await page.locator('[data-offset="2"]').click();
+    await page.locator('#try-offset').focus();
+    await page.keyboard.press('ArrowRight');
+    require(await page.locator('#try-verdict').textContent() === 'FAIL', '3px must exceed the fixed 2px tolerance');
+    results.push({ width, ...layout, type, ruleBoundaries: '0/2 pass; 3/18 fail' });
   }
   await page.setViewportSize({ width: 320, height: 740 });
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
@@ -39,14 +49,14 @@ async page => {
   require(page.url().endsWith('#main'), 'Skip link did not reach main');
   await page.goto(base);
   const focused = [];
-  for (let index = 0; index < 7; index++) {
+  for (let index = 0; index < 8; index++) {
     await page.keyboard.press('Tab');
     focused.push(await page.evaluate(() => ({ text: document.activeElement.textContent.trim(), outline: getComputedStyle(document.activeElement).outlineStyle })));
   }
   require(focused.every(item => item.outline !== 'none'), 'A keyboard focus indicator is missing');
-  require(focused.some(item => item.text.includes('Run your first check')), 'Primary action is not keyboard reachable');
-  await page.getByRole('link', { name: 'Run your first check' }).press('Enter');
-  require(page.url().endsWith('#start'), 'Primary action did not reach first use');
+  require(focused.some(item => item.text.includes('Try an alignment rule')), 'Primary action is not keyboard reachable');
+  await page.getByRole('link', { name: 'Try an alignment rule' }).press('Enter');
+  require(page.url().endsWith('#try'), 'Primary action did not reach the rule example');
   require(await page.locator('a.image-link').count() === 3, 'Each capture needs a full-size link');
   require(await page.locator('a.image-link').evaluateAll(links => links.every(link => link.getAttribute('aria-label')?.includes('screenshot at full size'))), 'Capture links lack accessible names');
   const disclosure = page.locator('.capture-details:not(.fixture-downloads)');
@@ -66,12 +76,13 @@ async page => {
     const profile = await mobile.evaluate(() => ({ width: innerWidth, touch: 'ontouchstart' in window,
       reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches }));
     require(profile.width === 390 && profile.touch && profile.reducedMotion, 'Mobile input profile was not applied');
-    const action = mobile.getByRole('link', { name: 'Run your first check' });
+    const action = mobile.getByRole('link', { name: 'Install the CLI', exact: true });
     const box = await action.boundingBox();
     require(box && box.height >= 44 && box.width >= 44, 'Primary touch target is too small');
     await action.tap();
     require(mobile.url().endsWith('#start'), 'Touch navigation failed without JS');
     require(await mobile.getByRole('heading', { name: 'Start with a known outcome.' }).isVisible(), 'First-use content unavailable without JS');
+    require(await mobile.locator('#try-controls').isHidden(), 'No-JavaScript page must not expose inert controls');
     await mobile.locator('.capture-details:not(.fixture-downloads) summary').tap();
     require(await mobile.locator('.capture-details:not(.fixture-downloads)').evaluate(element => element.open), 'Touch cannot open native disclosure without JS');
     const files = mobile.locator('.fixture-downloads');
