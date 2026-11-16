@@ -107,3 +107,34 @@
   .docs a span { color: var(--muted); font-size: .8rem; }
   @media (max-width: 760px) { .steps li { grid-template-columns: 1fr; gap: 1.2rem; } }
 }
+
+/* The live rule is optional. No-script readers retain the full tutorial. */
+[hidden] { display:none !important; }
+.try-section { padding-block:3.5rem 5rem; border-top:1px solid var(--line); }
+.try-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:3rem; align-items:start; }
+.try-grid>* { min-width:0; }
+.try-stage { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; padding:24px 24px 64px; border:1px solid var(--line); border-radius:6px; background:white; min-height:230px; }
+.try-stage p { margin:0; line-height:1.5; font-size:.95rem; overflow-wrap:anywhere; border-top:2px solid #337a55; }
+.try-stage p strong,.try-stage p span { display:block; }
+.try-stage p span { color:var(--muted); margin-top:.65rem; }
+#try-image { min-width:0; min-height:135px; border-top:2px solid #337a55; background:linear-gradient(135deg,#ced5b9,#75918a); display:grid; place-items:center; color:#183c32; font-weight:650; }
+.try-stage[data-result="fail"] #try-image { border-color:#942b20; }
+#try-controls { padding-top:1.2rem; }
+#try-controls label { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5rem; font-weight:650; }
+#try-offset { display:block; width:100%; min-height:44px; accent-color:#396147; cursor:pointer; }
+.try-presets { display:flex; flex-wrap:wrap; gap:.5rem; }
+.try-presets button { font:inherit; font-size:.85rem; min-height:44px; padding:.55rem .8rem; border:1px solid #6e8476; border-radius:4px; color:var(--ink); background:white; cursor:pointer; }
+.try-presets button[aria-pressed="true"] { background:var(--green); border-color:var(--ink); }
+#try-help,.try-scope { font-size:.85rem; color:var(--muted); margin-top:1rem; }
+.try-explanation pre { margin-block:.8rem 1.25rem; }
+.try-status { margin-top:1rem; font-size:.95rem; min-height:3.2em; }
+.try-readout { gap:.6rem 1rem; margin-bottom:1rem; }
+.try-readout dt { color:var(--muted); font-family:inherit; }
+.try-readout dd { font-weight:650; }
+#try-verdict[data-result="fail"] { color:#942b20; }
+#try-verdict[data-result="pass"] { color:#235333; }
+@media(max-width:760px) { .try-grid { grid-template-columns:1fr; gap:2rem; } .try-stage { padding:18px 18px 54px; gap:18px; } }
+@media(prefers-reduced-motion:reduce) { .try-stage * { transition:none; } }
+
+.hero > * { min-width:0; }
+.button { max-width:100%; overflow-wrap:anywhere; }
