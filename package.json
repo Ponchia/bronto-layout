@@ -16,6 +16,8 @@
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "check": "npm run build && npm run lint && npm test",
     "demo": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/healthy.html",
+    "build:presentation": "node scripts/build-presentation.mjs",
+    "capture:first-use": "node scripts/capture-first-use.mjs",
     "demo:broken": "node bin/bronto-layout.mjs --spec examples/layout.json --url examples/broken.html",
     "demo:inspect": "node bin/bronto-layout.mjs inspect --url examples/healthy.html --width 375 --selector heading=.heading",
     "demo:scan": "node bin/bronto-layout.mjs scan --spec examples/responsive.json --scan 320:920:80 --refine",

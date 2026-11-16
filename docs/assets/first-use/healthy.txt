@@ -1,0 +1,7 @@
+Bronto Layout — file://$PACKAGE/examples/portfolio-alignment-healthy.html
+375px (ltr): 3 passed, 0 failed, 1 skipped
+768px (ltr): 4 passed, 0 failed, 0 skipped
+1280px (ltr): 4 passed, 0 failed, 0 skipped
+Observed transitions:
+  image-top-aligns-to-paragraph: skip → pass, 375–768px (sampled)
+Total: 0 failed, 11 passed, 1 skipped

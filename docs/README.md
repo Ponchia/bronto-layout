@@ -9,6 +9,7 @@ installed Chromium-family browser; the pure TypeScript engine does not.
 | Task | Guide |
 | --- | --- |
 | Install, inspect a page and define a relationship | [First run](quickstart.md) |
+| Preview the static product page and regenerate real captures | [Product presentation](presentation.md) |
 | Integrate in CI or an agent workflow | [Beta integrations](beta-integration.md) |
 | Reuse an existing Playwright page | [Playwright adapter](playwright-adapter.md) |
 | Explore state replay, schemas and evidence recipes | [Extended recipes](recipes.md) |

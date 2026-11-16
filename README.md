@@ -3,18 +3,30 @@
 [![CI](https://github.com/Ponchia/bronto-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/Ponchia/bronto-layout/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
 
-**Check layout relationships, not just pixel differences.**
+**Keep your layout in line.**
 
-Bronto Layout is a framework-independent, local CLI and TypeScript library for responsive layout verification. Inspect a site without writing a test, then explicitly preserve the alignments, spacing and containment rules that matter to your design. Reports work in terminals, CI and coding-agent workflows.
+Preserve the alignment, spacing and containment your design depends on.
+Bronto Layout is a local CLI and TypeScript library that checks explicit
+relationships across viewport widths. Inspect your page, approve the rules
+that matter, then enforce them in your project or CI.
+
+[Run your first check](docs/quickstart.md) ·
+[Reproduce a failure](#see-it-catch-an-actual-layout-relationship-regression) ·
+[Browse the docs](docs/README.md)
 
 **Status:** MIT-licensed, experimental **[v0.5.0-beta.2](https://github.com/Ponchia/bronto-layout/releases/tag/v0.5.0-beta.2)**, on npm as [`@ponchia/layout`](https://www.npmjs.com/package/@ponchia/layout) under the `beta` dist-tag. Chrome/Chromium and Node.js 22+ are needed for browser checks. Auto-detection prefers installed stable Chrome on Linux; use `--chrome PATH` or `CHROME_PATH` to override. The CLI ships no browser or third-party runtime dependencies and needs no account or hosted service.
 
 Install it into a project:
 
 ```sh
-npm install --save-dev @ponchia/layout@beta
-npx bronto-layout doctor --verify-launch
+npm install --save-dev @ponchia/layout@0.5.0-beta.2
+npx --no-install bronto-layout doctor --verify-launch
 ```
+
+Expected preflight: `launch-verified`. If Chrome cannot start, install it or
+select its executable with `--chrome PATH`; resolve the reported launch error
+before checking your page. This example pins the qualified published beta.2;
+`@beta` follows the registry's current beta tag. The source version can be ahead.
 
 Current beta qualification uses [in-house checks](docs/in-house-validation.md),
 not outside developer recruitment. Later betas publish from the protected release
@@ -25,7 +37,7 @@ bootstrapped by the maintainer and has none.
 
 The published npm beta includes both the approved layout contract and its
 self-contained HTML fixtures. You can reproduce the example from the project
-where you installed `@ponchia/layout@beta` **without cloning this repository,
+where you installed `@ponchia/layout` **without cloning this repository,
 running a build or installing browser automation dependencies**.
 
 This example intentionally moves a portfolio image 18px below the first
@@ -33,9 +45,6 @@ paragraph at desktop widths. Both pages can look healthy to a zero-contract
 audit; only an **approved alignment contract** identifies the regression.
 
 ```sh
-# In the project where you ran npm install --save-dev @ponchia/layout@beta:
-npx --no-install bronto-layout doctor --verify-launch
-
 # Check the published contract itself, without launching a browser.
 npx --no-install bronto-layout validate \
   --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json
@@ -59,9 +68,26 @@ environment rather than bypassing sandboxing for arbitrary websites.
 See [the complete walkthrough](docs/portfolio-regression-case-study.md)
 and [contributor setup](CONTRIBUTING.md) for source-built development.
 
-![Chromium-generated Bronto Layout evidence highlighting the image and paragraph whose top edges differ by 18 pixels](docs/assets/portfolio-alignment-768.png)
+| Healthy: exit 0 | Intentional regression: exit 1 |
+| --- | --- |
+| ![Healthy 768px fixture: image and paragraph share a top edge](docs/assets/first-use/healthy-768.png) | ![Broken 768px fixture: image starts 18px below the paragraph](docs/assets/first-use/broken-768.png) |
+| 11 passed, 0 failed, 1 skipped | 9 passed, 2 failed, 1 skipped |
 
-*Real CLI screenshot, cropped from the self-contained intentionally broken 768px fixture—not a production-site finding or an accuracy claim.*
+Real, unmodified CLI `inspect` captures from the installed npm beta.2. Red boxes
+select elements in both states; the approved contract determines the verdict.
+The mobile alignment rule is intentionally skipped. Read the
+[healthy output](docs/assets/first-use/healthy.txt),
+[broken output](docs/assets/first-use/broken.txt) and
+[capture data](docs/assets/first-use/evidence.json). This is a controlled fixture,
+not a production-site finding or an accuracy estimate.
+These fixture captures used an explicit sandbox bypass on a restricted test
+host; normal sandboxed startup failed there. The first-run commands keep the
+sandbox enabled.
+
+The [static product page source](https://github.com/Ponchia/bronto-layout/blob/main/site/index.html)
+presents this same journey.
+Use the [preview and regeneration instructions](docs/presentation.md) to review
+it locally; hosting is not enabled by this change.
 
 ## Try your own site
 

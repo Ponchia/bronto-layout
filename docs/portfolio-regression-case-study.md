@@ -14,24 +14,35 @@ The contract in [`examples/portfolio-alignment.json`](../examples/portfolio-alig
 
 ## Reproduce
 
-From the repository root, after `npm ci`:
+From your Node.js project, using the published package (Node.js 22+ and an
+installed Chrome/Chromium):
 
 ```sh
-npm run build
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json --json
-# Expected exit 0; alignment passes at 768 and 1280px, mobile alignment is intentionally skipped.
+npm install --save-dev @ponchia/layout@0.5.0-beta.2
+npx --no-install bronto-layout doctor --verify-launch
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json --json
+# Expected exit 0: alignment passes at 768 and 1280px.
+# Mobile alignment is intentionally skipped.
 
-node bin/bronto-layout.mjs check --spec examples/portfolio-alignment.json \
-  --url examples/portfolio-alignment-broken.html --json
+npx --no-install bronto-layout check \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-broken.html --json
 # Expected exit 1: alignment fails at 768 and 1280px.
 
-node bin/bronto-layout.mjs compare --spec examples/portfolio-alignment.json \
-  --baseline examples/portfolio-alignment-healthy.html \
-  --url examples/portfolio-alignment-broken.html --json
-# Expected exit 1: a new alignment regression at the desktop widths.
+npx --no-install bronto-layout compare \
+  --spec node_modules/@ponchia/layout/examples/portfolio-alignment.json \
+  --baseline node_modules/@ponchia/layout/examples/portfolio-alignment-healthy.html \
+  --url node_modules/@ponchia/layout/examples/portfolio-alignment-broken.html --json
+# Expected exit 1: a new alignment regression at desktop widths.
 ```
 
 Observe that no other semantic contract must fail. A generic audit may return no measured failures because nothing is necessarily overflowing or broken: **it cannot know the desired alignment without the authored rule**.
+
+The [first-run guide](quickstart.md) includes the healthy/broken screenshots,
+actual output and expected summaries from the installed beta.2. To regenerate
+those assets, follow [presentation evidence](presentation.md). Contributor
+source builds remain in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 To preserve the annotated Chromium screenshot yourself, add `--evidence-dir reports/portfolio-evidence` to the failing `check` command and inspect `check-768px.png`. A cropped, unmodified CLI capture is included in [the example image](assets/portfolio-alignment-768.png); the image is evidence from this **local fixture only**, not an independent label.
 

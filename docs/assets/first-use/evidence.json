@@ -1,0 +1,83 @@
+{
+  "package": {
+    "name": "@ponchia/layout",
+    "version": "0.5.0-beta.2"
+  },
+  "capture": "Installed CLI inspect screenshots, unmodified; controlled local fixtures only.",
+  "browser": {
+    "version": "Google Chrome for Testing 156.0.8078.4",
+    "sandboxBypassRequested": true
+  },
+  "contract": {
+    "ruleId": "image-top-aligns-to-paragraph",
+    "type": "align-edge",
+    "tolerance": 2,
+    "minWidth": 768,
+    "unit": "CSS px",
+    "sha256": "62a091b8c71ba53f10b6a088a6091a597909fcabcab7413345a4dd7b135c5f97"
+  },
+  "fixtures": {
+    "healthy": {
+      "exit": 0,
+      "summary": {
+        "passed": 11,
+        "failed": 0,
+        "skipped": 1
+      },
+      "topDelta": 0,
+      "widths": [
+        {
+          "width": 375,
+          "passed": 3,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "width": 768,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "width": 1280,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "fixtureSha256": "64cc705b930e9dba423130926d6f3f75d8ce7c1830f041546950492c1b357573",
+      "screenshotSha256": "681f7d45f6ddda0f2217daf58b9a12f73ceda45e7317e1acfa197bc729fa9773"
+    },
+    "broken": {
+      "exit": 1,
+      "summary": {
+        "passed": 9,
+        "failed": 2,
+        "skipped": 1
+      },
+      "topDelta": 18,
+      "widths": [
+        {
+          "width": 375,
+          "passed": 3,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "width": 768,
+          "passed": 3,
+          "failed": 1,
+          "skipped": 0
+        },
+        {
+          "width": 1280,
+          "passed": 3,
+          "failed": 1,
+          "skipped": 0
+        }
+      ],
+      "fixtureSha256": "f2a8daf542821b63c20689b1a773f002c2c46a13ac4595cdfd9c65ac3b9de6a4",
+      "screenshotSha256": "95ee56de005aedf30da6310db3b8b8eb6a17b4d1921dbaefdcbc221a243a40d1"
+    }
+  }
+}
